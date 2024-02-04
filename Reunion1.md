@@ -29,7 +29,7 @@
 - commencer un doc sur nos idées de départ pour le projet (langage de programmation, formalisation du scénario d’échanges entre le programme des chercheurs du CRAN et le jumeau numérique, etc…)
 
 
-## Distribution : (Pour lundi 12 février)
+## Distribution des tâches : (deadline : lundi 12 février)
 - Théo Deygas: partie 2 et debut 3
 - Gabin Granjon : partie 1 A
 - Nicolas Fernandez : partie 1 B
