@@ -1,8 +1,8 @@
-- Projet : créer un jumeau numérique pour des robots Omicron
+- Projet : créer un jumeau numérique pour des robots Omron
 
 - But : pouvoir lancer des programmes tests sur notre logiciel et savoir si le/les robot/robots va/vont arriver à destination ou non (chemin sans obstacles ou non)
 
-- Langage de programmation : libre mais doit être cohérent (on va pas le faire en scratch ni dans un langage que plus personne n’utilise type pascal ou ada)
+- Langage de programmation : libre mais doit être cohérent (on ne va pas le faire en scratch ni dans un langage que plus personne n’utilise type pascal ou ada)
 
 - Langages Possibles : python, c, c++, c#, java, html/javascript (framework), html/css/js, rust
 
@@ -30,9 +30,9 @@
 
 
 ## Distribution : (Pour lundi 12 février)
-- Théo Deygas: part 2 et debut 3
-- Gabin Granjon : part 1 A
-- Nicolas Fernandez : part 1 B
+- Théo Deygas: partie 2 et debut 3
+- Gabin Granjon : partie 1 A
+- Nicolas Fernandez : partie 1 B
 
 
 
