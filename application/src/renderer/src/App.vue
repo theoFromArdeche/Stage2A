@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="js">
 import Versions from './components/Versions.vue'
 
 const ipcHandle = () => window.electron.ipcRenderer.send('ping')
