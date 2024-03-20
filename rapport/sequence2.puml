@@ -1,0 +1,15 @@
+@startuml
+Client -> Server: ping
+Client <-- Server: reponse
+group update positions robots Omron
+    Server -> Client: update
+    Client --> Server: ping
+else fin de l'echange
+    Client -> Server: requete fin
+    Client <-- Server: reponse fin
+else timeout
+    Server -> Client: update  
+    Server -> Client: timeout
+    note right: après 5 secondes sans réponse du client
+end
+@enduml
