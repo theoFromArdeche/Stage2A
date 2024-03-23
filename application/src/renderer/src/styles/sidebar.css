@@ -1,0 +1,15 @@
+#container_sidebar {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 20px;
+    border-style: solid !important;
+    box-sizing: border-box;
+    border: 2px;
+}
+
+
+.elementSidebar {
+    width: 100%;
+}

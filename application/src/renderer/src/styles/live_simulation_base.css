@@ -1,0 +1,66 @@
+#container {
+    position: relative;
+    display: flex;
+    height: 100%;
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+}
+
+#container_map {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+#map {
+    mix-blend-mode: multiply;
+    width: 90%;
+    height: auto;
+}
+
+
+#temp {
+    position: absolute;
+}
+
+#sidebar {
+    height: 70%;
+    width: 10%;
+    min-width: 100px;
+    margin-left: 20px;
+    box-sizing: border-box;
+}
+
+#container_buttons {
+    height: auto;
+    width: auto;
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 20px;
+}
+
+#container_buttons > button {
+    height: 75px;
+    aspect-ratio: 1;
+    border-radius: 10px;
+    border-style: none;
+    box-shadow: 0px 5px 10px #007183;
+}
+
+
+#container_buttons > button:hover {
+    transform: scale(1.05);
+    transition: 0.2s;
+    background-color: white;
+}
+
+#container_buttons > button:active {
+    transform: scale(0.95);
+    transition: 0.05s;
+}
