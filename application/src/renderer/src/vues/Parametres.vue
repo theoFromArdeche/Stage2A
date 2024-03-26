@@ -6,21 +6,27 @@ import '../styles/parametres.css'
   <div>
     <span id="temp">parametres</span>
     <div id="container_params">
-      <div id="stats_avancees">
-        <span> Statistiques avancées</span>
-
-        <label class="switch">
+      <div id="box_stats" class="box">
+        <span id="titre_stats" class="elt_stats"> Statistiques avancées</span>
+        <label class="elt_stats " id="switch">
           <input type="checkbox">
           <span class="slider round"></span>
         </label>
+        <span class="expl"> Les statistiques avancées vous permettent de connaître la position et la vitesse des
+          robots </span>
       </div>
-      <span>Lorem ipsum dolor sit gabin, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
-        dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
-        commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-        pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est
-        laborum.</span>
-      <span>test2</span>
-      <span>test3</span>
+
+      <div id="box_admin" class="box">
+        <label for="name" class="elt_admin" id="titre_admin">Vous avez un code administrateur?</label>
+        <div id="form">
+          <div class="elt_admin">
+            <input type="text" class="form__input" id="name" placeholder="Code Administrateur" required="" />
+          </div>
+          <button id="button_admin" class="elt_admin">Valider</button>
+        </div>
+        <span class="expl"> Le code administrateur vous permet d'être prioritaire pour la file d'attente, et la capacité
+          d'arrêter en urgence l'utilisation des robots par d'autres utilisateurs </span>
+      </div>
     </div>
   </div>
 </template>
