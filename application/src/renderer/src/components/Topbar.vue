@@ -10,7 +10,7 @@ function change_view(view, new_button_id) {
   var container_elements = document.getElementById("container_topbar").children
 
 	var cur_button = container_elements[cur_button_id].children[0]
-	cur_button.style.border=""; 
+	cur_button.style.border="";
 	cur_button.style.backgroundColor=""
 
 	var new_button = container_elements[new_button_id].children[0]

@@ -1,11 +1,16 @@
 <script setup>
-defineProps({ TestProp: String })
+defineProps({
+  nomRobot: String,
+  etat: String,
+  batterie: Number,
+  fileAttente: Number
+})
 </script>
 
 <template>
   <div>
     <div id="container_elementSidebar">
-      <span>{{ TestProp }}</span>
+      <span>{{ nomRobot }}</span> - <span>{{ etat }}</span> - <span>{{ batterie }}%</span> - <span>{{ fileAttente }}</span>
     </div>
   </div>
 </template>
