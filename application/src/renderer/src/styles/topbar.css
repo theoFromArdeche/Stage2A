@@ -29,13 +29,13 @@
 
 button {
     height: 70%;
-    aspect-ratio: 2.5;
+    width: fit-content;
+    padding: 0 2rem 0 2rem;
     border-radius: 10px;
     border-style: none;
-    box-shadow: 0px 5px 10px #007183;
+    box-shadow: 0px 5px 10px #959595;
     box-sizing: border-box;
-    padding: 5px 0px 5px 0px;
-    transition: 0.5s ease-in-out;
+    transition: 0.1s ease-in-out;
     background-color: lightgray;
 }
 
