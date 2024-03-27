@@ -1,6 +1,20 @@
 #container_elementSidebar {
     height: 100%;
     width: 100%;
-    border: 5px rgb(154, 79, 79) solid;
     box-sizing: border-box;
+    margin-left: 10px;
+    margin-top: 5px;
+    margin-right: 10px;
+    margin-bottom: 5px;
+}
+
+.button {
+  height: 70%;
+  aspect-ratio: 2.5;
+  border-style: none;
+  box-shadow: 0px 5px 10px #007183;
+  box-sizing: border-box;
+  padding: 5px 0px 5px 0px;
+  transition: 0.5s ease-in-out;
+  background-color: lightgray;
 }
