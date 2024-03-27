@@ -10,7 +10,10 @@ defineProps({
 <template>
   <div>
     <div id="container_elementSidebar">
-      <span>{{ nomRobot }}</span> - <span>{{ etat }}</span> - <span>{{ batterie }}%</span> - <span>{{ fileAttente }}</span>
+      <div>{{ nomRobot }}</div>
+      <div>État: {{ etat }}</div>
+      <div>Batterie: {{ batterie }}%</div>
+      <div>{{ fileAttente }} en attente</div>
     </div>
   </div>
 </template>
