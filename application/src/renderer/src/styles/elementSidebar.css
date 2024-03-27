@@ -1,6 +1,6 @@
 #container_elementSidebar {
     height: 100%;
     width: 100%;
-    border: 5px red solid;
+    border: 5px rgb(154, 79, 79) solid;
     box-sizing: border-box;
 }
