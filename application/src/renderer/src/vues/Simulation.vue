@@ -6,14 +6,13 @@ import Sidebar from '../components/Sidebar.vue'
 
 <template>
   <div>
-    <span id="temp">simulation</span>
     <div id="container">
       <Sidebar id="sidebar"></Sidebar>
       <div id="container_map">
         <img id="map" src="../assets/carte.png" draggable="false" />
       </div>
       <div id="container_buttons">
-        <button>test1</button>
+        <button>Lancer la simulation</button>
       </div>
     </div>
   </div>

@@ -14,8 +14,8 @@ function change_view(view, new_button_id) {
 	cur_button.style.backgroundColor=""
 
 	var new_button = container_elements[new_button_id].children[0]
-	new_button.style.border="solid 3px #3F72AF";
-	new_button.style.backgroundColor="#3F72AF"
+	new_button.style.border="solid 3px #6686ad";
+	new_button.style.backgroundColor="#6686ad"
 
 	cur_button_id=new_button_id
 }

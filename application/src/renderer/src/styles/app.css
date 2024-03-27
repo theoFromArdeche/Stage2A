@@ -1,8 +1,19 @@
+@font-face {
+  font-family: 'gfont_rubik_regular';
+  src: url('../assets/fonts/Rubik/static/Rubik-Regular.ttf');
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'gfont_rubik_medium';
+  src: url('../assets/fonts/Rubik/static/Rubik-Medium.ttf');
+  font-weight: 500;
+}
+
 :root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'gfont_rubik_regular', sans-serif;
   font-size: 16px;
   line-height: 24px;
-  font-weight: 400;
   user-select: none;
 
   color: #0f0f0f;
@@ -30,10 +41,9 @@ body {
 }
 
 button {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'gfont_rubik_medium', sans-serif;
   font-size: 24px;
   line-height: 24px;
-  font-weight: 800;
 }
 
 button:hover {

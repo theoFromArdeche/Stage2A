@@ -22,10 +22,6 @@
 }
 
 
-#temp {
-    position: absolute;
-}
-
 #sidebar {
     height: 70%;
     width: 10%;
@@ -46,11 +42,12 @@
 }
 
 #container_buttons > button {
-    height: 75px;
-    aspect-ratio: 1;
+    width: max-content;
     border-radius: 10px;
     border-style: none;
     box-shadow: 0px 5px 10px #959595;
+    padding: 1rem 1rem 1rem 1rem;
+    box-sizing: content-box;
 }
 
 
