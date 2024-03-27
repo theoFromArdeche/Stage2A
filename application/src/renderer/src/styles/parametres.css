@@ -1,13 +1,15 @@
 #container_params {
-  position: relative;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
-  height: 100%;
-  width: 100%;
   flex-direction: row;
-  align-items: center;
   justify-content: center;
+  align-items: start;
+  width: 75%;
+  gap: 120px;
   box-sizing: border-box;
-  padding-top: 50px;
   user-select: text;
   font-family: 'gfont_rubik_regular', sans-serif;
 
@@ -99,22 +101,21 @@ input:checked+.slider:before {
   transition: all 0.4s;
 }
 
-#box_stats {
+#box_stats, .box_wrapper {
   display: flex;
   width: fit-content;
   min-width: 200px;
   flex-direction: column;
-  padding: 10px;
   /*border: solid;
   border-color: rgb(148, 86, 10);
-  */align-items: center;
+  */
+  align-items: center;
   justify-content: center;
-  padding-bottom: 70px;
+  text-align: center;
   font-size: 1.2rem;
 }
 
-#box_admin {
-  margin-bottom: 8px;
+#box_admin, .box_wrapper {
   font-family: 'gfont_rubik_regular', sans-serif;
   font-size: 1.2rem;
   align-items: center;
@@ -122,9 +123,18 @@ input:checked+.slider:before {
   display: flex;
   width: fit-content;
   flex-direction: column;
-  padding: 10px;
+  text-align: center;
   /*border: solid;
   border-color: rgb(61, 146, 40);*/
+}
+
+#box_admin, #box_wrapper {
+  position: relative;
+}
+
+.box_wrapper {
+  position: absolute;
+  top: 80%;
 }
 
 .elt_admin {
@@ -161,10 +171,6 @@ button:active {
   transition: 0.05s;
 }
 
-.box {
-  margin-left: 80px;
-  margin-right: 80px;
-}
 
 .expl{
   max-width: 400px;
