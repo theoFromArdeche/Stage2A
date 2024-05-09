@@ -59,7 +59,7 @@ app.whenReady().then(() => {
   ipcMain.on('ping', () => console.log('pong'))
 
   ipcMain.on('sendRequest', (event, arg) => {
-    // send a message to the server
+    // send a request to the client
     sendRequest(arg);
   });
 
@@ -96,8 +96,8 @@ const server = net.createServer((socket) => {
   clientSocket=socket;
   clientConnected=true
 
+  // received data from the client
   socket.on('data', (data) => {
-    // Send a response back to the first server
     receiveRequest(data.toString())
   });
   
