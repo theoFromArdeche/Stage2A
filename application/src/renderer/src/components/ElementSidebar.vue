@@ -2,8 +2,8 @@
 defineProps({
   nomRobot: String,
   etat: String,
-  batterie: Number,
-  fileAttente: Number
+  batterie: String,
+  fileAttente: String
 })
 </script>
 

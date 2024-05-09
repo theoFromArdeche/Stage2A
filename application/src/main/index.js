@@ -3,9 +3,11 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
+var mainWindow;
+
 function createWindow() {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     maxWidth: 1920,
     minWidth: 900,
@@ -56,6 +58,11 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
+  ipcMain.on('sendRequest', (event, arg) => {
+    // send a message to the server
+    sendRequest(arg);
+  });
+
   createWindow()
 
   app.on('activate', function () {
@@ -76,3 +83,43 @@ app.on('window-all-closed', () => {
 
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
+
+const net = require('net');
+
+const port_server = 1234; // choose an open port
+
+var clientSocket;
+var clientConnected=false;
+
+const server = net.createServer((socket) => {
+  console.log('Client connected');
+  clientSocket=socket;
+  clientConnected=true
+
+  socket.on('data', (data) => {
+    // Send a response back to the first server
+    receiveRequest(data.toString())
+  });
+  
+  socket.on('end', () => {
+    console.log('Client disconnected');
+    clientConnected=false
+  });
+});
+
+server.listen(port_server, () => {
+  console.log(`Telnet server listening on port ${port_server}`);
+});
+
+
+
+function sendRequest(msg) {
+  if (!clientConnected) return;
+  console.log("Send to client : " + msg)
+  clientSocket.write(msg);
+}
+
+function receiveRequest(msg) {
+  console.log('Received from client : ', msg);
+  mainWindow.webContents.send('receiveResponse', msg);
+}
