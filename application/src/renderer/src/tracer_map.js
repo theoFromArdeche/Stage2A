@@ -1,36 +1,8 @@
-//const { forbiddenLines, forbiddenAreas, interestPoints } = require('./traitement_map')
+import { forbiddenLines, forbiddenAreas, interestPoints } from './traitement_map.js'
 
 document.addEventListener('DOMContentLoaded', function () {
   const canvas = document.getElementById('mapCanvas')
   const ctx = canvas.getContext('2d')
-
-  const forbiddenLines = [
-    [
-      [50, 50],
-      [150, 50]
-    ],
-    [
-      [75, 75],
-      [75, 125]
-    ]
-  ]
-
-  const forbiddenAreas = [
-    [
-      [200, 100],
-      [300, 200]
-    ],
-    [
-      [400, 150],
-      [450, 250]
-    ]
-  ]
-
-  const interestPoints = [
-    [100, 300],
-    [200, 400],
-    [300, 500]
-  ]
 
   interestPoints.forEach((point) => {
     ctx.fillStyle = 'blue'
