@@ -174,54 +174,56 @@ export default {
     const canvas = this.$refs.mapCanvas
     const ctx = canvas.getContext('2d')
 
+
     function tailleEtTracer() {
-      updateInfos().then(() => {
-        //ctx.clearRect(0, 0, canvas.width, canvas.height)
-        //console.log(forbiddenAreas, '\n\n\n', forbiddenLines, '\n\n\n', interestPoints)
+      //ctx.clearRect(0, 0, canvas.width, canvas.height)
+      //console.log(forbiddenAreas, '\n\n\n', forbiddenLines, '\n\n\n', interestPoints)
 
-        function transformCoord(x, y) {
-          //console.log(x, y)
-          return {
-            x: (1 - (y - minPos.y) / maxPos.y) * canvas.width,
-            y: (1 - (x - minPos.x) / maxPos.x) * canvas.height
-          }
+      function transformCoord(x, y) {
+        //console.log(x, y)
+        return {
+          x: (1 - (y - minPos.y) / maxPos.y) * canvas.width,
+          y: (1 - (x - minPos.x) / maxPos.x) * canvas.height
         }
+      }
 
-        interestPoints.forEach((point) => {
-          const transformed = transformCoord(point[0], point[1])
-          //console.log(transformed)
-          ctx.fillStyle = 'blue'
-          ctx.beginPath()
-          ctx.arc(transformed.x, transformed.y, 5, 0, 2 * Math.PI)
-          ctx.fill()
-        })
+      interestPoints.forEach((point) => {
+        const transformed = transformCoord(point[0], point[1])
+        //console.log(transformed)
+        ctx.fillStyle = 'blue'
+        ctx.beginPath()
+        ctx.arc(transformed.x, transformed.y, 5, 0, 2 * Math.PI)
+        ctx.fill()
+      })
 
-        forbiddenLines.forEach((line) => {
-          const start = transformCoord(line[0][0], line[0][1])
-          const end = transformCoord(line[1][0], line[1][1])
-          //console.log(start, end)
-          ctx.strokeStyle = 'red'
-          ctx.lineWidth = 2
-          ctx.beginPath()
-          ctx.moveTo(start.x, start.y)
-          ctx.lineTo(end.x, end.y)
-          ctx.stroke()
-        })
+      forbiddenLines.forEach((line) => {
+        const start = transformCoord(line[0][0], line[0][1])
+        const end = transformCoord(line[1][0], line[1][1])
+        //console.log(start, end)
+        ctx.strokeStyle = 'red'
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.moveTo(start.x, start.y)
+        ctx.lineTo(end.x, end.y)
+        ctx.stroke()
+      })
 
-        forbiddenAreas.forEach((area) => {
-          const topLeft = transformCoord(area[0][0], area[0][1])
-          const bottomRight = transformCoord(area[1][0], area[1][1])
-          ctx.fillStyle = 'rgba(255, 0, 0, 0.5)'
-          ctx.beginPath()
-          ctx.rect(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y)
-          ctx.fill()
-          ctx.strokeStyle = 'red'
-          ctx.stroke()
-        })
+      forbiddenAreas.forEach((area) => {
+        const topLeft = transformCoord(area[0][0], area[0][1])
+        const bottomRight = transformCoord(area[1][0], area[1][1])
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.5)'
+        ctx.beginPath()
+        ctx.rect(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y)
+        ctx.fill()
+        ctx.strokeStyle = 'red'
+        ctx.stroke()
       })
     }
 
-    tailleEtTracer()
+    updateInfos().then(() => {
+      tailleEtTracer()
+    })
+
     window.addEventListener('resize', tailleEtTracer)
   }
 }
