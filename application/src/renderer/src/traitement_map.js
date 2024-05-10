@@ -28,11 +28,7 @@ const getCoords = (line) => {
 }
 
 const getCoordsFa = (line) => {
-  const coords = [
-    [0, 0], // Premier point
-    [0, 0], // Deuxième point
-    0 // Rotation
-  ]
+  const coords = [[0, 0], [0, 0], 0]
   let compteur = 0
   let i = 0
   let temp = ''
@@ -132,36 +128,62 @@ const updateInfos = async () => {
   }
 }
 
-updateInfos().then(() => {
-  console.log(forbiddenAreas, '\n\n\n', forbiddenLines, '\n\n\n', interestPoints)
-  document.addEventListener('DOMContentLoaded', function () {
-    const canvas = document.getElementById('mapCanvas')
-    const ctx = canvas.getContext('2d')
+const minPos = { x: -6260, y: -17580 }
+const maxPos = { x: 10440, y: 31820 }
 
-    interestPoints.forEach((point) => {
-      ctx.fillStyle = 'blue'
-      ctx.beginPath()
-      ctx.arc(point[0], point[1], 5, 0, 2 * Math.PI)
-      ctx.fill()
-    })
+document.addEventListener('DOMContentLoaded', function () {
+  const canvas = document.getElementById('mapCanvas')
+  const ctx = canvas.getContext('2d')
 
-    forbiddenLines.forEach((line) => {
-      ctx.strokeStyle = 'red'
-      ctx.lineWidth = 2
-      ctx.beginPath()
-      ctx.moveTo(line[0][0], line[0][1])
-      ctx.lineTo(line[1][0], line[1][1])
-      ctx.stroke()
-      console.log('greg')
-    })
+  function tailleEtTracer() {
+    canvas.width = window.innerWidth * 0.9
+    canvas.height = window.innerHeight * 0.9
+    updateInfos().then(() => {
+      console.log(forbiddenAreas, '\n\n\n', forbiddenLines, '\n\n\n', interestPoints)
 
-    forbiddenAreas.forEach((area) => {
-      ctx.fillStyle = 'rgba(255, 0, 0, 0.5)'
-      ctx.beginPath()
-      ctx.rect(area[0][0], area[0][1], area[1][0] - area[0][0], area[1][1] - area[0][1])
-      ctx.fill()
-      ctx.strokeStyle = 'red'
-      ctx.stroke()
+      const scaleX = canvas.width / (maxPos.x - minPos.x)
+      const scaleY = canvas.height / (maxPos.y - minPos.y)
+      const scale = Math.min(scaleX, scaleY)
+
+      function transformCoord(x, y) {
+        return {
+          x: (x - minPos.x) * scale,
+          y: (y - minPos.y) * scale
+        }
+      }
+
+      interestPoints.forEach((point) => {
+        const transformed = transformCoord(point[0], point[1])
+        ctx.fillStyle = 'blue'
+        ctx.beginPath()
+        ctx.arc(transformed.x, transformed.y, 5, 0, 2 * Math.PI)
+        ctx.fill()
+      })
+
+      forbiddenLines.forEach((line) => {
+        const start = transformCoord(line[0][0], line[0][1])
+        const end = transformCoord(line[1][0], line[1][1])
+        ctx.strokeStyle = 'red'
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.moveTo(start.x, start.y)
+        ctx.lineTo(end.x, end.y)
+        ctx.stroke()
+      })
+
+      forbiddenAreas.forEach((area) => {
+        const topLeft = transformCoord(area[0][0], area[0][1])
+        const bottomRight = transformCoord(area[1][0], area[1][1])
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.5)'
+        ctx.beginPath()
+        ctx.rect(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y)
+        ctx.fill()
+        ctx.strokeStyle = 'red'
+        ctx.stroke()
+      })
     })
-  })
+  }
+
+  tailleEtTracer()
+  window.addEventListener('resize', tailleEtTracer)
 })

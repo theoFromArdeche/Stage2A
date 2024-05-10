@@ -12,12 +12,14 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    width: 90%;
+    height: 90%;
+    position: relative;
 }
 
 
 #map {
     mix-blend-mode: multiply;
-    width: 90%;
     height: auto;
 }
 
