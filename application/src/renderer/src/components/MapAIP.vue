@@ -105,10 +105,21 @@ export default {
         }
         i += 1
       }
-
       return coords
     }
 
+    function getLineDetectedCoords(line) {
+      const parts = line.split(' ').map(Number)
+      return [parts.slice(0, 2), parts.slice(2)]
+    }
+
+    function getPointDetectedCoords(line) {
+      const parts = line.split(' ').map(Number)
+      return parts.slice(0, 2)
+    }
+
+    let lineDetectedCoords = []
+    let pointDetectedCoords = []
     let forbiddenLines = []
     let forbiddenAreas = []
     let interestPoints = []
@@ -120,6 +131,8 @@ export default {
         const response = await fetch(url)
         const content = await response.text()
         const lines = content.split('\n')
+        let parsingDetectedLines = false
+        let parsingDetectedPoints = false
         for (const line of lines) {
           if (line.startsWith('Cairn:')) {
             if (line.includes('ForbiddenLine')) {
@@ -129,10 +142,26 @@ export default {
             } else {
               interestPoints.push(getCoords(line))
             }
+          } else if (line.trim() === 'LINES') {
+            parsingDetectedLines = true
+          } else if (parsingDetectedLines) {
+            if (line.trim() && line.includes(' ')) {
+              lineDetectedCoords.push(getLineDetectedCoords(line))
+            } else {
+              parsingDetectedLines = false
+              parsingDetectedPoints = true
+            }
+          } else if (parsingDetectedPoints) {
+            if (line.trim() && line.includes(' ')) {
+              pointDetectedCoords.push(getPointDetectedCoords(line))
+            } else {
+              parsingDetectedPoints = false
+            }
           }
         }
         getMin()
-        console.log(minPos, maxPos)
+        console.log(lineDetectedCoords)
+        console.log(pointDetectedCoords)
       } catch (err) {
         console.error('Error fetching file:', err)
       }
@@ -167,13 +196,19 @@ export default {
         getMinPoint(area[0])
         getMinPoint(area[1])
       })
+      lineDetectedCoords.forEach((detectedLines) => {
+        getMinPoint(detectedLines[0])
+        getMinPoint(detectedLines[1])
+      })
+      pointDetectedCoords.forEach((detectedPoints) => {
+        getMinPoint(detectedPoints)
+      })
       maxPos.x -= minPos.x
       maxPos.y -= minPos.y
     }
 
     const canvas = this.$refs.mapCanvas
     const ctx = canvas.getContext('2d')
-
 
     function tailleEtTracer() {
       //ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -216,6 +251,25 @@ export default {
         ctx.rect(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y)
         ctx.fill()
         ctx.strokeStyle = 'red'
+        ctx.stroke()
+      })
+
+      pointDetectedCoords.forEach((point) => {
+        const transformed = transformCoord(point[0], point[1])
+        ctx.fillStyle = 'blue'
+        ctx.beginPath()
+        ctx.arc(transformed.x, transformed.y, 1, 0, 2 * Math.PI)
+        ctx.fill()
+      })
+
+      lineDetectedCoords.forEach((line) => {
+        const start = transformCoord(line[0][0], line[0][1])
+        const end = transformCoord(line[1][0], line[1][1])
+        ctx.strokeStyle = 'purple'
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(start.x, start.y)
+        ctx.lineTo(end.x, end.y)
         ctx.stroke()
       })
     }
