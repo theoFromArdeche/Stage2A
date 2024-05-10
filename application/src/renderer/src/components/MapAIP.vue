@@ -1,7 +1,5 @@
 <template>
-  <div>
-    <canvas id="mapAIP" ref="mapCanvas"></canvas>
-  </div>
+  <canvas id="mapAIP" ref="mapCanvas"></canvas>
 </template>
 
 <script>
@@ -133,31 +131,65 @@ export default {
             }
           }
         }
+        getMin()
+        console.log(minPos, maxPos)
       } catch (err) {
         console.error('Error fetching file:', err)
       }
     }
 
-    const minPos = { x: -6260, y: -17580 }
-    const maxPos = { x: 10440, y: 31820 }
+    var minPos = { x: 0, y: 0 }
+    var maxPos = { x: 0, y: 0 }
+
+    function getMin() {
+      function getMinPoint(point) {
+        if (point[0] < minPos.x) {
+          minPos.x = point[0]
+        }
+        if (point[1] < minPos.y) {
+          minPos.y = point[1]
+        }
+        if (point[0] > maxPos.x) {
+          maxPos.x = point[0]
+        }
+        if (point[1] > maxPos.y) {
+          maxPos.y = point[1]
+        }
+      }
+      interestPoints.forEach((point) => {
+        getMinPoint(point)
+      })
+      forbiddenLines.forEach((line) => {
+        getMinPoint(line[0])
+        getMinPoint(line[1])
+      })
+      forbiddenAreas.forEach((area) => {
+        getMinPoint(area[0])
+        getMinPoint(area[1])
+      })
+      maxPos.x -= minPos.x
+      maxPos.y -= minPos.y
+    }
 
     const canvas = this.$refs.mapCanvas
     const ctx = canvas.getContext('2d')
 
     function tailleEtTracer() {
       updateInfos().then(() => {
-        console.log(forbiddenAreas, '\n\n\n', forbiddenLines, '\n\n\n', interestPoints)
+        //ctx.clearRect(0, 0, canvas.width, canvas.height)
+        //console.log(forbiddenAreas, '\n\n\n', forbiddenLines, '\n\n\n', interestPoints)
 
         function transformCoord(x, y) {
+          //console.log(x, y)
           return {
-            x: ((x - minPos.x) / maxPos.x) * 100,
-            y: ((y - minPos.y) / maxPos.y) * 100
+            x: (1 - (y - minPos.y) / maxPos.y) * canvas.width,
+            y: (1 - (x - minPos.x) / maxPos.x) * canvas.height
           }
         }
 
         interestPoints.forEach((point) => {
           const transformed = transformCoord(point[0], point[1])
-          console.log (transformed)
+          //console.log(transformed)
           ctx.fillStyle = 'blue'
           ctx.beginPath()
           ctx.arc(transformed.x, transformed.y, 5, 0, 2 * Math.PI)
@@ -167,6 +199,7 @@ export default {
         forbiddenLines.forEach((line) => {
           const start = transformCoord(line[0][0], line[0][1])
           const end = transformCoord(line[1][0], line[1][1])
+          //console.log(start, end)
           ctx.strokeStyle = 'red'
           ctx.lineWidth = 2
           ctx.beginPath()
