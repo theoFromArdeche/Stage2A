@@ -192,7 +192,7 @@ export default {
       maxPos.y -= minPos.y
     }
 
-    const canvas = this.$refs.mapCanvas
+    const canvas = document.getElementById('mapAIP')
     const ctx = canvas.getContext('2d')
 
     function tailleEtTracer() {
@@ -217,7 +217,13 @@ export default {
         //console.log(transformed)
         ctx.fillStyle = 'green'
         ctx.beginPath()
-        ctx.arc(transformed.x, transformed.y, 8, 0, 2 * Math.PI)
+        ctx.arc(
+          transformed.x,
+          transformed.y,
+          Math.sqrt(window.innerHeight ** 2 + window.innerWidth ** 2) * 0.005,
+          0,
+          2 * Math.PI
+        )
         ctx.fill()
       })
 

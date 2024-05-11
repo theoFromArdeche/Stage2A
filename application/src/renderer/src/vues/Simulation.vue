@@ -1,16 +1,8 @@
-<script>
+<script setup>
 import '../styles/simulation.css'
 import '../styles/live_simulation_base.css'
 import Sidebar from '../components/Sidebar.vue'
 import MapAIP from '../components/MapAIP.vue'
-
-export default {
-  name: 'Simulation',
-  components: {
-    Sidebar,
-    MapAIP
-  }
-}
 </script>
 
 <template>
