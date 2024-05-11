@@ -227,7 +227,6 @@ export default {
         const buttonSize = Math.sqrt(window.innerHeight ** 2 + window.innerWidth ** 2) * 0.005
         button.style.position = 'absolute'
         button.style.width = `${buttonSize}px`
-        button.style.height = `${buttonSize}px`
         button.style.left = `${transformed.x - buttonSize / 2}px`
         button.style.top = `${transformed.y - buttonSize / 2}px`
         button.onclick = () => console.log('test')
