@@ -5,5 +5,9 @@ import Topbar from './components/Topbar.vue'
 
 <template>
   <Topbar id="topbar"></Topbar>
-  <router-view id="router_view" />
+  <router-view id="router_view" v-slot="{ Component }">
+    <keep-alive>
+      <component :is="Component" />
+    </keep-alive>
+  </router-view>
 </template>
