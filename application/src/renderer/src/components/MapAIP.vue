@@ -160,8 +160,8 @@ export default {
           }
         }
         getMin()
-        console.log(lineDetectedCoords)
-        console.log(pointDetectedCoords)
+        //console.log(lineDetectedCoords)
+        //console.log(pointDetectedCoords)
       } catch (err) {
         console.error('Error fetching file:', err)
       }
@@ -200,15 +200,15 @@ export default {
       //console.log(forbiddenAreas, '\n\n\n', forbiddenLines, '\n\n\n', interestPoints)
 
       const container = document.getElementById('container_map')
-      canvas.height = container.offsetHeight
-      canvas.width = container.offsetWidth
+      canvas.width = container.offsetWidth;
+      canvas.height = maxPos.x * canvas.width / maxPos.y;
 
       function transformCoord(x, y) {
         //console.log(x, y)
         const diff = canvas.width / maxPos.y
         return {
           x: (1 - (y - minPos.y) / maxPos.y) * canvas.width,
-          y: (maxPos.x - x + minPos.x) * diff + canvas.height / 2 - (maxPos.x * diff) / 2
+          y: (maxPos.x - x + minPos.x) * diff
         }
       }
 
@@ -275,6 +275,7 @@ export default {
     })
 
     window.addEventListener('resize', tailleEtTracer)
+
   }
 }
 </script>
