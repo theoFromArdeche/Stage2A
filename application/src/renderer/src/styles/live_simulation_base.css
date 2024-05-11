@@ -13,7 +13,7 @@
     justify-content: center;
     align-items: center;
     width: 90%;
-    height: 90%;
+    height: auto;
     position: relative;
 }
 
@@ -66,4 +66,13 @@
 #container_buttons > button:active {
     transform: scale(0.95);
     transition: 0.05s;
+}
+
+
+#container_map > button {
+  cursor: pointer;
+  border: none;
+  border-radius: 50%;
+  background-color: #4CAF50;
+  color: white;
 }
