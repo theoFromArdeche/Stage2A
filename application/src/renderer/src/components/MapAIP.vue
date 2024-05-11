@@ -197,14 +197,15 @@ export default {
 
     function tailleEtTracer() {
       //ctx.clearRect(0, 0, canvas.width, canvas.height)
-      //console.log(forbiddenAreas, '\n\n\n', forbiddenLines, '\n\n\n', interestPoints)
 
       const container = document.getElementById('container_map')
-      canvas.width = container.offsetWidth;
-      canvas.height = maxPos.x * canvas.width / maxPos.y;
+
+      container.querySelectorAll('button').forEach((btn) => btn.remove())
+
+      canvas.width = container.offsetWidth
+      canvas.height = (maxPos.x * canvas.width) / maxPos.y
 
       function transformCoord(x, y) {
-        //console.log(x, y)
         const diff = canvas.width / maxPos.y
         return {
           x: (1 - (y - minPos.y) / maxPos.y) * canvas.width,
@@ -212,25 +213,29 @@ export default {
         }
       }
 
+      pointDetectedCoords.forEach((point) => {
+        const transformed = transformCoord(point[0], point[1])
+        ctx.fillStyle = 'blue'
+        ctx.beginPath()
+        ctx.arc(transformed.x, transformed.y, 0.05, 0, 2 * Math.PI)
+        ctx.fill()
+      })
+
       interestPoints.forEach((point) => {
         const transformed = transformCoord(point[0], point[1])
-        //console.log(transformed)
-        ctx.fillStyle = 'green'
-        ctx.beginPath()
-        ctx.arc(
-          transformed.x,
-          transformed.y,
-          Math.sqrt(window.innerHeight ** 2 + window.innerWidth ** 2) * 0.005,
-          0,
-          2 * Math.PI
-        )
-        ctx.fill()
+        const button = document.createElement('button')
+        const buttonSize = Math.sqrt(window.innerHeight ** 2 + window.innerWidth ** 2) * 0.005
+        button.style.position = 'absolute'
+        button.style.width = `${buttonSize}px`
+        button.style.left = `${transformed.x - buttonSize / 2}px`
+        button.style.top = `${transformed.y - buttonSize / 2}px`
+        button.onclick = () => console.log('test')
+        container.appendChild(button)
       })
 
       forbiddenLines.forEach((line) => {
         const start = transformCoord(line[0][0], line[0][1])
         const end = transformCoord(line[1][0], line[1][1])
-        //console.log(start, end)
         ctx.strokeStyle = 'red'
         ctx.lineWidth = 2
         ctx.beginPath()
@@ -250,14 +255,6 @@ export default {
         ctx.stroke()
       })
 
-      pointDetectedCoords.forEach((point) => {
-        const transformed = transformCoord(point[0], point[1])
-        ctx.fillStyle = 'blue'
-        ctx.beginPath()
-        ctx.arc(transformed.x, transformed.y, 0.1, 0, 2 * Math.PI)
-        ctx.fill()
-      })
-
       lineDetectedCoords.forEach((line) => {
         const start = transformCoord(line[0][0], line[0][1])
         const end = transformCoord(line[1][0], line[1][1])
@@ -275,7 +272,6 @@ export default {
     })
 
     window.addEventListener('resize', tailleEtTracer)
-
   }
 }
 </script>
