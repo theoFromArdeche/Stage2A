@@ -185,21 +185,6 @@ export default {
           maxPos.y = point[1]
         }
       }
-      interestPoints.forEach((point) => {
-        getMinPoint(point)
-      })
-      forbiddenLines.forEach((line) => {
-        getMinPoint(line[0])
-        getMinPoint(line[1])
-      })
-      forbiddenAreas.forEach((area) => {
-        getMinPoint(area[0])
-        getMinPoint(area[1])
-      })
-      lineDetectedCoords.forEach((detectedLines) => {
-        getMinPoint(detectedLines[0])
-        getMinPoint(detectedLines[1])
-      })
       pointDetectedCoords.forEach((detectedPoints) => {
         getMinPoint(detectedPoints)
       })
@@ -214,20 +199,25 @@ export default {
       //ctx.clearRect(0, 0, canvas.width, canvas.height)
       //console.log(forbiddenAreas, '\n\n\n', forbiddenLines, '\n\n\n', interestPoints)
 
+      const container = document.getElementById('container_map')
+      canvas.height = container.offsetHeight
+      canvas.width = container.offsetWidth
+
       function transformCoord(x, y) {
         //console.log(x, y)
+        const diff = canvas.width / maxPos.y
         return {
           x: (1 - (y - minPos.y) / maxPos.y) * canvas.width,
-          y: (1 - (x - minPos.x) / maxPos.x) * canvas.height
+          y: (maxPos.x - x + minPos.x) * diff + canvas.height / 2 - (maxPos.x * diff) / 2
         }
       }
 
       interestPoints.forEach((point) => {
         const transformed = transformCoord(point[0], point[1])
         //console.log(transformed)
-        ctx.fillStyle = 'blue'
+        ctx.fillStyle = 'green'
         ctx.beginPath()
-        ctx.arc(transformed.x, transformed.y, 5, 0, 2 * Math.PI)
+        ctx.arc(transformed.x, transformed.y, 8, 0, 2 * Math.PI)
         ctx.fill()
       })
 
@@ -258,7 +248,7 @@ export default {
         const transformed = transformCoord(point[0], point[1])
         ctx.fillStyle = 'blue'
         ctx.beginPath()
-        ctx.arc(transformed.x, transformed.y, 1, 0, 2 * Math.PI)
+        ctx.arc(transformed.x, transformed.y, 0.1, 0, 2 * Math.PI)
         ctx.fill()
       })
 
