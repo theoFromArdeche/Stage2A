@@ -70,9 +70,10 @@
 #container_map > button {
   cursor: pointer;
   border: none;
-  border-radius: 50%;
+  border-radius: 100%;
   background-color: #4CAF50;
   color: white;
+  aspect-ratio: 1;
 }
 
 #container_map > button:hover {
