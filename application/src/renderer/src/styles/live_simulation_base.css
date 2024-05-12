@@ -17,7 +17,6 @@
     position: relative;
 }
 
-
 #map {
     mix-blend-mode: multiply;
     height: auto;
@@ -68,11 +67,14 @@
     transition: 0.05s;
 }
 
-
 #container_map > button {
   cursor: pointer;
   border: none;
   border-radius: 50%;
   background-color: #4CAF50;
   color: white;
+}
+
+#container_map > button:hover {
+  transform: scale(1.5);
 }

@@ -2,6 +2,8 @@
 import '../styles/live.css'
 import '../styles/live_simulation_base.css'
 import Sidebar from '../components/Sidebar.vue'
+import MapAIP from '../components/MapAIP.vue'
+
 </script>
 
 <template>
@@ -9,7 +11,7 @@ import Sidebar from '../components/Sidebar.vue'
     <div id="container">
       <Sidebar id="sidebar"></Sidebar>
       <div id="container_map">
-        <img id="map" src="../assets/carte.png" draggable="false" />
+        <MapAIP></MapAIP>
       </div>
       <div id="container_buttons">
         <button>Lancer le programme</button>
