@@ -74,8 +74,14 @@
   background-color: #4CAF50;
   color: white;
   aspect-ratio: 1;
+  transition: 0.1s ease-out;
 }
 
 #container_map > button:hover {
   transform: scale(2);
 }
+
+#container_map > button:active {
+    transform: scale(1);
+  }
+  
