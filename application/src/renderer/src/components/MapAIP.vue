@@ -282,24 +282,24 @@ export default {
       console.log(canvas_route.width, canvas_route.height)
     }
 
-    function animateLineBetweenButtons(buttonId1, buttonId2) {
+    function animateLineBetweenButtons(button_id_start, button_id_end) {
       // Récupère les références des deux boutons et du canvas
-      const button1 = document.getElementById(buttonId1);
-      const button2 = document.getElementById(buttonId2);
+      const button_start = document.getElementById(button_id_start);
+      const button_end = document.getElementById(button_id_end);
       
       // Vérifie que les deux boutons et le canvas existent
-      if (!button1 || !button2 || !canvas_route || !ctx_route) {
-        console.error(`Un ou plusieurs éléments n'ont pas été trouvés : ${buttonId1}, ${buttonId2}, #canvas_route`);
+      if (!button_start || !button_end || !canvas_route || !ctx_route) {
+        console.error(`Un ou plusieurs éléments n'ont pas été trouvés : ${button_id_start}, ${button_id_end}, #canvas_route`);
         return;
       }
 
       // Récupère les positions des deux boutons (par rapport au conteneur)
       const diff = canvas_route.width/canvas_route.offsetWidth
 
-      const x1 = button1.offsetLeft * diff
-      const y1 = button1.offsetTop * diff
-      const x2 = button2.offsetLeft * diff
-      const y2 = button2.offsetTop * diff
+      const x1 = button_start.offsetLeft * diff
+      const y1 = button_start.offsetTop * diff
+      const x2 = button_end.offsetLeft * diff
+      const y2 = button_end.offsetTop * diff
       const dx = x2 - x1;
       const dy = y2 - y1;
 
@@ -318,7 +318,7 @@ export default {
         const elapsedTime = currentTime - startTime;
         const progress = Math.min(elapsedTime / animationTime, 1);
         ctx_route.strokeStyle = liste[Math.floor(progress*30)];
-        
+
         // Calcule la nouvelle position du trait
         const newX = x1 + dx * progress;
         const newY = y1 + dy * progress;
