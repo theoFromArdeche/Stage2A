@@ -16,7 +16,7 @@ export default {
     }
 
     const getCoords = (line) => {
-      const coords = [0, 0, 0]
+      const coords = [0, 0, 0, '']
       let pointeur = 0
       let i = 0
       let temp = ''
@@ -31,8 +31,14 @@ export default {
         }
         i += 1
       }
-
+      coords[3] = getRoomName(line)
       return coords
+    }
+
+    function getRoomName(line) {
+      const regex = /ICON\s+"([^"]+)"/
+      const match = line.match(regex)
+      return match[1]
     }
 
     const getCoordsFa = (line) => {
@@ -162,6 +168,7 @@ export default {
         getMin()
         //console.log(lineDetectedCoords)
         //console.log(pointDetectedCoords)
+        console.log(interestPoints)
       } catch (err) {
         console.error('Error fetching file:', err)
       }
@@ -175,7 +182,7 @@ export default {
         if (point[0] < minPos.x) {
           minPos.x = point[0]
         }
-        if (point[1] < minPos.y && point[1]!=-17580 && point[1]!=-17540) {
+        if (point[1] < minPos.y && point[1] != -17580 && point[1] != -17540) {
           minPos.y = point[1]
         }
         if (point[0] > maxPos.x) {
@@ -225,11 +232,12 @@ export default {
         const transformed = transformCoord(point[0], point[1], container.offsetWidth)
         const button = document.createElement('button')
         button.style.position = 'absolute'
-        button.style.width = "1%"
-        button.style.left = `${Math.round((transformed.x)/container.offsetWidth*100)}%`
+        button.style.width = '1%'
+        button.style.left = `${Math.round((transformed.x / container.offsetWidth) * 100)}%`
         const container_height = (maxPos.x * container.offsetWidth) / maxPos.y
-        button.style.top = `${Math.round((transformed.y)/container_height*100)}%`
-        button.onclick = () => console.log('test')
+        button.style.top = `${Math.round((transformed.y / container_height) * 100)}%`
+        button.id = point[3]
+        button.onclick = () => console.log(button.id)
         container.appendChild(button)
       })
 
