@@ -1,9 +1,9 @@
-#mapAIP {
+#canvas_MapAIP {
   width: 100%;
   height: auto;
 }
 
-#canvas2{
+#canvas_route{
   position:absolute;
   width: 100%;
 }
