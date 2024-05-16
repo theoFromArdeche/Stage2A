@@ -3,5 +3,8 @@
   height: auto;
 }
 
-
+#canvas2{
+  position:absolute;
+  width:95%;
+}
 

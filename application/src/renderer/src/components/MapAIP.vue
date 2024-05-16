@@ -1,5 +1,6 @@
 <template>
   <canvas id="mapAIP" ref="mapCanvas"></canvas>
+  <canvas id = "canvas2"></canvas>
 </template>
 
 <script>
@@ -200,17 +201,21 @@ export default {
 
     const canvas = document.getElementById('mapAIP')
     const ctx = canvas.getContext('2d')
+    const canvas2 = document.getElementById("canvas2");
+    const ctx2 = canvas2.getContext('2d');
 
     function tailleEtTracer() {
       //ctx.clearRect(0, 0, canvas.width, canvas.height)
 
       const container = document.getElementById('container_map')
-
+      console.log(container.width, container.height)
       container.querySelectorAll('button').forEach((btn) => btn.remove())
 
       canvas.width = 2560
+      canvas2.width = 2560
       canvas.height = (maxPos.x * canvas.width) / maxPos.y
-
+      canvas2.height = (maxPos.x * canvas2.width) / maxPos.y
+      console.log(`maxPos ici ${maxPos.x, maxPos.y}`)
       function transformCoord(x, y, width) {
         const diff = width / maxPos.y
         return {
@@ -279,6 +284,101 @@ export default {
     })
 
     //window.addEventListener('resize', tailleEtTracer)
+    function clearCanvas(){
+      //canvas2.style.display = 'none'
+      ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+      console.log(canvas2.width, canvas2.height)
+    }
+
+    function animateLineBetweenButtons(buttonId1, buttonId2) {
+      // Récupère les références des deux boutons et du canvas
+      console.log("je passe la 1")
+      const button1 = document.getElementById(buttonId1);
+      const button2 = document.getElementById(buttonId2);
+      
+      //const canvas = document.getElementById("mapAIP");
+      
+      console.log(`maxpos : ${maxPos.x}`)
+      canvas2.width = canvas.width
+      canvas2.height = canvas.height
+      // Vérifie que les deux boutons et le canvas existent
+      if (!button1 || !button2 || !canvas2 || !ctx2) {
+        console.error(`Un ou plusieurs éléments n'ont pas été trouvés : ${buttonId1}, ${buttonId2}, #canvas2`);
+        return;
+      }
+
+      // Récupère les positions des deux boutons (par rapport au conteneur)
+      const rect1 = button1.getBoundingClientRect();
+      const container = document.getElementById('container_map')
+      const test1 = parseFloat(button1.style.left)*(container.offsetWidth)/100
+      const test2 = parseFloat(button2.style.left)*(container.offsetWidth)/100
+      console.log(rect)
+      const rect2 = button2.getBoundingClientRect();
+      const containerRect = canvas2.getBoundingClientRect();
+      
+      const x1 = test1//rect1.left - containerRect.left;
+      const y1 = rect1.top - containerRect.top;
+      const x2 = rect2.left - containerRect.left;
+      const y2 = rect2.top - containerRect.top;
+      
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const length = Math.sqrt(dx**2 + dy**2);
+      const angle = Math.atan2(dy, dx);
+
+      ctx2.fillStyle = 'red';
+      
+
+      // Propriétés de la ligne
+      ctx2.lineWidth = 10;
+      ctx2.lineCap = 'round';
+      ctx2.strokeStyle = 'green';
+
+      // Animation
+      let startTime = performance.now();
+
+      function animate(currentTime) {
+        
+        /*
+        console.log(button1.getBoundingClientRect())
+        console.log(containerRect.left)
+        */
+        //Avancement de l'application (ici pour 5s)
+        const animationTime = 5000
+        const elapsedTime = currentTime - startTime;
+        const progress = Math.min(elapsedTime / animationTime, 1);
+
+        // Calcule la nouvelle position du trait
+        const newX = x1 + dx * progress;
+        const newY = y1 + dy * progress;
+
+        // Efface le canvas et dessine le nouveau trait
+        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+        ctx2.beginPath();
+        ctx2.moveTo(x1, y1);
+        ctx2.lineTo(newX, newY);
+        ctx2.stroke();
+        ctx2.fillRect(x1,y1,10,10)
+        ctx2.fillRect(x2,y2,10,10)
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          setTimeout(clearCanvas,3000)
+        }
+      }
+
+      // Démarre l'animation
+      requestAnimationFrame(animate);
+    }
+
+    // Exemple d'utilisation de la fonction :
+    document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space'){
+                console.log("Space key is pressed!");
+                animateLineBetweenButtons('S-106', 'S-114')
+            }
+        });
   }
 }
 </script>
