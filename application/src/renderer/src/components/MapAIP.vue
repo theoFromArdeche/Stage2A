@@ -168,7 +168,6 @@ export default {
         getMin()
         //console.log(lineDetectedCoords)
         //console.log(pointDetectedCoords)
-        console.log(interestPoints)
       } catch (err) {
         console.error('Error fetching file:', err)
       }
