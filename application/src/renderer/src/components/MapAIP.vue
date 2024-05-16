@@ -308,31 +308,22 @@ export default {
       }
 
       // Récupère les positions des deux boutons (par rapport au conteneur)
-      const rect1 = button1.getBoundingClientRect();
-      const container = document.getElementById('container_map')
-      const test1 = parseFloat(button1.style.left)*(container.offsetWidth)/100
-      const test2 = parseFloat(button2.style.left)*(container.offsetWidth)/100
-      console.log(rect)
-      const rect2 = button2.getBoundingClientRect();
-      const containerRect = canvas2.getBoundingClientRect();
-      
-      const x1 = test1//rect1.left - containerRect.left;
-      const y1 = rect1.top - containerRect.top;
-      const x2 = rect2.left - containerRect.left;
-      const y2 = rect2.top - containerRect.top;
-      
+      const diff = canvas2.width/canvas2.offsetWidth
+
+      const x1 = button1.offsetLeft * diff
+      const y1 = button1.offsetTop * diff
+      const x2 = button2.offsetLeft * diff
+      const y2 = button2.offsetTop * diff
       const dx = x2 - x1;
       const dy = y2 - y1;
       const length = Math.sqrt(dx**2 + dy**2);
       const angle = Math.atan2(dy, dx);
 
-      ctx2.fillStyle = 'red';
-      
-
       // Propriétés de la ligne
+      const liste = ["rgb(255, 0, 0)","rgb(253, 36, 0)","rgb(251, 53, 0)","rgb(249, 67, 0)","rgb(246, 79, 0)","rgb(243, 89, 0)","rgb(240, 98, 0)","rgb(236, 108, 0)","rgb(231, 117, 0)","rgb(226, 125, 0)","rgb(221, 132, 0)","rgb(216, 139, 0)","rgb(211, 146, 0)","rgb(205, 153, 0)","rgb(200, 159, 0)","rgb(194, 165, 0)","rgb(188, 170, 0)","rgb(181, 176, 0)","rgb(175, 181, 0)","rgb(168, 187, 0)","rgb(161, 192, 0)","rgb(153, 197, 0)","rgb(144, 202, 0)","rgb(135, 207, 0)","rgb(124, 212, 0)","rgb(111, 217, 0)","rgb(96, 222, 0)","rgb(80, 226, 0)","rgb(59, 231, 0)","rgb(19, 235, 15)"]
       ctx2.lineWidth = 10;
       ctx2.lineCap = 'round';
-      ctx2.strokeStyle = 'green';
+      ctx2.strokeStyle = liste[0];
 
       // Animation
       let startTime = performance.now();
@@ -347,7 +338,7 @@ export default {
         const animationTime = 5000
         const elapsedTime = currentTime - startTime;
         const progress = Math.min(elapsedTime / animationTime, 1);
-
+        ctx2.strokeStyle = liste[Math.floor(progress*30)];
         // Calcule la nouvelle position du trait
         const newX = x1 + dx * progress;
         const newY = y1 + dy * progress;
@@ -358,8 +349,6 @@ export default {
         ctx2.moveTo(x1, y1);
         ctx2.lineTo(newX, newY);
         ctx2.stroke();
-        ctx2.fillRect(x1,y1,10,10)
-        ctx2.fillRect(x2,y2,10,10)
 
         if (progress < 1) {
           requestAnimationFrame(animate);
@@ -376,7 +365,7 @@ export default {
     document.addEventListener('keydown', function(event) {
             if (event.code === 'Space'){
                 console.log("Space key is pressed!");
-                animateLineBetweenButtons('S-106', 'S-114')
+                animateLineBetweenButtons('S-111-2', 'Sfp_Poste4')
             }
         });
   }
