@@ -8,3 +8,7 @@
   width: 100%;
 }
 
+#canvas_transition{
+  position:absolute;
+  width:100%
+}

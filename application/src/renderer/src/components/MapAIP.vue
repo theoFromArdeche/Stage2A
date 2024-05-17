@@ -198,6 +198,8 @@ export default {
     const ctx_MapAIP = canvas_MapAIP.getContext('2d')
     const canvas_route = document.getElementById("canvas_route");
     const ctx_route = canvas_route.getContext('2d');
+    const canvas_transition = document.getElementById("canvas_transition");
+    const ctx_transition = canvas_transition.getContext('2d');
 
     function tailleEtTracer() {
 
@@ -207,6 +209,8 @@ export default {
       canvas_MapAIP.height = (maxPos.x * canvas_MapAIP.width) / maxPos.y
       canvas_route.width = canvas_MapAIP.width
       canvas_route.height = canvas_MapAIP.height
+      canvas_transition.width = canvas_MapAIP.width
+      canvas_transition.height = canvas_MapAIP.height
       
       function transformCoord(x, y, width) {
         const diff = width / maxPos.y
@@ -277,9 +281,7 @@ export default {
 
     //window.addEventListener('resize', tailleEtTracer)
     function clearCanvas(){
-      //canvas_route.style.display = 'none'
-      ctx_route.clearRect(0, 0, canvas_route.width, canvas_route.height);
-      console.log(canvas_route.width, canvas_route.height)
+      ctx_transition.clearRect(0, 0, canvas_transition.width, canvas_transition.height); //à modifier si les tout les canvas ne seront plus de la meme taille
     }
 
     function animateLineBetweenButtons(button_id_start, button_id_end) {
@@ -306,8 +308,11 @@ export default {
       // Propriétés de la ligne
       const liste = ["rgb(255, 0, 0)","rgb(253, 36, 0)","rgb(251, 53, 0)","rgb(249, 67, 0)","rgb(246, 79, 0)","rgb(243, 89, 0)","rgb(240, 98, 0)","rgb(236, 108, 0)","rgb(231, 117, 0)","rgb(226, 125, 0)","rgb(221, 132, 0)","rgb(216, 139, 0)","rgb(211, 146, 0)","rgb(205, 153, 0)","rgb(200, 159, 0)","rgb(194, 165, 0)","rgb(188, 170, 0)","rgb(181, 176, 0)","rgb(175, 181, 0)","rgb(168, 187, 0)","rgb(161, 192, 0)","rgb(153, 197, 0)","rgb(144, 202, 0)","rgb(135, 207, 0)","rgb(124, 212, 0)","rgb(111, 217, 0)","rgb(96, 222, 0)","rgb(80, 226, 0)","rgb(59, 231, 0)","rgb(19, 235, 15)"]
       ctx_route.lineWidth = 10;
+      ctx_transition.lineWidth = 10;
       ctx_route.lineCap = 'round';
+      ctx_transition.lineCap = 'round';
       ctx_route.strokeStyle = liste[0];
+      ctx_transition.strokeStyle = liste[0];
 
       // Animation
       let startTime = performance.now();
@@ -317,23 +322,27 @@ export default {
         const animationTime = 3000
         const elapsedTime = currentTime - startTime;
         const progress = Math.min(elapsedTime / animationTime, 1);
-        ctx_route.strokeStyle = liste[Math.floor(progress*30)];
+        ctx_transition.strokeStyle = liste[Math.floor(progress*30)];
 
         // Calcule la nouvelle position du trait
         const newX = x1 + dx * progress;
         const newY = y1 + dy * progress;
 
         // Efface le canvas et dessine le nouveau trait
-        ctx_route.clearRect(0, 0, canvas_route.width, canvas_route.height);
-        ctx_route.beginPath();
-        ctx_route.moveTo(x1, y1);
-        ctx_route.lineTo(newX, newY);
-        ctx_route.stroke();
+        ctx_transition.clearRect(0, 0, canvas_transition.width, canvas_transition.height);
+        ctx_transition.beginPath();
+        ctx_transition.moveTo(x1, y1);
+        ctx_transition.lineTo(newX, newY);
+        ctx_transition.stroke();
 
         if (progress < 1) {
           requestAnimationFrame(animate);
         } else {
-          setTimeout(clearCanvas,3000)
+          ctx_route.beginPath();
+          ctx_route.moveTo(x1, y1);
+          ctx_route.lineTo(newX, newY);
+          ctx_route.stroke();
+          setTimeout(clearCanvas,500)
         }
       }
 
@@ -347,6 +356,13 @@ export default {
                 console.log("Space key is pressed!");
                 animateLineBetweenButtons('S-111-2', 'Sfp_Poste4')
             }
+            else if (event.key === 'p'){
+              animateLineBetweenButtons('S-106', 'S-111-2')
+            }
+            else if (event.key === 'c'){
+              ctx_route.clearRect(0, 0, canvas_route.width, canvas_route.height);
+
+            }
         });
   }
 }
@@ -356,6 +372,7 @@ export default {
 <template>
   <canvas id="canvas_MapAIP"></canvas>
   <canvas id="canvas_route"></canvas>
+  <canvas id="canvas_transition"></canvas>
 </template>
 
 
