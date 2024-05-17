@@ -1,0 +1,4 @@
+#container_bottombar{
+  flex-direction: row;
+  position: relative;
+}
