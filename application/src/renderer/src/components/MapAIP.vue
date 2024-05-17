@@ -16,7 +16,7 @@ export default {
     }
 
     const getCoords = (line) => {
-      const coords = [0, 0, 0]
+      const coords = [0, 0, 0, '']
       let pointeur = 0
       let i = 0
       let temp = ''
@@ -31,8 +31,14 @@ export default {
         }
         i += 1
       }
-
+      coords[3] = getRoomName(line)
       return coords
+    }
+
+    function getRoomName(line) {
+      const regex = /ICON\s+"([^"]+)"/
+      const match = line.match(regex)
+      return match[1]
     }
 
     const getCoordsFa = (line) => {
@@ -175,7 +181,7 @@ export default {
         if (point[0] < minPos.x) {
           minPos.x = point[0]
         }
-        if (point[1] < minPos.y) {
+        if (point[1] < minPos.y && point[1] != -17580 && point[1] != -17540) {
           minPos.y = point[1]
         }
         if (point[0] > maxPos.x) {
@@ -202,40 +208,41 @@ export default {
 
       container.querySelectorAll('button').forEach((btn) => btn.remove())
 
-      canvas.width = container.offsetWidth
+      canvas.width = 2560
       canvas.height = (maxPos.x * canvas.width) / maxPos.y
 
-      function transformCoord(x, y) {
-        const diff = canvas.width / maxPos.y
+      function transformCoord(x, y, width) {
+        const diff = width / maxPos.y
         return {
-          x: (1 - (y - minPos.y) / maxPos.y) * canvas.width,
+          x: (1 - (y - minPos.y) / maxPos.y) * width,
           y: (maxPos.x - x + minPos.x) * diff
         }
       }
 
       pointDetectedCoords.forEach((point) => {
-        const transformed = transformCoord(point[0], point[1])
+        const transformed = transformCoord(point[0], point[1], canvas.width)
         ctx.fillStyle = 'blue'
         ctx.beginPath()
-        ctx.arc(transformed.x, transformed.y, 0.05, 0, 2 * Math.PI)
+        ctx.arc(transformed.x, transformed.y, 0.5, 0, 2 * Math.PI)
         ctx.fill()
       })
 
       interestPoints.forEach((point) => {
-        const transformed = transformCoord(point[0], point[1])
+        const transformed = transformCoord(point[0], point[1], container.offsetWidth)
         const button = document.createElement('button')
-        const buttonSize = Math.sqrt(window.innerHeight ** 2 + window.innerWidth ** 2) * 0.005
         button.style.position = 'absolute'
-        button.style.width = `${buttonSize}px`
-        button.style.left = `${transformed.x - buttonSize / 2}px`
-        button.style.top = `${transformed.y - buttonSize / 2}px`
-        button.onclick = () => console.log('test')
+        button.style.width = '1%'
+        button.style.left = `${Math.round((transformed.x / container.offsetWidth) * 100)}%`
+        const container_height = (maxPos.x * container.offsetWidth) / maxPos.y
+        button.style.top = `${Math.round((transformed.y / container_height) * 100)}%`
+        button.id = point[3]
+        button.onclick = () => console.log(button.id)
         container.appendChild(button)
       })
 
       forbiddenLines.forEach((line) => {
-        const start = transformCoord(line[0][0], line[0][1])
-        const end = transformCoord(line[1][0], line[1][1])
+        const start = transformCoord(line[0][0], line[0][1], canvas.width)
+        const end = transformCoord(line[1][0], line[1][1], canvas.width)
         ctx.strokeStyle = 'red'
         ctx.lineWidth = 2
         ctx.beginPath()
@@ -245,8 +252,8 @@ export default {
       })
 
       forbiddenAreas.forEach((area) => {
-        const topLeft = transformCoord(area[0][0], area[0][1])
-        const bottomRight = transformCoord(area[1][0], area[1][1])
+        const topLeft = transformCoord(area[0][0], area[0][1], canvas.width)
+        const bottomRight = transformCoord(area[1][0], area[1][1], canvas.width)
         ctx.fillStyle = 'rgba(255, 0, 0, 0.5)'
         ctx.beginPath()
         ctx.rect(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y)
@@ -256,8 +263,8 @@ export default {
       })
 
       lineDetectedCoords.forEach((line) => {
-        const start = transformCoord(line[0][0], line[0][1])
-        const end = transformCoord(line[1][0], line[1][1])
+        const start = transformCoord(line[0][0], line[0][1], canvas.width)
+        const end = transformCoord(line[1][0], line[1][1], canvas.width)
         ctx.strokeStyle = 'purple'
         ctx.lineWidth = 1
         ctx.beginPath()
@@ -271,7 +278,7 @@ export default {
       tailleEtTracer()
     })
 
-    window.addEventListener('resize', tailleEtTracer)
+    //window.addEventListener('resize', tailleEtTracer)
   }
 }
 </script>
