@@ -63,6 +63,11 @@ app.whenReady().then(() => {
     sendRequest(arg);
   });
 
+  ipcMain.on('requestHand', (event, arg) => {
+    // send a hand request to the server
+    requestHand();
+  });
+
   createWindow()
 
   app.on('activate', function () {
@@ -86,12 +91,14 @@ app.on('window-all-closed', () => {
 
 const net = require('net');
 
-const port_server = 1234; // choose an open port
+const port_instance = 1234; // choose an open port
 
-var clientSocket;
+var clientSocket = null;
 var clientConnected=false;
+var hasHand = false;
 
-const server = net.createServer((socket) => {
+// set up l'instance pour être accessible pour l'etudiant
+const instanceSocket = net.createServer((socket) => {
   console.log('Client connected');
   clientSocket=socket;
   clientConnected=true
@@ -115,28 +122,75 @@ const server = net.createServer((socket) => {
 
 });
 
-server.listen(port_server, () => {
-  console.log(`Telnet server listening on port ${port_server}`);
+instanceSocket.listen(port_instance, () => {
+  console.log(`Telnet server listening on port ${port_instance}`);
 });
 
 
 
-function sendRequest(msg) {
+function sendRequest(request) {
   if (!clientConnected) return;
-  console.log("Send to client : " + msg)
-  clientSocket.write(msg);
+  console.log("Send to client : " + request)
+  clientSocket.write(request);
 }
 
-function receiveRequest(msg) {
-  console.log('Received from client : ', msg);
-  mainWindow.webContents.send('receiveResponse', msg);
+function receiveRequest(request) {
+  console.log('Received from client : ', request);
+  mainWindow.webContents.send('receiveResponse', request);
 }
 
 
 
+function requestHand() {
+  sendRequestServer("HAND")
+}
 
 
+const port_server = 2345;
+var serverConnected = false; 
+// connect to the server
+const serverSocket = net.createConnection({ port: port_server }, () => {
+  console.log(`Connected to the server on port ${port_server}`);
+  serverConnected=true
+});
+
+
+serverSocket.on('data', (data) => {
+  receiveResponseServer(data)
+});
+
+
+serverSocket.on('end', () => {
+  console.log('WARNING : Server disconnected');
+  serverConnected=false;
+});
   
+serverSocket.on('error', (err) => {
+  console.error('Socket error:', err);
+  serverConnected=false;
+});
+
+
+function receiveResponseServer(response) { // from the server
+  console.log("Received from server : " + response)
+  if (response.indexOf('RESPONSE: ')==0) {
+		const response = response.substring('RESPONSE: '.length);
+    sendRequest(response);
+  } else if (response.indexOf('UPDATE: ')==0) {
+    const update = response.substring('UPDATE: '.length);
+    // update les données locales
+  }
+}
+
+
+function sendRequestServer(request) {
+  if (!serverConnected) return;
+  console.log("Send to server : " + request)
+  serverSocket.write(request);
+}
+
+
+
 /*
 
 

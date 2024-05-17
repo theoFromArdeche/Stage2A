@@ -4,6 +4,15 @@ import '../styles/live_simulation_base.css'
 import Sidebar from '../components/Sidebar.vue'
 import MapAIP from '../components/MapAIP.vue'
 
+
+const ipcRenderer = window.electron.ipcRenderer;
+
+
+function requestHand() {
+  ipcRenderer.send('requestHand');
+}
+
+
 </script>
 
 <template>
@@ -15,7 +24,7 @@ import MapAIP from '../components/MapAIP.vue'
       </div>
       <div id="container_buttons">
         <button>Lancer le programme</button>
-        <button>Demander la main</button>
+        <button @click="requestHand()">Demander la main</button>
       </div>
     </div>
   </div>
