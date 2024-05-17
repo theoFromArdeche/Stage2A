@@ -10,9 +10,9 @@ defineProps({
   <div>
     <div id="container_bottombar">
       <div id="container_statusMessages">
-        <div>{{ statusMessage }} test</div>
+        <div>{{ statusMessage }}Docked</div>
       </div>
-      <div id="container_buttons">
+      <div id="container_buttons_simulation">
         <button @click="emit('send-request', 'salut\n')">Lancer la simulation</button>
       </div>
     </div>
