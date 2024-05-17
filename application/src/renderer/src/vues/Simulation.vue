@@ -3,6 +3,7 @@ import '../styles/simulation.css'
 import '../styles/live_simulation_base.css'
 import Sidebar from '../components/Sidebar.vue'
 import MapAIP from '../components/MapAIP.vue'
+import Bottombar from '../components/Bottonbar.vue'
 
 const ipcRenderer = window.electron.ipcRenderer;
 
@@ -27,6 +28,7 @@ function sendRequest(arg) {
       <div id="container_map">
         <MapAIP></MapAIP>
       </div>
+      <Bottombar id="bottombar"></Bottombar>
       <div id="container_buttons">
         <button @click="sendRequest('salut\n')">Lancer la simulation</button>
       </div>
