@@ -211,7 +211,7 @@ export default {
       canvas_route.height = canvas_MapAIP.height
       canvas_transition.width = canvas_MapAIP.width
       canvas_transition.height = canvas_MapAIP.height
-      
+
       function transformCoord(x, y, width) {
         const diff = width / maxPos.y
         return {
@@ -280,7 +280,7 @@ export default {
     })
 
     //window.addEventListener('resize', tailleEtTracer)
-    function clearCanvas(){
+    function clearCanvas() {
       ctx_transition.clearRect(0, 0, canvas_transition.width, canvas_transition.height); //à modifier si les tout les canvas ne seront plus de la meme taille
     }
 
@@ -288,7 +288,7 @@ export default {
       // Récupère les références des deux boutons et du canvas
       const button_start = document.getElementById(button_id_start);
       const button_end = document.getElementById(button_id_end);
-      
+
       // Vérifie que les deux boutons et le canvas existent
       if (!button_start || !button_end || !canvas_route || !ctx_route) {
         console.error(`Un ou plusieurs éléments n'ont pas été trouvés : ${button_id_start}, ${button_id_end}, #canvas_route`);
@@ -296,7 +296,7 @@ export default {
       }
 
       // Récupère les positions des deux boutons (par rapport au conteneur)
-      const diff = canvas_route.width/canvas_route.offsetWidth
+      const diff = canvas_route.width / canvas_route.offsetWidth
 
       const x1 = button_start.offsetLeft * diff
       const y1 = button_start.offsetTop * diff
@@ -306,13 +306,13 @@ export default {
       const dy = y2 - y1;
 
       // Propriétés de la ligne
-      const liste = ["rgb(255, 0, 0)","rgb(253, 36, 0)","rgb(251, 53, 0)","rgb(249, 67, 0)","rgb(246, 79, 0)","rgb(243, 89, 0)","rgb(240, 98, 0)","rgb(236, 108, 0)","rgb(231, 117, 0)","rgb(226, 125, 0)","rgb(221, 132, 0)","rgb(216, 139, 0)","rgb(211, 146, 0)","rgb(205, 153, 0)","rgb(200, 159, 0)","rgb(194, 165, 0)","rgb(188, 170, 0)","rgb(181, 176, 0)","rgb(175, 181, 0)","rgb(168, 187, 0)","rgb(161, 192, 0)","rgb(153, 197, 0)","rgb(144, 202, 0)","rgb(135, 207, 0)","rgb(124, 212, 0)","rgb(111, 217, 0)","rgb(96, 222, 0)","rgb(80, 226, 0)","rgb(59, 231, 0)","rgb(19, 235, 15)"]
+      const liste = ["rgb(255, 0, 0)", "rgb(253, 36, 0)", "rgb(251, 53, 0)", "rgb(249, 67, 0)", "rgb(246, 79, 0)", "rgb(243, 89, 0)", "rgb(240, 98, 0)", "rgb(236, 108, 0)", "rgb(231, 117, 0)", "rgb(226, 125, 0)", "rgb(221, 132, 0)", "rgb(216, 139, 0)", "rgb(211, 146, 0)", "rgb(205, 153, 0)", "rgb(200, 159, 0)", "rgb(194, 165, 0)", "rgb(188, 170, 0)", "rgb(181, 176, 0)", "rgb(175, 181, 0)", "rgb(168, 187, 0)", "rgb(161, 192, 0)", "rgb(153, 197, 0)", "rgb(144, 202, 0)", "rgb(135, 207, 0)", "rgb(124, 212, 0)", "rgb(111, 217, 0)", "rgb(96, 222, 0)", "rgb(80, 226, 0)", "rgb(59, 231, 0)", "rgb(19, 235, 15)"]
       ctx_route.lineWidth = 10;
       ctx_transition.lineWidth = 10;
       ctx_route.lineCap = 'round';
       ctx_transition.lineCap = 'round';
-      ctx_route.strokeStyle = liste[0];
-      ctx_transition.strokeStyle = liste[0];
+      ctx_route.strokeStyle = liste[Math.floor(success_matrix[map[button_id_start]][map[button_id_end]]*liste.length/100)];
+      ctx_transition.strokeStyle = liste[Math.floor(success_matrix[map[button_id_start]][map[button_id_end]]*liste.length/100)];
 
       // Animation
       let startTime = performance.now();
@@ -322,7 +322,6 @@ export default {
         const animationTime = 3000
         const elapsedTime = currentTime - startTime;
         const progress = Math.min(elapsedTime / animationTime, 1);
-        ctx_transition.strokeStyle = liste[Math.floor(progress*30)];
 
         // Calcule la nouvelle position du trait
         const newX = x1 + dx * progress;
@@ -342,7 +341,7 @@ export default {
           ctx_route.moveTo(x1, y1);
           ctx_route.lineTo(newX, newY);
           ctx_route.stroke();
-          setTimeout(clearCanvas,500)
+          setTimeout(clearCanvas, 500)
         }
       }
 
@@ -351,19 +350,35 @@ export default {
     }
 
     // Exemple d'utilisation de la fonction :
-    document.addEventListener('keydown', function(event) {
-            if (event.code === 'Space'){
-                console.log("Space key is pressed!");
-                animateLineBetweenButtons('S-111-2', 'Sfp_Poste4')
-            }
-            else if (event.key === 'p'){
-              animateLineBetweenButtons('S-106', 'S-111-2')
-            }
-            else if (event.key === 'c'){
-              ctx_route.clearRect(0, 0, canvas_route.width, canvas_route.height);
+    document.addEventListener('keydown', function (event) {
+      if (event.code === 'Space') {
+        animateLineBetweenButtons('S-111-2', 'Sfp_Poste4')
+      }
+      else if (event.key === 'p') {
+        animateLineBetweenButtons('S-106', 'S-111-2')
+      }
+      else if (event.key === 'c') {
+        ctx_route.clearRect(0, 0, canvas_route.width, canvas_route.height);
 
-            }
-        });
+      }
+    });
+
+
+    const liste_emplacements = ["S-111-2","S-106","Sfp_Poste4"]
+    const map = new Map()
+    for (let i = 0;i<liste_emplacements.length;i++){
+      map[liste_emplacements[i]] = i
+    }
+
+    function matrix(n, lim) {
+    var result = []
+    for(var i = 0; i < n; i++) {
+      result.push(new Array(n).fill(Math.random()*lim))
+    }
+    return result
+    }
+    const time_matrix = matrix(liste_emplacements.length,20)
+    const success_matrix = matrix(liste_emplacements.length,100)
   }
 }
 </script>
@@ -374,8 +389,5 @@ export default {
   <canvas id="canvas_route"></canvas>
   <canvas id="canvas_transition"></canvas>
 </template>
-
-
-
 
 <style scoped src="../styles/mapAIP.css"></style>
