@@ -128,7 +128,7 @@ export default {
 
     const updateInfos = async () => {
       const url =
-        'https://raw.githubusercontent.com/PIDR-2023/PIDR/traitement_map/application/map_loria.txt'
+        'https://raw.githubusercontent.com/PIDR-2023/PIDR/main/application/src/renderer/src/map_loria.txt'
       try {
         const response = await fetch(url)
         const content = await response.text()

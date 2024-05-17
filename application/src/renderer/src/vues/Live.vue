@@ -9,7 +9,7 @@ import { ref } from 'vue';
 const test = ref("a")
 function fonctionpere(input){
   console.log("bonjour")
-  test = ref(input)
+  test.value = input
 }
 
 </script>
@@ -23,6 +23,7 @@ function fonctionpere(input){
         <Fils1 @fonctionpere="fonctionpere"></Fils1>
         <Fils2 :receivedValue="test"></Fils2>
       </div>
+      
       <div id="container_buttons">
         <button>Lancer le programme</button>
         <button>Demander la main</button>
