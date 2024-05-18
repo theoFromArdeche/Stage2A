@@ -199,17 +199,23 @@ console.log('test')
 
 onMounted(async () => {
   await updateInfos()
-  const canvas = document.getElementById('mapAIP')
-  const ctx = canvas.getContext('2d')
+  const canvas_MapAIP = document.getElementById('canvas_MapAIP')
+  const ctx_MapAIP = canvas_MapAIP.getContext('2d')
+  const canvas_route = document.getElementById("canvas_route");
+  const ctx_route = canvas_route.getContext('2d');
+  const canvas_transition = document.getElementById("canvas_transition");
+  const ctx_transition = canvas_transition.getContext('2d');
   function tailleEtTracer() {
     //ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    const container = document.getElementById('container_map')
+      const container_map = document.getElementById('container_map')
 
-    container.querySelectorAll('button').forEach((btn) => btn.remove())
-
-    canvas.width = 2560
-    canvas.height = (maxPos.x * canvas.width) / maxPos.y
+      canvas_MapAIP.width = 2560
+      canvas_MapAIP.height = (maxPos.x * canvas_MapAIP.width) / maxPos.y
+      canvas_route.width = canvas_MapAIP.width
+      canvas_route.height = canvas_MapAIP.height
+      canvas_transition.width = canvas_MapAIP.width
+      canvas_transition.height = canvas_MapAIP.height
 
     function transformCoord(x, y, width) {
       const diff = width / maxPos.y
@@ -219,68 +225,173 @@ onMounted(async () => {
       }
     }
 
-    pointDetectedCoords.forEach((point) => {
-      const transformed = transformCoord(point[0], point[1], canvas.width)
-      ctx.fillStyle = 'blue'
-      ctx.beginPath()
-      ctx.arc(transformed.x, transformed.y, 0.5, 0, 2 * Math.PI)
-      ctx.fill()
+      pointDetectedCoords.forEach((point) => {
+        const transformed = transformCoord(point[0], point[1], canvas_MapAIP.width)
+        ctx_MapAIP.fillStyle = 'blue'
+        ctx_MapAIP.beginPath()
+        ctx_MapAIP.arc(transformed.x, transformed.y, 0.5, 0, 2 * Math.PI)
+        ctx_MapAIP.fill()
+      })
+
+      interestPoints.forEach((point) => {
+        const transformed = transformCoord(point[0], point[1], container_map.offsetWidth)
+        const button = document.createElement('button')
+        button.style.position = 'absolute'
+        button.style.width = '1%'
+        button.style.left = `${Math.round((transformed.x / container_map.offsetWidth) * 100)}%`
+        const container_height = (maxPos.x * container_map.offsetWidth) / maxPos.y
+        button.style.top = `${Math.round((transformed.y / container_height) * 100)}%`
+        button.id = point[3]
+        button.onclick = () => console.log(button.id)
+        container_map.appendChild(button)
+      })
+
+      forbiddenLines.forEach((line) => {
+        const start = transformCoord(line[0][0], line[0][1], canvas_MapAIP.width)
+        const end = transformCoord(line[1][0], line[1][1], canvas_MapAIP.width)
+        ctx_MapAIP.strokeStyle = 'red'
+        ctx_MapAIP.lineWidth = 2
+        ctx_MapAIP.beginPath()
+        ctx_MapAIP.moveTo(start.x, start.y)
+        ctx_MapAIP.lineTo(end.x, end.y)
+        ctx_MapAIP.stroke()
+      })
+
+      forbiddenAreas.forEach((area) => {
+        const topLeft = transformCoord(area[0][0], area[0][1], canvas_MapAIP.width)
+        const bottomRight = transformCoord(area[1][0], area[1][1], canvas_MapAIP.width)
+        ctx_MapAIP.fillStyle = 'rgba(255, 0, 0, 0.5)'
+        ctx_MapAIP.beginPath()
+        ctx_MapAIP.rect(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y)
+        ctx_MapAIP.fill()
+        ctx_MapAIP.strokeStyle = 'red'
+        ctx_MapAIP.stroke()
+      })
+
+      lineDetectedCoords.forEach((line) => {
+        const start = transformCoord(line[0][0], line[0][1], canvas_MapAIP.width)
+        const end = transformCoord(line[1][0], line[1][1], canvas_MapAIP.width)
+        ctx_MapAIP.strokeStyle = 'purple'
+        ctx_MapAIP.lineWidth = 1
+        ctx_MapAIP.beginPath()
+        ctx_MapAIP.moveTo(start.x, start.y)
+        ctx_MapAIP.lineTo(end.x, end.y)
+        ctx_MapAIP.stroke()
+      })
+    }
+
+    updateInfos().then(() => {
+      tailleEtTracer()
     })
 
-    interestPoints.forEach((point) => {
-      const transformed = transformCoord(point[0], point[1], container.offsetWidth)
-      const button = document.createElement('button')
-      button.style.position = 'absolute'
-      button.style.width = '1%'
-      button.style.left = `${Math.round((transformed.x / container.offsetWidth) * 100)}%`
-      const container_height = (maxPos.x * container.offsetWidth) / maxPos.y
-      button.style.top = `${Math.round((transformed.y / container_height) * 100)}%`
-      button.id = point[3]
-      button.onclick = () => console.log(button.id)
-      container.appendChild(button)
-    })
+    //window.addEventListener('resize', tailleEtTracer)
+    function clearCanvas() {
+      ctx_transition.clearRect(0, 0, canvas_transition.width, canvas_transition.height); //à modifier si les tout les canvas ne seront plus de la meme taille
+    }
 
-    forbiddenLines.forEach((line) => {
-      const start = transformCoord(line[0][0], line[0][1], canvas.width)
-      const end = transformCoord(line[1][0], line[1][1], canvas.width)
-      ctx.strokeStyle = 'red'
-      ctx.lineWidth = 2
-      ctx.beginPath()
-      ctx.moveTo(start.x, start.y)
-      ctx.lineTo(end.x, end.y)
-      ctx.stroke()
-    })
+    function animateLineBetweenButtons(button_id_start, button_id_end) {
+      // Récupère les références des deux boutons et du canvas
+      const button_start = document.getElementById(button_id_start);
+      const button_end = document.getElementById(button_id_end);
 
-    forbiddenAreas.forEach((area) => {
-      const topLeft = transformCoord(area[0][0], area[0][1], canvas.width)
-      const bottomRight = transformCoord(area[1][0], area[1][1], canvas.width)
-      ctx.fillStyle = 'rgba(255, 0, 0, 0.5)'
-      ctx.beginPath()
-      ctx.rect(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y)
-      ctx.fill()
-      ctx.strokeStyle = 'red'
-      ctx.stroke()
-    })
+      // Vérifie que les deux boutons et le canvas existent
+      if (!button_start || !button_end || !canvas_route || !ctx_route) {
+        console.error(`Un ou plusieurs éléments n'ont pas été trouvés : ${button_id_start}, ${button_id_end}, #canvas_route`);
+        return;
+      }
 
-    lineDetectedCoords.forEach((line) => {
-      const start = transformCoord(line[0][0], line[0][1], canvas.width)
-      const end = transformCoord(line[1][0], line[1][1], canvas.width)
-      ctx.strokeStyle = 'purple'
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.moveTo(start.x, start.y)
-      ctx.lineTo(end.x, end.y)
-      ctx.stroke()
-    })
-  }
-  tailleEtTracer()
+      // Récupère les positions des deux boutons (par rapport au conteneur)
+      const diff = canvas_route.width / canvas_route.offsetWidth
+
+      const x1 = button_start.offsetLeft * diff
+      const y1 = button_start.offsetTop * diff
+      const x2 = button_end.offsetLeft * diff
+      const y2 = button_end.offsetTop * diff
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+
+      // Propriétés de la ligne
+      const liste = ["rgb(255, 0, 0)", "rgb(253, 36, 0)", "rgb(251, 53, 0)", "rgb(249, 67, 0)", "rgb(246, 79, 0)", "rgb(243, 89, 0)", "rgb(240, 98, 0)", "rgb(236, 108, 0)", "rgb(231, 117, 0)", "rgb(226, 125, 0)", "rgb(221, 132, 0)", "rgb(216, 139, 0)", "rgb(211, 146, 0)", "rgb(205, 153, 0)", "rgb(200, 159, 0)", "rgb(194, 165, 0)", "rgb(188, 170, 0)", "rgb(181, 176, 0)", "rgb(175, 181, 0)", "rgb(168, 187, 0)", "rgb(161, 192, 0)", "rgb(153, 197, 0)", "rgb(144, 202, 0)", "rgb(135, 207, 0)", "rgb(124, 212, 0)", "rgb(111, 217, 0)", "rgb(96, 222, 0)", "rgb(80, 226, 0)", "rgb(59, 231, 0)", "rgb(19, 235, 15)"]
+      ctx_route.lineWidth = 10;
+      ctx_transition.lineWidth = 10;
+      ctx_route.lineCap = 'round';
+      ctx_transition.lineCap = 'round';
+      ctx_route.strokeStyle = liste[Math.floor(success_matrix[map[button_id_start]][map[button_id_end]]*liste.length/100)];
+      ctx_transition.strokeStyle = liste[Math.floor(success_matrix[map[button_id_start]][map[button_id_end]]*liste.length/100)];
+
+      // Animation
+      let startTime = performance.now();
+
+      function animate(currentTime) {
+        // Avancement du robot
+        const animationTime = 3000
+        const elapsedTime = currentTime - startTime;
+        const progress = Math.min(elapsedTime / animationTime, 1);
+
+        // Calcule la nouvelle position du trait
+        const newX = x1 + dx * progress;
+        const newY = y1 + dy * progress;
+
+        // Efface le canvas et dessine le nouveau trait
+        ctx_transition.clearRect(0, 0, canvas_transition.width, canvas_transition.height);
+        ctx_transition.beginPath();
+        ctx_transition.moveTo(x1, y1);
+        ctx_transition.lineTo(newX, newY);
+        ctx_transition.stroke();
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          ctx_route.beginPath();
+          ctx_route.moveTo(x1, y1);
+          ctx_route.lineTo(newX, newY);
+          ctx_route.stroke();
+          setTimeout(clearCanvas, 500)
+        }
+      }
+
+      // Démarre l'animation
+      requestAnimationFrame(animate);
+    }
+
+    // Exemple d'utilisation de la fonction :
+    document.addEventListener('keydown', function (event) {
+      if (event.code === 'Space') {
+        animateLineBetweenButtons('S-111-2', 'Sfp_Poste4')
+      }
+      else if (event.key === 'p') {
+        animateLineBetweenButtons('S-106', 'S-111-2')
+      }
+      else if (event.key === 'c') {
+        ctx_route.clearRect(0, 0, canvas_route.width, canvas_route.height);
+
+      }
+    });
+
+
+    const liste_emplacements = ["S-111-2","S-106","Sfp_Poste4"]
+    const map = new Map()
+    for (let i = 0;i<liste_emplacements.length;i++){
+      map[liste_emplacements[i]] = i
+    }
+
+    function matrix(n, lim) {
+    var result = []
+    for(var i = 0; i < n; i++) {
+      result.push(new Array(n).fill(Math.random()*lim))
+    }
+    return result
+    }
+    const time_matrix = matrix(liste_emplacements.length,20)
+    const success_matrix = matrix(liste_emplacements.length,100)
 })
-
-//window.addEventListener('resize', tailleEtTracer)
 </script>
 
+
 <template>
-  <canvas id="mapAIP" ref="mapCanvas"></canvas>
+  <canvas id="canvas_MapAIP"></canvas>
+  <canvas id="canvas_route"></canvas>
+  <canvas id="canvas_transition"></canvas>
 </template>
 
 <style scoped src="../styles/mapAIP.css"></style>

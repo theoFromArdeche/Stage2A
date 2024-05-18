@@ -1,7 +1,14 @@
-#mapAIP {
-  width: 95%;
+#canvas_MapAIP {
+  width: 100%;
   height: auto;
 }
 
+#canvas_route{
+  position:absolute;
+  width: 100%;
+}
 
-
+#canvas_transition{
+  position:absolute;
+  width:100%
+}
