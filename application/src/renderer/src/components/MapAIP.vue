@@ -319,7 +319,8 @@ export default {
 
       function animate(currentTime) {
         // Avancement du robot
-        const animationTime = 3000
+        const speedup = 3
+        const animationTime = Math.floor(time_matrix[map[button_id_start]][map[button_id_end]]*1000/speedup)
         const elapsedTime = currentTime - startTime;
         const progress = Math.min(elapsedTime / animationTime, 1);
 
@@ -359,7 +360,6 @@ export default {
       }
       else if (event.key === 'c') {
         ctx_route.clearRect(0, 0, canvas_route.width, canvas_route.height);
-
       }
     });
 
@@ -379,6 +379,7 @@ export default {
     }
     const time_matrix = matrix(liste_emplacements.length,20)
     const success_matrix = matrix(liste_emplacements.length,100)
+    console.log(time_matrix)
   }
 }
 </script>
