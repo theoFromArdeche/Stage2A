@@ -5,13 +5,14 @@ import Sidebar from '../components/Sidebar.vue'
 import MapAIP from '../components/MapAIP.vue'
 import Fils1 from '../components/Fils1.vue'
 import Fils2 from '../components/Fils2.vue'
-import { ref } from 'vue';
-const test = ref("a")
-function fonctionpere(input){
-  console.log("bonjour")
+import Bottombar from '../components/Bottombar.vue'
+import { ref } from 'vue'
+
+const test = ref('a')
+function fonctionpere(input) {
+  console.log('bonjour')
   test.value = input
 }
-
 </script>
 
 <template>
@@ -23,10 +24,15 @@ function fonctionpere(input){
         <Fils1 @fonctionpere="fonctionpere"></Fils1>
         <Fils2 :receivedValue="test"></Fils2>
       </div>
-      
       <div id="container_buttons">
-        <button>Lancer le programme</button>
         <button>Demander la main</button>
+      </div>
+      <div id="container_bottombar">
+        <Bottombar
+          id="bottombar"
+          :statusMessages="statusMessages"
+          @send-request="sendRequest"
+        ></Bottombar>
       </div>
     </div>
   </div>

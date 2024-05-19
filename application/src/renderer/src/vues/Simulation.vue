@@ -32,7 +32,7 @@ function sendRequest(arg) {
     <div id="container_bottombar">
       <Bottombar
         id="bottombar"
-        :status-messages="statusMessages"
+        :statusMessages="statusMessages"
         @send-request="sendRequest"
       ></Bottombar>
     </div>
