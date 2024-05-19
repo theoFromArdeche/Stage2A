@@ -1,6 +1,98 @@
 
-
 const net = require('net');
+const port_robot = 3456;
+const robot_host = '192.168.206.124';
+var robotConnected = false; 
+var robotSocket = null;
+
+function connectToRobot() {
+	robotSocket = net.createConnection({ host:robot_host, port: port_robot }, () => {
+		console.log(`Connected to the robot on port ${port_robot}`);
+		robotConnected = true;
+	
+		// Handle incoming data from the robot
+		robotSocket.on('data', (data) => {
+			receiveResponseRobot(data.toString());
+		});
+	
+		// Handle the end of the robot connection
+		robotSocket.on('end', () => {
+			console.log('WARNING : Robot disconnected');
+			robotConnected = false;
+	
+			// Attempt to reconnect to the robot after a delay
+			setTimeout(connectToRobot, 5000); // 5 seconds
+		});
+	
+		// Handle errors in the robot connection
+		robotSocket.on('error', (err) => {
+			console.error('Socket error:', err);
+			robotConnected = false;
+	
+			// Attempt to reconnect to the robot after a delay
+			setTimeout(connectToRobot, 5000); // 5 seconds
+		});
+	});
+  
+	// If the connection to the robot fails, retry after a delay
+	robotSocket.on('error', (err) => {
+	  if (err.code === 'ECONNREFUSED') {
+		console.log('WARNING : Robot is not available, retrying in 5 seconds...');
+		setTimeout(connectToRobot, 5000); // 5 seconds
+	  } else {
+		console.error('Socket error:', err);
+	  }
+	});
+}
+  
+connectToRobot();
+
+
+
+function receiveResponseRobot(response) { // from the server
+  console.log("Received from robot : " + response)
+  
+  // send the response to the client that made the request
+  sendRequest(handHolder, "RESPONSE: "+response+"\n");
+
+  const response_update = `UPDATE: ${response} - ${Date.now()}\n`;
+  // update the data (matrix of times and successes)
+
+  // send the updates to everyone (time + success)
+  sendToEveryone(response_update)
+
+  // a response is received, the timer is reset
+  setHandTimeout(handHolder);
+}
+
+
+function sendRequestRobot(request) {
+  new Promise((resolve, reject) => {
+    // wait for the robot to be connected
+    const checkConnection = () => {
+      if (robotConnected) {
+        console.log("Send to robot : " + request);
+        robotSocket.write(request, (err) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      } else {
+        setTimeout(checkConnection, 100);
+      }
+    };
+    checkConnection();
+  });
+}
+
+
+
+
+
+
+
 const port_server = 2345;
 
 connectedClients = new Map(); // map to keep track of connected clients
@@ -32,56 +124,48 @@ const server = net.createServer((socket) => {
 		receiveRequest(clientId, msg);
 	});
 
+	// client disconnected
 	socket.on('end', () => {
 		console.log('Client disconnected');
 		console.log('Client socket info:', socket.address());
-		// remove the socket from the connected clients map
-		connectedClients.delete(clientId);
-		// stop the ping interval
-		clearInterval(pingInterval);
-		// remove the client from the request queue
-		requestQueue = requestQueue.filter((req) => req.clientId !== clientId);
-		// if the client was the hand holder, set the hand holder to null
-		if (handHolder === clientId) {
-			clearTimeout(handTimer);
-			if (requestQueue.length===0) {
-				handHolder=null;
-			} else {
-				handHolder = requestQueue[0];
-				requestQueue.shift();
-				sendRequest(handHolder, 'hand request accepted\n');
-				setHandTimeout(handHolder);
-			}
-		}
+		socketDisconnect(clientId, pingInterval)
 	});
 
 	// Event handler for errors
 	socket.on('error', (err) => {
 		console.error('Socket error:', err);
-		// remove the socket from the connected clients map
-		connectedClients.delete(clientId);
-		// stop the ping interval
-		clearInterval(pingInterval);
-		// remove the client from the request queue
-		requestQueue = requestQueue.filter((req) => req.clientId !== clientId);
-		// if the client was the hand holder, set the hand holder to null
-		if (handHolder === clientId) {
-			clearTimeout(handTimer);
-			if (requestQueue.length===0) {
-				handHolder=null;
-			} else {
-				handHolder = requestQueue[0];
-				requestQueue.shift();
-				sendRequest(handHolder, 'hand request accepted\n');
-				setHandTimeout(handHolder);
-			}
-		}
+		socketDisconnect(clientId, pingInterval)
 	});
 });
 
 server.listen(port_server, () => {
   console.log(`Telnet server listening on port ${port_server}`);
 });
+
+
+
+function socketDisconnect(clientId, pingInterval) {
+	// remove the socket from the connected clients map
+	connectedClients.delete(clientId);
+	// stop the ping interval
+	clearInterval(pingInterval);
+	// remove the client from the request queue
+	requestQueue = requestQueue.filter((req) => req.clientId !== clientId);
+	// if the client was the hand holder, set a new owner
+	if (handHolder === clientId) {
+		clearTimeout(handTimer);
+		if (requestQueue.length===0) {
+			handHolder=null;
+		} else {
+			handHolder = requestQueue[0];
+			requestQueue.shift();
+			sendRequest(handHolder, 'hand request accepted\n');
+			setHandTimeout(handHolder);
+			updatePositions();
+		}
+	}
+}
+
 
 let data = {
 	// matrix of times
@@ -98,9 +182,8 @@ function sendRequest(clientId, msg) {
 	console.log(`Send to client ${clientId}: ${msg}`);
 	// get the socket for the client from the connected clients map
 	const socket = connectedClients.get(clientId);
-	if (socket) {
-		socket.write(msg);
-	}
+	if (socket) socket.write(msg);
+	
 }
 
 function receiveRequest(clientId, msg) {
@@ -113,22 +196,11 @@ function receiveRequest(clientId, msg) {
 
 		const request = msg.substring('REQUEST: '.length);
 
-		// send the request to the robot (simulated for now)
-		const response_test = "(response test)";
-		const response = `UPDATE: ${response_test} - ${Date.now()}\n`;
-		// update the data (matrix of times and successes)
+		// send the request to the robot
+		sendRequestRobot(request)
 
-		
-		// send the response to the client that made the request
-		sendRequest(clientId, "RESPONSE: test\n");
-
-
-		// send the updates to everyone (time + success)
-		sendToEveryone(response)
-
-		// set a timeout to release the hand
-		if (handTimer) clearTimeout(handTimer);
-		setHandTimeout(clientId);
+		// the timeout will be rest when the response is received
+		clearTimeout(handTimer);
 
 	} else if (msg === "HAND") {
 		if (!handHolder) {
@@ -143,7 +215,7 @@ function receiveRequest(clientId, msg) {
 			}
 			// the hand is not available
 			position = requestQueue.indexOf(clientId) + 1;
-			if (position==0) {
+			if (position==0) { // clientId not in the queue
 				requestQueue.push(clientId);
 				position=requestQueue.length
 			}
@@ -165,14 +237,23 @@ function sendToEveryone(msg) {
 
 function setHandTimeout(clientId) {
 	handTimer = setTimeout(() => {
-		if (requestQueue.length===0) {
+		if (requestQueue.length===0) { // queue is empty
 			handHolder=null;
-		} else {
+		} else { // set the first client in the queue as the hand holder
 			handHolder = requestQueue[0];
 			requestQueue.shift();
 			sendRequest(handHolder, 'hand request accepted\n');
 			setHandTimeout(handHolder);
+			updatePositions();
 		}
 		sendRequest(clientId, 'hand timeout\n');
 	}, handTimeout);
+}
+
+
+function updatePositions() {
+	// notify each client in the queue of their new position
+	for (let i=0; i<requestQueue.length; i++) {
+		sendRequest(requestQueue[i], `hand queue position: ${i+1}\n`);
+	}
 }

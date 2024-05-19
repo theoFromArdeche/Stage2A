@@ -12,11 +12,18 @@ function requestHand() {
   ipcRenderer.send('requestHand');
 }
 
+ipcRenderer.on('receiveResponse', (event, arg) => {
+  const span_test = document.getElementById("test_requests");
+  console.log(arg.trim())
+  span_test.innerText = arg.trim();
+});
+
 
 </script>
 
 <template>
   <div>
+    <span id="test_requests">test</span>
     <div id="container">
       <Sidebar id="sidebar"></Sidebar>
       <div id="container_map">

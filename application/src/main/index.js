@@ -136,9 +136,14 @@ function sendRequest(request) {
 
 function receiveRequest(request) {
   console.log('Received from client : ', request);
-  mainWindow.webContents.send('receiveResponse', request);
+  if (hasHand) {
+    sendRequestServer("REQUEST: "+request)
+  }
 }
 
+function receiveResponse(response) {
+  mainWindow.webContents.send('receiveResponse', response);
+}
 
 
 function requestHand() {
@@ -147,39 +152,69 @@ function requestHand() {
 
 
 const port_server = 2345;
+const server_host = '192.168.206.124'; // the server's IP address or hostname
 var serverConnected = false; 
+var serverSocket = null;
 // connect to the server
-const serverSocket = net.createConnection({ port: port_server }, () => {
-  console.log(`Connected to the server on port ${port_server}`);
-  serverConnected=true
-});
+function connectToServer() {
+  serverSocket = net.createConnection({ host:server_host, port: port_server }, () => {
+    console.log(`Connected to the server on port ${port_server}`);
+    serverConnected = true;
 
+    // Handle incoming data from the server
+    serverSocket.on('data', (data) => {
+      const responses = data.toString().split("\n");
+      for (let response of responses) {
+        if (!response) continue
+        receiveResponseServer(response);
+      }
+    });
 
-serverSocket.on('data', (data) => {
-  receiveResponseServer(data)
-});
+    // Handle the end of the server connection
+    serverSocket.on('end', () => {
+      console.log('WARNING: Server disconnected');
+      serverConnected = false;
 
+      // Attempt to reconnect to the server after a delay
+      setTimeout(connectToServer, 5000); // 5 seconds
+    });
 
-serverSocket.on('end', () => {
-  console.log('WARNING : Server disconnected');
-  serverConnected=false;
-});
-  
-serverSocket.on('error', (err) => {
-  console.error('Socket error:', err);
-  serverConnected=false;
-});
+    // Handle errors in the server connection
+    serverSocket.on('error', (err) => {
+      console.error('Socket error:', err);
+      serverConnected = false;
 
+      // Attempt to reconnect to the server after a delay
+      setTimeout(connectToServer, 5000); // 5 seconds
+    });
+  });
+
+  // If the connection to the server fails, retry after a delay
+  serverSocket.on('error', (err) => {
+    if (err.code === 'ECONNREFUSED') {
+      console.log('WARNING: Server is not available, retrying in 5 seconds...');
+      setTimeout(connectToServer, 5000); // 5 seconds
+    } else {
+      console.error('Socket error:', err);
+    }
+  });
+}
+
+connectToServer();
 
 function receiveResponseServer(response) { // from the server
   console.log("Received from server : " + response)
   if (response.indexOf('RESPONSE: ')==0) {
-		const response = response.substring('RESPONSE: '.length);
-    sendRequest(response);
+		const response_body = response.substring('RESPONSE: '.length);
+    receiveResponse(response_body);
   } else if (response.indexOf('UPDATE: ')==0) {
     const update = response.substring('UPDATE: '.length);
     // update les données locales
-  }
+  } else if (response === "hand request accepted") {
+    hasHand=true;
+	} else if (response === "hand timeout") {
+    hasHand=false;
+	}
 }
 
 

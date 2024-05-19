@@ -9,5 +9,5 @@ import Topbar from './components/Topbar.vue'
     <keep-alive>
       <component :is="Component" />
     </keep-alive>
-  </router-view>
+  </router-view>  
 </template>
