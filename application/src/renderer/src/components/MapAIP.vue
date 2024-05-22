@@ -1,6 +1,15 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 
+var data;
+
+const ipcRenderer = window.electron.ipcRenderer;
+
+
+ipcRenderer.on('updateData', (event, arg) => {
+  data = arg;
+});
+
 const mapCanvas = ref(null)
 
 function isDigit(charac) {

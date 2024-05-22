@@ -223,6 +223,7 @@ function receiveResponseServer(response) { // from the server
       data.times[update.src][update.dest]=update.time;
     }
     console.log('UPDATED DATA : ', data);
+    mainWindow.webContents.send('updateData', data);
 
   } else if (response === 'hand request accepted') {
     hasHand=true;
@@ -235,6 +236,7 @@ function receiveResponseServer(response) { // from the server
     try {
       data = JSON.parse(jsonString);
       data.id = new Map(Object.entries(data.id));
+      mainWindow.webContents.send('updateData', data);
     } catch (err) {
       console.log('Error parsing JSON:', err);
     }
