@@ -100,23 +100,23 @@ const net = require('net');
 const port_instance = 1234; // choose an open port
 
 var clientSocket = null;
-var clientConnected=false;
+var clientConnected = false;
 var hasHand = false;
 
 // set up l'instance pour être accessible pour l'etudiant
 const instanceSocket = net.createServer((socket) => {
   console.log('Client connected');
-  clientSocket=socket;
-  clientConnected=true
+  clientSocket = socket;
+  clientConnected = true
   console.log('Client socket info:', socket.address());
   // received data from the client
   socket.on('data', (data) => {
     receiveRequest(data.toString())
   });
-  
+
   socket.on('end', () => {
     console.log('Client disconnected');
-    clientConnected=false
+    clientConnected = false
     console.log('Client socket info:', socket.address());
   });
 
@@ -143,7 +143,7 @@ function sendRequest(request) {
 function receiveRequest(request) {
   console.log('Received from client : ', request);
   if (hasHand) {
-    sendRequestServer('REQUEST: '+request)
+    sendRequestServer('REQUEST: ' + request)
   }
 }
 
@@ -159,11 +159,11 @@ function requestHand() {
 
 const port_server = 2345;
 const server_host = 'localhost'; // the server's IP address or hostname
-var serverConnected = false; 
+var serverConnected = false;
 var serverSocket = null;
 // connect to the server
 function connectToServer() {
-  serverSocket = net.createConnection({ host:server_host, port: port_server }, () => {
+  serverSocket = net.createConnection({ host: server_host, port: port_server }, () => {
     console.log(`Connected to the server on port ${port_server}`);
     serverConnected = true;
     serverSocket.write('DATA')
@@ -213,29 +213,29 @@ function receiveResponseServer(response) { // from the server
   if (!response) return;
   console.log('Received from server : ' + response)
 
-  if (response.indexOf('RESPONSE: ')==0) {
-		const response_body = response.substring('RESPONSE: '.length);
+  if (response.indexOf('RESPONSE: ') == 0) {
+    const response_body = response.substring('RESPONSE: '.length);
     receiveResponse(response_body);
 
-  } else if (response.indexOf('UPDATE: ')==0) {
+  } else if (response.indexOf('UPDATE: ') == 0) {
     const update_json = response.substring('UPDATE: '.length);
     const update = JSON.parse(update_json);
-    if (update.time===-1) { // fail
-      data.fails[update.src][update.dest]+=1;
+    if (update.time === -1) { // fail
+      data.fails[update.src][update.dest] += 1;
     } else { // sucess
-      data.successes[update.src][update.dest]+=1;
-      data.times[update.src][update.dest]=update.time;
+      data.successes[update.src][update.dest] += 1;
+      data.times[update.src][update.dest] = update.time;
     }
     console.log('UPDATED DATA : ', data);
     mainWindow.webContents.send('updateData', data);
 
   } else if (response === 'hand request accepted') {
-    hasHand=true;
+    hasHand = true;
 
-	} else if (response === 'hand timeout') {
-    hasHand=false;
+  } else if (response === 'hand timeout') {
+    hasHand = false;
 
-	} else if (response.indexOf('DATA: ')==0) { 
+  } else if (response.indexOf('DATA: ') == 0) {
     const jsonString = response.substring('DATA: '.length);
     try {
       data = JSON.parse(jsonString);
@@ -253,6 +253,35 @@ function sendRequestServer(request) {
   serverSocket.write(request);
 }
 
+
+function ResponseSimulation(request) {
+  if (request.toLowerCase().indexof("goto ") == 0) {
+    const whereto = request.toLowerCase().substring('goto '.length);
+    const msg1 = "Going to " + whereto
+    const msg2 = "Arrived at " + whereto
+    delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
+    mainWindow.webContents.send('updateStatus', msg1);
+    setTimeout(function () {
+      mainWindow.webContents.send('updateStatus', msg2);
+    }, delta_time);
+  }
+
+  else if (request.toLowerCase() == "dock") {
+    const whereto = request.toLowerCase().substring('dock'.length);
+    const msg1 = "Going to dock"
+    const msg2 = "Docking"
+    const msg3 = "Docked"
+    delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
+    mainWindow.webContents.send('updateStatus', msg1);
+    setTimeout(function () {
+      mainWindow.webContents.send('updateStatus', msg2);
+      setTimeout(function () {
+        mainWindow.webContents.send('updateStatus', msg3);
+      }, 1000);
+    }, delta_time);
+
+  }
+}
 
 /*
 
