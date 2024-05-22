@@ -1,0 +1,19 @@
+@startuml
+
+actor "Student" as student
+participant "Instance" as instance
+participant "Server" as server
+participant "Robot" as robot
+
+student -> instance : Requête de déplacement
+
+
+alt student has the hand
+  instance -> server : Requête de déplacement
+  server -> robot : Requête de déplacement
+  robot --> server : reponse requete
+  server --> instance : reponse requete
+  instance --> student : reponse requete
+end
+
+@enduml

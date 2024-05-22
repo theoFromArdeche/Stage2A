@@ -1,0 +1,23 @@
+@startuml
+
+
+participant "Instance" as instance
+participant "Serveur" as serveur
+participant "Robot" as robot
+
+
+
+instance -> serveur: Demande de main
+alt main disponible
+    serveur -> instance: Réponse de demande de main (main libre)
+
+    instance -> serveur: Requête de déplacement
+    serveur -> robot: Requête de déplacement
+    robot -> serveur: Confirmation de déplacement
+    serveur -> instance: Confirmation de déplacement
+else main indisponible
+    serveur -> instance: Réponse de demande de main\n(position dans la file d'attente)
+end
+
+
+@enduml

@@ -1,7 +1,7 @@
 
 const net = require('net');
 const port_robot = 3456;
-const robot_host = '192.168.206.124';
+const robot_host = 'localhost';
 var robotConnected = false; 
 var robotSocket = null;
 

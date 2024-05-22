@@ -152,7 +152,7 @@ function requestHand() {
 
 
 const port_server = 2345;
-const server_host = '192.168.206.124'; // the server's IP address or hostname
+const server_host = 'localhost'; // the server's IP address or hostname
 var serverConnected = false; 
 var serverSocket = null;
 // connect to the server
