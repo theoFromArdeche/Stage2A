@@ -338,7 +338,6 @@ onMounted(async () => {
     ctx_route.lineCap = 'round';
     ctx_transition.lineCap = 'round';
     const success_rate = Math.floor(liste.length*data.successes[data.id.get(button_id_start)][data.id.get(button_id_end)]/(data.successes[data.id.get(button_id_start)][data.id.get(button_id_end)] + data.fails[data.id.get(button_id_start)][data.id.get(button_id_end)]))
-    const success_rate = Math.floor(liste.length*data.successes[data.id.get(button_id_start)][data.id.get(button_id_end)]/(data.successes[data.id.get(button_id_start)][data.id.get(button_id_end)] + data.fails[data.id.get(button_id_start)][data.id.get(button_id_end)]))
     ctx_route.strokeStyle = liste[success_rate];
     ctx_transition.strokeStyle = liste[success_rate];
 
