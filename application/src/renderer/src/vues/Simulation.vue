@@ -22,7 +22,6 @@ function sendRequest(arg) {
 
 <template>
   <div id="main_container">
-    <span id="test_requests">test</span>
     <div id="container">
       <Sidebar id="sidebar"></Sidebar>
       <div id="container_map">

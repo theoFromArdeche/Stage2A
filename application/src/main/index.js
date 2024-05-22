@@ -113,7 +113,7 @@ const instanceSocket = net.createServer((socket) => {
   socket.on('data', (data) => {
     receiveRequest(data.toString())
   });
-  
+
   socket.on('end', () => {
     console.log('Client disconnected');
     clientConnected=false
@@ -159,7 +159,7 @@ function requestHand() {
 
 const port_server = 2345;
 const server_host = 'localhost'; // the server's IP address or hostname
-var serverConnected = false; 
+var serverConnected = false;
 var serverSocket = null;
 // connect to the server
 function connectToServer() {
@@ -235,7 +235,7 @@ function receiveResponseServer(response) { // from the server
 	} else if (response === 'hand timeout') {
     hasHand=false;
 
-	} else if (response.indexOf('DATA: ')==0) { 
+	} else if (response.indexOf('DATA: ')==0) {
     const jsonString = response.substring('DATA: '.length);
     try {
       data = JSON.parse(jsonString);
@@ -258,7 +258,7 @@ function sendRequestServer(request) {
 
 
 
-initialisation de l'instance: 
+initialisation de l'instance:
 ping le server (pour qu'il puisse nous envoyer les majs)
 fetch les données (matrice des temps et des réussites)
 
@@ -336,7 +336,7 @@ envoyer les modifs a tous le monde (temps + réussite)
 
 
 
-une instance demande la main: 
+une instance demande la main:
 on l'ajoute a la file d'attente (si déjà prise)
 
 il y a un timeout quand on donne la main à une instance

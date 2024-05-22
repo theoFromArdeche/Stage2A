@@ -14,7 +14,6 @@ function fonctionpere(input) {
   test.value = input
 }
 
-
 const ipcRenderer = window.electron.ipcRenderer;
 
 
@@ -28,18 +27,22 @@ ipcRenderer.on('receiveResponse', (event, arg) => {
   span_test.innerText = arg.trim();
 });
 
+ipcRenderer.on('receiveQueue', (event, arg) => {
+  const span_test = document.getElementById("messageAttente");
+  span_test.innerText = arg.trim();
+});
 
 </script>
 
 <template>
   <div>
-    <span id="test_requests">test</span>
     <div id="container">
       <Sidebar id="sidebar"></Sidebar>
       <div id="container_map">
         <MapAIP></MapAIP>
-        <Fils1 @fonctionpere="fonctionpere"></Fils1>
-        <Fils2 :receivedValue="test"></Fils2>
+      </div>
+      <div id="fileAttente">
+        <span id="messageAttente">Défaut</span>
       </div>
       <div id="container_buttons">
         <button @click="requestHand()">Demander la main</button>
