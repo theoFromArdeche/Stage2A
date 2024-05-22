@@ -1,5 +1,30 @@
 
+
+const fs = require('fs');
+
+// fetch the data
+const jsonString = fs.readFileSync('./data.json', 'utf8');
+
+// Parse the JSON string
+var data;
+try {
+  data = JSON.parse(jsonString);
+} catch (err) {
+  console.log('Error parsing JSON:', err);
+}
+
+
+data.id = new Map(Object.entries(data.id)); 
+
+console.log(data)
+
+const requestsQueue = [];
+
+var curPosRobot = 'test1';
+
+
 const net = require('net');
+const { type } = require('os');
 const port_robot = 3456;
 const robot_host = 'localhost';
 var robotConnected = false; 
@@ -49,17 +74,43 @@ connectToRobot();
 
 
 
-function receiveResponseRobot(response) { // from the server
-  console.log("Received from robot : " + response)
+function receiveResponseRobot(response) { // from the robot
+  console.log('Received from robot : ' + response)
   
   // send the response to the client that made the request
-  sendRequest(handHolder, "RESPONSE: "+response+"\n");
+  sendRequest(handHolder, 'RESPONSE: '+response+'\n');
 
-  const response_update = `UPDATE: ${response} - ${Date.now()}\n`;
-  // update the data (matrix of times and successes)
+	var response_update;
+	const cur_id=data.id.get(curPosRobot);
+	const next_id=data.id.get(requestsQueue[0].dest);
+	if (response==='success') {
+		// update the current position of the robot
+		curPosRobot = requestsQueue[0].dest;
+		
+		const new_time = (Date.now()-requestsQueue[0].time)/1000;
+		console.log("NEW TIME: ", new_time)
+		
+  	// update the data (matrix of times and successes)
+		data.times[cur_id][next_id] = (data.times[cur_id][next_id]*data.successes[cur_id][next_id] + new_time) / (data.successes[cur_id][next_id] + 1);
+		data.successes[cur_id][next_id] +=1;
+
+		// round to 2 decimals
+		data.times[cur_id][next_id] = Math.round(data.times[cur_id][next_id]*100)/100;
+
+		response_update = JSON.stringify({src: cur_id, dest: next_id, time: data.times[cur_id][next_id]});
+	} else {
+		// update the current position of the robot
+		// TODO curPosRobot = ???
+
+		data.fails[cur_id][next_id] +=1;
+		response_update = JSON.stringify({src: cur_id, dest: next_id, time: -1});;
+	}
+
+	// pop the request
+	requestsQueue.shift();
 
   // send the updates to everyone (time + success)
-  sendToEveryone(response_update)
+  sendToEveryone('UPDATE: '+response_update)
 
   // a response is received, the timer is reset
   setHandTimeout(handHolder);
@@ -71,7 +122,7 @@ function sendRequestRobot(request) {
     // wait for the robot to be connected
     const checkConnection = () => {
       if (robotConnected) {
-        console.log("Send to robot : " + request);
+        console.log('Send to robot : ' + request);
         robotSocket.write(request, (err) => {
           if (err) {
             reject(err);
@@ -167,16 +218,7 @@ function socketDisconnect(clientId, pingInterval) {
 }
 
 
-let data = {
-	// matrix of times
-	times: [
-		//...
-	],
-	// matrix of successes
-	successes: [
-		//...
-	],
-};
+
 
 function sendRequest(clientId, msg) {
 	console.log(`Send to client ${clientId}: ${msg}`);
@@ -195,6 +237,18 @@ function receiveRequest(clientId, msg) {
 		if (handHolder != clientId) return;
 
 		const request = msg.substring('REQUEST: '.length);
+		if (!request.startsWith('GOTO ')) {
+			console.log('invalid command\n');
+			return;
+		}
+
+		const dest = request.substring('GOTO '.length);
+		if (!data.id.has(dest)) {
+			console.log('invalid destination\n');
+			return;
+		}
+
+		requestsQueue.push({time: Date.now(), dest: dest});
 
 		// send the request to the robot
 		sendRequestRobot(request)
@@ -202,7 +256,7 @@ function receiveRequest(clientId, msg) {
 		// the timeout will be rest when the response is received
 		clearTimeout(handTimer);
 
-	} else if (msg === "HAND") {
+	} else if (msg === 'HAND') {
 		if (!handHolder) {
 			// the hand is available and given to the client
 			handHolder=clientId;
@@ -210,7 +264,7 @@ function receiveRequest(clientId, msg) {
 			setHandTimeout(clientId);
 		} else {
 			if (handHolder==clientId) {
-				sendRequest(clientId, "you already have the hand\n");
+				sendRequest(clientId, 'you already have the hand\n');
 				return;
 			}
 			// the hand is not available
@@ -221,6 +275,16 @@ function receiveRequest(clientId, msg) {
 			}
 			sendRequest(clientId, `hand queue position: ${position}\n`);
 		}
+	} else if (msg === 'DATA') {
+		const jsonString = JSON.stringify(data, (key, value) => {
+			// If the value is a Map, convert it to an object
+			if (value instanceof Map) {
+				return Object.fromEntries(value.entries());
+			}
+			// Otherwise, return the value as is
+			return value;
+		});
+		sendRequest(clientId, 'DATA: '+jsonString);
 	}
 }
 

@@ -8,7 +8,10 @@ const server = net.createServer((socket) => {
   socket.on('data', (data) => {
     console.log('Received from first server : ', data.toString());
     // Send a response back to the first server
-    socket.write('(robot) ' + data);
+
+    setTimeout(() => {
+      socket.write('success');
+    }, 2630);
   });
 
   socket.on('end', () => {

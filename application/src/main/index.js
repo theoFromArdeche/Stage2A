@@ -86,8 +86,10 @@ app.on('window-all-closed', () => {
   }
 })
 
-// In this file you can include the rest of your app"s specific main process
+// In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
+
+var data;
 
 const net = require('net');
 
@@ -130,14 +132,14 @@ instanceSocket.listen(port_instance, () => {
 
 function sendRequest(request) {
   if (!clientConnected) return;
-  console.log("Send to client : " + request)
+  console.log('Send to client : ' + request)
   clientSocket.write(request);
 }
 
 function receiveRequest(request) {
   console.log('Received from client : ', request);
   if (hasHand) {
-    sendRequestServer("REQUEST: "+request)
+    sendRequestServer('REQUEST: '+request)
   }
 }
 
@@ -147,7 +149,7 @@ function receiveResponse(response) {
 
 
 function requestHand() {
-  sendRequestServer("HAND")
+  sendRequestServer('HAND')
 }
 
 
@@ -160,10 +162,11 @@ function connectToServer() {
   serverSocket = net.createConnection({ host:server_host, port: port_server }, () => {
     console.log(`Connected to the server on port ${port_server}`);
     serverConnected = true;
+    serverSocket.write('DATA')
 
     // Handle incoming data from the server
     serverSocket.on('data', (data) => {
-      const responses = data.toString().split("\n");
+      const responses = data.toString().split('\n');
       for (let response of responses) {
         if (!response) continue
         receiveResponseServer(response);
@@ -203,27 +206,47 @@ function connectToServer() {
 connectToServer();
 
 function receiveResponseServer(response) { // from the server
-  console.log("Received from server : " + response)
+  if (!response) return;
+  console.log('Received from server : ' + response)
+
   if (response.indexOf('RESPONSE: ')==0) {
 		const response_body = response.substring('RESPONSE: '.length);
     receiveResponse(response_body);
+
   } else if (response.indexOf('UPDATE: ')==0) {
-    const update = response.substring('UPDATE: '.length);
-    // update les données locales
-  } else if (response === "hand request accepted") {
+    const update_json = response.substring('UPDATE: '.length);
+    const update = JSON.parse(update_json);
+    if (update.time===-1) { // fail
+      data.fails[update.src][update.dest]+=1;
+    } else { // sucess
+      data.successes[update.src][update.dest]+=1;
+      data.times[update.src][update.dest]=update.time;
+    }
+    console.log('UPDATED DATA : ', data);
+
+  } else if (response === 'hand request accepted') {
     hasHand=true;
-	} else if (response === "hand timeout") {
+
+	} else if (response === 'hand timeout') {
     hasHand=false;
-	}
+
+	} else if (response.indexOf('DATA: ')==0) { 
+    const jsonString = response.substring('DATA: '.length);
+    try {
+      data = JSON.parse(jsonString);
+      data.id = new Map(Object.entries(data.id));
+    } catch (err) {
+      console.log('Error parsing JSON:', err);
+    }
+  }
 }
 
 
 function sendRequestServer(request) {
   if (!serverConnected) return;
-  console.log("Send to server : " + request)
+  console.log('Send to server : ' + request)
   serverSocket.write(request);
 }
-
 
 
 /*
