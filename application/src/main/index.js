@@ -250,15 +250,15 @@ function receiveResponseServer(response) { // from the server
 
   } else if (response === 'hand request accepted') {
     hasHand = true;
-    mainWindow.webContents.send('receiveQueue', "Vrai");
+    mainWindow.webContents.send('receiveQueue', "Vous avez la main");
 
   } else if (response.indexOf('hand queue position: ') === 0) {
     const pos = response.substring('hand queue position: '.length);
-    mainWindow.webContents.send('receiveQueue', pos);
+    mainWindow.webContents.send('receiveQueue', "Position file d'attente : "+pos);
 
   } else if (response === 'hand timeout') {
     hasHand = false;
-    mainWindow.webContents.send('receiveQueue', "Faux");
+    mainWindow.webContents.send('receiveQueue', "Demander la main");
 
 	} else if (response.indexOf('DATA: ') === 0) { 
     const response_array = response.substring('DATA: '.length).split("FLAG_SPLIT");

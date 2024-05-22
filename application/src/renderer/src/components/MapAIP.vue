@@ -207,6 +207,7 @@ function getMin() {
 }
 
 
+
 onMounted(async () => {
   // tell the backend that the vue has loaded
   ipcRenderer.send('vue-loaded');
@@ -217,8 +218,11 @@ onMounted(async () => {
   const ctx_route = canvas_route.getContext('2d');
   const canvas_transition = document.getElementById("canvas_transition");
   const ctx_transition = canvas_transition.getContext('2d');
+
   function tailleEtTracer() {
     //ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    
 
     const container_map = document.getElementById('container_map')
 

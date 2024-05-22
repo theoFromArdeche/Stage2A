@@ -22,8 +22,8 @@ onMounted(() => {
 })
 
 ipcRenderer.on('receiveQueue', (event, arg) => {
-  const span_test = document.getElementById("messageAttente");
-  span_test.innerText = arg.trim();
+  const button = document.getElementById("button_demander_main");
+  button_demander_main.innerText = arg.trim();
 });
 
 </script>
@@ -35,11 +35,8 @@ ipcRenderer.on('receiveQueue', (event, arg) => {
       <div id="container_map">
         <MapAIP></MapAIP>
       </div>
-      <div id="fileAttente">
-        <span id="messageAttente">Défaut</span>
-      </div>
       <div id="container_buttons">
-        <button @click="requestHand()">Demander la main</button>
+        <button id="button_demander_main" @click="requestHand()">Demander la main</button>
       </div>
       <div id="container_bottombar">
         <Bottombar
