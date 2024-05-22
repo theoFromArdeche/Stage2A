@@ -8,7 +8,6 @@ const ipcRenderer = window.electron.ipcRenderer;
 
 ipcRenderer.on('updateData', (event, arg) => {
   data = arg;
-  console.log(data)
 });
 
 
@@ -265,7 +264,7 @@ onMounted(async () => {
       const container_height = (maxPos.x * container_map.offsetWidth) / maxPos.y
       button.style.top = `${Math.round((transformed.y / container_height) * 100)}%`
       text_bouton.style.top = `${Math.round((transformed.y / container_height) * 100)}%`
-      button.id = point[3]
+      button.id = point[3].toLowerCase()
       button.onclick = function(){text_bouton.style.opacity = 1 - text_bouton.style.opacity}
       buttons.push(button)
       container_map.appendChild(button)
@@ -406,10 +405,10 @@ onMounted(async () => {
   // Exemple d'utilisation de la fonction :
   document.addEventListener('keydown', function (event) {
     if (event.code === 'Space') {
-      animateLineBetweenButtons('S-111-2', 'Sfp_Poste4')
+      animateLineBetweenButtons('s-111-2', 'sfp_poste4')
     }
     else if (event.key === 'p') {
-      animateLineBetweenButtons('S-106', 'S-111-2')
+      animateLineBetweenButtons('s-106', 's-111-2')
     }
     else if (event.key === 'c') {
       ctx_route.clearRect(0, 0, canvas_route.width, canvas_route.height);
@@ -423,7 +422,6 @@ onMounted(async () => {
   <canvas id="canvas_MapAIP"></canvas>
   <canvas id="canvas_route"></canvas>
   <canvas id="canvas_transition"></canvas>
-  <img src="../assets/omron_png.png" alt="">
 </template>
 
 <style scoped src="../styles/mapAIP.css"></style>
