@@ -8,7 +8,9 @@ const ipcRenderer = window.electron.ipcRenderer;
 
 ipcRenderer.on('updateData', (event, arg) => {
   data = arg;
+  console.log(data)
 });
+
 
 const mapCanvas = ref(null)
 
@@ -138,7 +140,7 @@ let interestPoints = []
 
 const updateInfos = async () => {
   const url =
-    'https://raw.githubusercontent.com/PIDR-2023/PIDR/main/application/src/renderer/src/map_loria.txt'
+    'https://raw.githubusercontent.com/PIDR-2023/PIDR/requetes/server/map_loria.txt'
   try {
     const response = await fetch(url)
     const content = await response.text()
@@ -206,6 +208,9 @@ function getMin() {
 
 
 onMounted(async () => {
+  // tell the backend that the vue has loaded
+  ipcRenderer.send('vue-loaded');
+
   const canvas_MapAIP = document.getElementById('canvas_MapAIP')
   const ctx_MapAIP = canvas_MapAIP.getContext('2d')
   const canvas_route = document.getElementById("canvas_route");
@@ -298,6 +303,7 @@ onMounted(async () => {
   }
 
   function animateLineBetweenButtons(button_id_start, button_id_end) {
+    if (!data.id.has(button_id_start)||!data.id.has(button_id_end)) return;
     // Récupère les références des deux boutons et du canvas
     const button_start = document.getElementById(button_id_start);
     const button_end = document.getElementById(button_id_end);

@@ -68,6 +68,10 @@ app.whenReady().then(() => {
     requestHand();
   });
 
+  ipcMain.on('vue-loaded', (event, arg) => {
+    mainWindow.webContents.send('updateData', data);
+  });
+
   createWindow()
 
   app.on('activate', function () {
@@ -236,7 +240,6 @@ function receiveResponseServer(response) { // from the server
     try {
       data = JSON.parse(jsonString);
       data.id = new Map(Object.entries(data.id));
-      mainWindow.webContents.send('updateData', data);
     } catch (err) {
       console.log('Error parsing JSON:', err);
     }
