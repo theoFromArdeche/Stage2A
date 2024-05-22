@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue'
 import '../styles/simulation.css'
 import '../styles/live_simulation_base.css'
 import Sidebar from '../components/Sidebar.vue'
@@ -6,6 +7,8 @@ import MapAIP from '../components/MapAIP.vue'
 import Bottombar from '../components/Bottombar.vue'
 
 const ipcRenderer = window.electron.ipcRenderer
+
+const statusMessages = ref([])
 
 ipcRenderer.on('receiveResponse', (event, arg) => {
   const span_test = document.getElementById('test_requests')
@@ -18,7 +21,7 @@ function sendRequest(arg) {
 </script>
 
 <template>
-  <div>
+  <div id="main_container">
     <span id="test_requests">test</span>
     <div id="container">
       <Sidebar id="sidebar"></Sidebar>
@@ -26,6 +29,12 @@ function sendRequest(arg) {
         <MapAIP></MapAIP>
       </div>
     </div>
-    <Bottombar id="bottombar" @send-request="sendRequest"></Bottombar>
+    <div id="container_bottombar">
+      <Bottombar
+        id="bottombar"
+        :statusMessages="statusMessages"
+        @send-request="sendRequest"
+      ></Bottombar>
+    </div>
   </div>
 </template>

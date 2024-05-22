@@ -1,4 +1,4 @@
-#container_bottombar{
+#container_bar{
   display: flex;
   flex-direction: row;
   position: relative;
@@ -12,13 +12,16 @@
 #container_statusMessages {
   flex-grow: 1;
   flex-shrink: 1;
-  height: 50px;
+  height: 75px;
   overflow-y: auto;
   background-color: white;
   padding: 5px;
   margin-top: 5px;
   margin-bottom: 5px;
+  margin-left: 10px;
   margin-right: 10px;
+  border-radius: 10px;
+  box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.2);
 }
 
 #container_buttons_simulation {

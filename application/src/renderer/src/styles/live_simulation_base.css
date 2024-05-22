@@ -1,10 +1,18 @@
+#main_container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  align-items: center;
+  overflow: hidden;
+}
+
 #container {
-    position: relative;
+    flex-grow: 1;
     display: flex;
-    height: 100%;
-    width: 100%;
     flex-direction: row;
     align-items: center;
+    justify-content: center;
+    overflow: hidden;
 }
 
 #container_map {
@@ -15,6 +23,13 @@
     align-items: center;
     height: auto;
     position: relative;
+}
+
+#container_bottombar {
+  width: 100%;
+  box-sizing: border-box;
+  position: absolute;
+  bottom: 0;
 }
 
 #map {
@@ -39,7 +54,7 @@
     height: auto;
     width: auto;
     position: absolute;
-    bottom: 20px;
+    bottom: 136px;
     right: 20px;
     display: flex;
     flex-direction: row-reverse;
