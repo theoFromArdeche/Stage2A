@@ -74,6 +74,7 @@ app.whenReady().then(() => {
 
   ipcMain.on('onSimulation', (event, arg) => {
     flagSimulation=true;
+    curPosRobot=newPosRobot;
   });
 
   ipcMain.on('onLive', (event, arg) => {
@@ -103,6 +104,8 @@ app.on('window-all-closed', () => {
 
 var data;
 var flagSimulation= true;
+var curPosRobot;
+var newPosRobot;
 
 const net = require('net');
 
@@ -240,6 +243,7 @@ function receiveResponseServer(response) { // from the server
     } else { // sucess
       data.successes[update.src][update.dest]+=1;
       data.times[update.src][update.dest]=update.time;
+      newPosRobot = update.dest;
     }
     console.log('UPDATED DATA : ', data);
     mainWindow.webContents.send('updateData', data);
@@ -251,13 +255,17 @@ function receiveResponseServer(response) { // from the server
     hasHand=false;
 
 	} else if (response.indexOf('DATA: ')==0) { 
-    const jsonString = response.substring('DATA: '.length);
+    const response_array = response.substring('DATA: '.length).split("FLAG_SPLIT");
+    const jsonString = response_array[0];
     try {
       data = JSON.parse(jsonString);
       data.id = new Map(Object.entries(data.id));
     } catch (err) {
       console.log('Error parsing JSON:', err);
     }
+
+    curPosRobot = response_array[1];
+    newPosRobot = curPosRobot;
   }
 }
 

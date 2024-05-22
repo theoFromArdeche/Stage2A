@@ -20,11 +20,10 @@ console.log(data)
 
 const requestsQueue = [];
 
-var curPosRobot = 'test1';
+var curPosRobot = 's-106';
 
 
 const net = require('net');
-const { type } = require('os');
 const port_robot = 3456;
 const robot_host = 'localhost';
 var robotConnected = false; 
@@ -236,13 +235,13 @@ function receiveRequest(clientId, msg) {
 
 		if (handHolder != clientId) return;
 
-		const request = msg.substring('REQUEST: '.length);
-		if (!request.startsWith('GOTO ')) {
+		const request = msg.substring('REQUEST: '.length).toLowerCase();
+		if (!request.startsWith('goto ')) {
 			console.log('invalid command\n');
 			return;
 		}
 
-		const dest = request.substring('GOTO '.length);
+		const dest = request.substring('goto '.length);
 		if (!data.id.has(dest)) {
 			console.log('invalid destination\n');
 			return;
@@ -284,7 +283,7 @@ function receiveRequest(clientId, msg) {
 			// Otherwise, return the value as is
 			return value;
 		});
-		sendRequest(clientId, 'DATA: '+jsonString);
+		sendRequest(clientId, 'DATA: '+jsonString+'FLAG_SPLIT'+curPosRobot);
 	}
 }
 
@@ -321,3 +320,5 @@ function updatePositions() {
 		sendRequest(requestQueue[i], `hand queue position: ${i+1}\n`);
 	}
 }
+
+

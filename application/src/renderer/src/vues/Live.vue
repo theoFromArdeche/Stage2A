@@ -8,12 +8,6 @@ import Fils2 from '../components/Fils2.vue'
 import Bottombar from '../components/Bottombar.vue'
 import { ref, onMounted } from 'vue'
 
-const test = ref('a')
-function fonctionpere(input) {
-  console.log('bonjour')
-  test.value = input
-}
-
 
 const ipcRenderer = window.electron.ipcRenderer;
 
@@ -22,11 +16,7 @@ function requestHand() {
   ipcRenderer.send('requestHand');
 }
 
-ipcRenderer.on('receiveResponse', (event, arg) => {
-  const span_test = document.getElementById("test_requests");
-  console.log(arg.trim())
-  span_test.innerText = arg.trim();
-});
+
 
 onMounted(() => {
   ipcRenderer.send('onLive');
@@ -36,8 +26,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div>
-    <span id="test_requests">test</span>
+  <div id="main_container">
     <div id="container">
       <Sidebar id="sidebar"></Sidebar>
       <div id="container_map">

@@ -10,14 +10,6 @@ const ipcRenderer = window.electron.ipcRenderer
 
 const statusMessages = ref([])
 
-ipcRenderer.on('receiveResponse', (event, arg) => {
-  const span_test = document.getElementById('test_requests')
-  span_test.innerText = arg
-})
-
-function sendRequest(arg) {
-  ipcRenderer.send('sendRequest', arg)
-}
 
 onMounted(() => {
   ipcRenderer.send('onSimulation');
@@ -27,7 +19,6 @@ onMounted(() => {
 
 <template>
   <div id="main_container">
-    <span id="test_requests">test</span>
     <div id="container">
       <Sidebar id="sidebar"></Sidebar>
       <div id="container_map">
