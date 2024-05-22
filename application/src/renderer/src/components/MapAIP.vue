@@ -330,16 +330,17 @@ onMounted(async () => {
     ctx_transition.lineWidth = 10;
     ctx_route.lineCap = 'round';
     ctx_transition.lineCap = 'round';
-    ctx_route.strokeStyle = liste[Math.floor(data.successes[data.id.get(button_id_start)][data.id.get(button_id_end)]*liste.length/100)];
-    ctx_transition.strokeStyle = liste[Math.floor(data.successes[data.id.get(button_id_start)][data.id.get(button_id_end)]*liste.length/100)];
+    const success_rate = Math.floor(data.successes[data.id.get(button_id_start)][data.id.get(button_id_end)]/(data.successes[data.id.get(button_id_start)][data.id.get(button_id_end)] + data.fails[data.id.get(button_id_start)][data.id.get(button_id_end)]))
+    ctx_route.strokeStyle = liste[success_rate];
+    ctx_transition.strokeStyle = liste[success_rate];
 
     // Animation
     let startTime = performance.now();
 
     function animate(currentTime) {
       // Avancement du robot
-      const speedup = 3
-      const animationTime = data.successes[data.id.get(button_id_start)][data.id.get(button_id_end)]*1000/speedup
+      const speedup = 1
+      const animationTime = data.times[data.id.get(button_id_start)][data.id.get(button_id_end)]/speedup
       const elapsedTime = currentTime - startTime;
       const progress = Math.min(elapsedTime / animationTime, 1);
 
@@ -379,24 +380,8 @@ onMounted(async () => {
     }
     else if (event.key === 'c') {
       ctx_route.clearRect(0, 0, canvas_route.width, canvas_route.height);
-
     }
   });
-
-
-  const liste_emplacements = ["S-111-2","S-106","Sfp_Poste4"]
-  const map = new Map()
-  for (let i = 0;i<liste_emplacements.length;i++){
-    map[liste_emplacements[i]] = i
-  }
-
-  function matrix(n, lim) {
-  var result = []
-  for(var i = 0; i < n; i++) {
-    result.push(new Array(n).fill(Math.random()*lim))
-  }
-  return result
-  }
 })
 </script>
 
