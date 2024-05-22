@@ -1,8 +1,15 @@
 <script setup>
+import { ref } from 'vue';
+
 const emit = defineEmits(['send-request'])
 
-defineProps({
-  statusMessage: Array
+var statusMessage = ref([])
+
+const ipcRenderer = window.electron.ipcRenderer;
+
+ipcRenderer.on('updateStatus', (event, arg) => {
+  statusMessage.value.push(arg)
+  console.log(statusMessage)
 })
 </script>
 

@@ -72,6 +72,15 @@ app.whenReady().then(() => {
     mainWindow.webContents.send('updateData', data);
   });
 
+  ipcMain.on('onSimulation', (event, arg) => {
+    flagSimulation=true;
+    curPosRobot=newPosRobot;
+  });
+
+  ipcMain.on('onLive', (event, arg) => {
+    flagSimulation=false;
+  });
+
   createWindow()
 
   app.on('activate', function () {
@@ -94,6 +103,9 @@ app.on('window-all-closed', () => {
 // code. You can also put them in separate files and require them here.
 
 var data;
+var flagSimulation= true;
+var curPosRobot;
+var newPosRobot;
 
 const net = require('net');
 
@@ -142,8 +154,14 @@ function sendRequest(request) {
 
 function receiveRequest(request) {
   console.log('Received from client : ', request);
-  if (hasHand) {
-    sendRequestServer('REQUEST: ' + request)
+  if (flagSimulation) {
+    
+  } else { // live
+    if (hasHand) {
+      sendRequestServer('REQUEST: '+request)
+    } //else {
+    // TODO notify the student
+    //}
   }
 }
 
@@ -223,8 +241,9 @@ function receiveResponseServer(response) { // from the server
     if (update.time === -1) { // fail
       data.fails[update.src][update.dest] += 1;
     } else { // sucess
-      data.successes[update.src][update.dest] += 1;
-      data.times[update.src][update.dest] = update.time;
+      data.successes[update.src][update.dest]+=1;
+      data.times[update.src][update.dest]=update.time;
+      newPosRobot = update.dest;
     }
     console.log('UPDATED DATA : ', data);
     mainWindow.webContents.send('updateData', data);
@@ -235,14 +254,18 @@ function receiveResponseServer(response) { // from the server
   } else if (response === 'hand timeout') {
     hasHand = false;
 
-  } else if (response.indexOf('DATA: ') == 0) {
-    const jsonString = response.substring('DATA: '.length);
+	} else if (response.indexOf('DATA: ')==0) { 
+    const response_array = response.substring('DATA: '.length).split("FLAG_SPLIT");
+    const jsonString = response_array[0];
     try {
       data = JSON.parse(jsonString);
       data.id = new Map(Object.entries(data.id));
     } catch (err) {
       console.log('Error parsing JSON:', err);
     }
+
+    curPosRobot = response_array[1];
+    newPosRobot = curPosRobot;
   }
 }
 
@@ -291,7 +314,7 @@ function ResponseSimulation(request) {
 
 
 
-initialisation de l'instance: 
+initialisation de l'instance:
 ping le server (pour qu'il puisse nous envoyer les majs)
 fetch les données (matrice des temps et des réussites)
 
@@ -369,7 +392,7 @@ envoyer les modifs a tous le monde (temps + réussite)
 
 
 
-une instance demande la main: 
+une instance demande la main:
 on l'ajoute a la file d'attente (si déjà prise)
 
 il y a un timeout quand on donne la main à une instance

@@ -6,14 +6,7 @@ import MapAIP from '../components/MapAIP.vue'
 import Fils1 from '../components/Fils1.vue'
 import Fils2 from '../components/Fils2.vue'
 import Bottombar from '../components/Bottombar.vue'
-import { ref } from 'vue'
-
-const test = ref('a')
-function fonctionpere(input) {
-  console.log('bonjour')
-  test.value = input
-}
-
+import { ref, onMounted } from 'vue'
 
 const ipcRenderer = window.electron.ipcRenderer;
 
@@ -22,24 +15,28 @@ function requestHand() {
   ipcRenderer.send('requestHand');
 }
 
-ipcRenderer.on('receiveResponse', (event, arg) => {
-  const span_test = document.getElementById("test_requests");
-  console.log(arg.trim())
+
+
+onMounted(() => {
+  ipcRenderer.send('onLive');
+})
+
+ipcRenderer.on('receiveQueue', (event, arg) => {
+  const span_test = document.getElementById("messageAttente");
   span_test.innerText = arg.trim();
 });
-
 
 </script>
 
 <template>
   <div>
-    <span id="test_requests">test</span>
     <div id="container">
       <Sidebar id="sidebar"></Sidebar>
       <div id="container_map">
         <MapAIP></MapAIP>
-        <Fils1 @fonctionpere="fonctionpere"></Fils1>
-        <Fils2 :receivedValue="test"></Fils2>
+      </div>
+      <div id="fileAttente">
+        <span id="messageAttente">Défaut</span>
       </div>
       <div id="container_buttons">
         <button @click="requestHand()">Demander la main</button>
