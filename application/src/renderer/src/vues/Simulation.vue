@@ -1,5 +1,4 @@
 <script setup>
-import { ref } from 'vue'
 import '../styles/simulation.css'
 import '../styles/live_simulation_base.css'
 import Sidebar from '../components/Sidebar.vue'

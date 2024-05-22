@@ -330,7 +330,7 @@ onMounted(async () => {
     ctx_transition.lineWidth = 10;
     ctx_route.lineCap = 'round';
     ctx_transition.lineCap = 'round';
-    const success_rate = Math.floor(data.successes[data.id.get(button_id_start)][data.id.get(button_id_end)]/(data.successes[data.id.get(button_id_start)][data.id.get(button_id_end)] + data.fails[data.id.get(button_id_start)][data.id.get(button_id_end)]))
+    const success_rate = Math.floor(liste.length*data.successes[data.id.get(button_id_start)][data.id.get(button_id_end)]/(data.successes[data.id.get(button_id_start)][data.id.get(button_id_end)] + data.fails[data.id.get(button_id_start)][data.id.get(button_id_end)]))
     ctx_route.strokeStyle = liste[success_rate];
     ctx_transition.strokeStyle = liste[success_rate];
 
@@ -340,7 +340,7 @@ onMounted(async () => {
     function animate(currentTime) {
       // Avancement du robot
       const speedup = 1
-      const animationTime = data.times[data.id.get(button_id_start)][data.id.get(button_id_end)]/speedup
+      const animationTime = data.times[data.id.get(button_id_start)][data.id.get(button_id_end)]/speedup*1000
       const elapsedTime = currentTime - startTime;
       const progress = Math.min(elapsedTime / animationTime, 1);
 
