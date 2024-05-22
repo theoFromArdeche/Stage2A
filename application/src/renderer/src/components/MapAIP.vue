@@ -137,6 +137,7 @@ let pointDetectedCoords = []
 let forbiddenLines = []
 let forbiddenAreas = []
 let interestPoints = []
+let buttons = []
 
 const updateInfos = async () => {
   const url =
@@ -266,6 +267,7 @@ onMounted(async () => {
       text_bouton.style.top = `${Math.round((transformed.y / container_height) * 100)}%`
       button.id = point[3]
       button.onclick = function(){text_bouton.style.opacity = 1 - text_bouton.style.opacity}
+      buttons.push(button)
       container_map.appendChild(button)
       container_map.appendChild(text_bouton)
     })
@@ -309,10 +311,29 @@ onMounted(async () => {
   })
 
   //window.addEventListener('resize', tailleEtTracer)
+  function add_infos(button_id_start, button_id_end){
+    var left_pos
+    var top_pos
+    buttons.forEach((button) => {
+      if (button.id == button_id_end){
+        left_pos = button.style.left
+        top_pos = button.style.top
+      }
+    })
+    let infos = document.createElement('p')
+    infos.style.left = left_pos
+    infos.style.top = top_pos
+    let contenu = "Temps de parcours : " + data.times[data.id.get(button_id_start)][data.id.get(button_id_end)]
+    infos.innerText = contenu
+    setTimeout(function () {
+        infos.remove()
+      }, 5000);
+  }
+
   function clearCanvas() {
     ctx_transition.clearRect(0, 0, canvas_transition.width, canvas_transition.height); //à modifier si les tout les canvas ne seront plus de la meme taille
   }
-
+  
   function animateLineBetweenButtons(button_id_start, button_id_end) {
     if (!data.id.has(button_id_start)||!data.id.has(button_id_end)) return;
     // Récupère les références des deux boutons et du canvas
@@ -373,6 +394,7 @@ onMounted(async () => {
         ctx_route.moveTo(x1, y1);
         ctx_route.lineTo(newX, newY);
         ctx_route.stroke();
+        add_infos(button_id_start, button_id_end)
         setTimeout(clearCanvas, 500)
       }
     }
@@ -401,6 +423,7 @@ onMounted(async () => {
   <canvas id="canvas_MapAIP"></canvas>
   <canvas id="canvas_route"></canvas>
   <canvas id="canvas_transition"></canvas>
+  <img src="../assets/omron_png.png" alt="">
 </template>
 
 <style scoped src="../styles/mapAIP.css"></style>
