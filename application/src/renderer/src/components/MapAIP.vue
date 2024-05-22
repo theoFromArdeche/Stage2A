@@ -206,7 +206,8 @@ function getMin() {
   maxPos.y -= minPos.y
 }
 
-
+const imageRobot = new Image();
+imageRobot.src = "/src/assets/omron_png.png";
 
 onMounted(async () => {
   // tell the backend that the vue has loaded
@@ -218,11 +219,11 @@ onMounted(async () => {
   const ctx_route = canvas_route.getContext('2d');
   const canvas_transition = document.getElementById("canvas_transition");
   const ctx_transition = canvas_transition.getContext('2d');
+  const canvas_transition_robot = document.getElementById("canvas_transition_robot");
+  const ctx_transition_robot = canvas_transition_robot.getContext('2d');
 
   function tailleEtTracer() {
     //ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-    
 
     const container_map = document.getElementById('container_map')
 
@@ -232,6 +233,8 @@ onMounted(async () => {
     canvas_route.height = canvas_MapAIP.height
     canvas_transition.width = canvas_MapAIP.width
     canvas_transition.height = canvas_MapAIP.height
+    canvas_transition_robot.width = canvas_MapAIP.width
+    canvas_transition_robot.height = canvas_MapAIP.height
 
     function transformCoord(x, y, width) {
       const diff = width / maxPos.y
@@ -361,13 +364,18 @@ onMounted(async () => {
     ctx_transition.lineWidth = 10;
     ctx_route.lineCap = 'round';
     ctx_transition.lineCap = 'round';
-    const success_rate = Math.floor(liste.length*data.successes[data.id.get(button_id_start)][data.id.get(button_id_end)]/(data.successes[data.id.get(button_id_start)][data.id.get(button_id_end)] + data.fails[data.id.get(button_id_start)][data.id.get(button_id_end)]))
+    const data_id_start = data.id.get(button_id_start);
+    const data_id_end = data.id.get(button_id_end)
+    console.log(data, data_id_start, data_id_end)
+    const successes = data.successes[data_id_start][data_id_end];
+    const fails = data.fails[data_id_start][data_id_end]
+    console.log(successes, fails)
+    const success_rate = Math.round((liste.length-1)*successes/(successes+fails));
     ctx_route.strokeStyle = liste[success_rate];
     ctx_transition.strokeStyle = liste[success_rate];
 
     // Animation
     let startTime = performance.now();
-
     function animate(currentTime) {
       // Avancement du robot
       const speedup = 1
@@ -379,13 +387,21 @@ onMounted(async () => {
       const newX = x1 + dx * progress;
       const newY = y1 + dy * progress;
 
+      const imageWidth = imageRobot.width/2;
+      const imageHeight = imageRobot.height/2;
+
+      ctx_transition_robot.clearRect(0, 0, canvas_transition_robot.width, canvas_transition_robot.height);
+      ctx_transition_robot.drawImage(imageRobot, newX-imageWidth/2, newY-imageHeight/2, imageWidth, imageHeight);
+
       // Efface le canvas et dessine le nouveau trait
       ctx_transition.clearRect(0, 0, canvas_transition.width, canvas_transition.height);
       ctx_transition.beginPath();
       ctx_transition.moveTo(x1, y1);
       ctx_transition.lineTo(newX, newY);
       ctx_transition.stroke();
+      
 
+      
       if (progress < 1) {
         requestAnimationFrame(animate);
       } else {
@@ -405,7 +421,7 @@ onMounted(async () => {
   // Exemple d'utilisation de la fonction :
   document.addEventListener('keydown', function (event) {
     if (event.code === 'Space') {
-      animateLineBetweenButtons('s-111-2', 'sfp_poste4')
+      animateLineBetweenButtons('s-111-2', 's-106')
     }
     else if (event.key === 'p') {
       animateLineBetweenButtons('s-106', 's-111-2')
@@ -422,6 +438,7 @@ onMounted(async () => {
   <canvas id="canvas_MapAIP"></canvas>
   <canvas id="canvas_route"></canvas>
   <canvas id="canvas_transition"></canvas>
+  <canvas id="canvas_transition_robot"></canvas>
 </template>
 
 <style scoped src="../styles/mapAIP.css"></style>

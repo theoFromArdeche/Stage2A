@@ -75,14 +75,15 @@ connectToRobot();
 
 function receiveResponseRobot(response) { // from the robot
   console.log('Received from robot : ' + response)
-  
   // send the response to the client that made the request
   sendRequest(handHolder, 'RESPONSE: '+response+'\n');
+
+  if (response.startsWith("Going to ")) return;
 
 	var response_update;
 	const cur_id=data.id.get(curPosRobot);
 	const next_id=data.id.get(requestsQueue[0].dest);
-	if (response==='success') {
+	if (response.startsWith("Arrived at ")) {
 		// update the current position of the robot
 		curPosRobot = requestsQueue[0].dest;
 		
@@ -104,7 +105,7 @@ function receiveResponseRobot(response) { // from the robot
 		data.fails[cur_id][next_id] +=1;
 		response_update = JSON.stringify({src: cur_id, dest: next_id, time: -1});;
 	}
-
+	console.log(data)
 	// pop the request
 	requestsQueue.shift();
 
