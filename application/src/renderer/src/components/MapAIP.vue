@@ -315,8 +315,8 @@ onMounted(async () => {
     ctx_transition.lineWidth = 10;
     ctx_route.lineCap = 'round';
     ctx_transition.lineCap = 'round';
-    ctx_route.strokeStyle = liste[Math.floor(success_matrix[map[button_id_start]][map[button_id_end]]*liste.length/100)];
-    ctx_transition.strokeStyle = liste[Math.floor(success_matrix[map[button_id_start]][map[button_id_end]]*liste.length/100)];
+    ctx_route.strokeStyle = liste[Math.floor(data.successes[data.id.get(button_id_start)][data.id.get(button_id_end)]*liste.length/100)];
+    ctx_transition.strokeStyle = liste[Math.floor(data.successes[data.id.get(button_id_start)][data.id.get(button_id_end)]*liste.length/100)];
 
     // Animation
     let startTime = performance.now();
@@ -324,7 +324,7 @@ onMounted(async () => {
     function animate(currentTime) {
       // Avancement du robot
       const speedup = 3
-      const animationTime = success_matrix[map[button_id_start]][map[button_id_end]]*1000/speedup
+      const animationTime = data.successes[data.id.get(button_id_start)][data.id.get(button_id_end)]*1000/speedup
       const elapsedTime = currentTime - startTime;
       const progress = Math.min(elapsedTime / animationTime, 1);
 
@@ -382,8 +382,6 @@ onMounted(async () => {
   }
   return result
   }
-  const time_matrix = matrix(liste_emplacements.length,20)
-  const success_matrix = matrix(liste_emplacements.length,100)
 })
 </script>
 
