@@ -236,12 +236,17 @@ function receiveRequest(clientId, msg) {
 		if (handHolder != clientId) return;
 
 		const request = msg.substring('REQUEST: '.length).toLowerCase();
-		if (!request.startsWith('goto ')) {
+		if (!request.startsWith('goto ')&&request!=="dock") {
 			console.log('invalid command\n');
 			return;
 		}
 
-		const dest = request.substring('goto '.length);
+		var dest;
+		if (request === "dock") {
+			dest = "DockingStation2";
+		} else {
+			dest = request.substring('goto '.length);
+		}
 		if (!data.id.has(dest)) {
 			console.log('invalid destination\n');
 			return;

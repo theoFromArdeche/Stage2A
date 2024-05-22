@@ -155,10 +155,10 @@ function sendRequest(request) {
 function receiveRequest(request) {
   console.log('Received from client : ', request);
   if (flagSimulation) {
-    
+    responseSimulation(request);
   } else { // live
     if (hasHand) {
-      sendRequestServer('REQUEST: '+request)
+      sendRequestServer('REQUEST: '+request);
     } //else {
     // TODO notify the student
     //}
@@ -166,7 +166,7 @@ function receiveRequest(request) {
 }
 
 function receiveResponse(response) {
-  mainWindow.webContents.send('receiveResponse', response);
+  mainWindow.webContents.send('updateStatus', response);
 }
 
 
@@ -231,11 +231,11 @@ function receiveResponseServer(response) { // from the server
   if (!response) return;
   console.log('Received from server : ' + response)
 
-  if (response.indexOf('RESPONSE: ') == 0) {
+  if (response.indexOf('RESPONSE: ') === 0) {
     const response_body = response.substring('RESPONSE: '.length);
     receiveResponse(response_body);
 
-  } else if (response.indexOf('UPDATE: ') == 0) {
+  } else if (response.indexOf('UPDATE: ') === 0) {
     const update_json = response.substring('UPDATE: '.length);
     const update = JSON.parse(update_json);
     if (update.time === -1) { // fail
@@ -250,11 +250,17 @@ function receiveResponseServer(response) { // from the server
 
   } else if (response === 'hand request accepted') {
     hasHand = true;
+    mainWindow.webContents.send('receiveQueue', "Vrai");
+
+  } else if (response.indexOf('hand queue position: ') === 0) {
+    const pos = response.substring('hand queue position: '.length);
+    mainWindow.webContents.send('receiveQueue', pos);
 
   } else if (response === 'hand timeout') {
     hasHand = false;
+    mainWindow.webContents.send('receiveQueue', "Faux");
 
-	} else if (response.indexOf('DATA: ')==0) { 
+	} else if (response.indexOf('DATA: ') === 0) { 
     const response_array = response.substring('DATA: '.length).split("FLAG_SPLIT");
     const jsonString = response_array[0];
     try {
@@ -277,16 +283,16 @@ function sendRequestServer(request) {
 }
 
 
-function ResponseSimulation(request) {
-  if (request.toLowerCase().indexof("goto ") == 0) {
-    const whereto = request.toLowerCase().substring('goto '.length);
+function responseSimulation(request) {
+  if (request.toLowerCase().indexOf("goto ") == 0) {
+    const whereto = request.toLowerCase().substring('goto '.length).trim();
     const msg1 = "Going to " + whereto
     const msg2 = "Arrived at " + whereto
-    delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
+    const delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
     mainWindow.webContents.send('updateStatus', msg1);
     setTimeout(function () {
       mainWindow.webContents.send('updateStatus', msg2);
-    }, delta_time);
+    }, delta_time*1000);
   }
 
   else if (request.toLowerCase() == "dock") {
@@ -294,14 +300,14 @@ function ResponseSimulation(request) {
     const msg1 = "Going to dock"
     const msg2 = "Docking"
     const msg3 = "Docked"
-    delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
+    const delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
     mainWindow.webContents.send('updateStatus', msg1);
     setTimeout(function () {
       mainWindow.webContents.send('updateStatus', msg2);
       setTimeout(function () {
         mainWindow.webContents.send('updateStatus', msg3);
       }, 1000);
-    }, delta_time);
+    }, delta_time*1000);
 
   }
 }
