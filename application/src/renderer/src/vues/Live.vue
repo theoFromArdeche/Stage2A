@@ -6,7 +6,7 @@ import MapAIP from '../components/MapAIP.vue'
 import Fils1 from '../components/Fils1.vue'
 import Fils2 from '../components/Fils2.vue'
 import Bottombar from '../components/Bottombar.vue'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const test = ref('a')
 function fonctionpere(input) {
@@ -27,6 +27,10 @@ ipcRenderer.on('receiveResponse', (event, arg) => {
   console.log(arg.trim())
   span_test.innerText = arg.trim();
 });
+
+onMounted(() => {
+  ipcRenderer.send('onLive');
+})
 
 
 </script>

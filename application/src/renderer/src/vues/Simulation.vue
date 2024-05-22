@@ -5,6 +5,7 @@ import '../styles/live_simulation_base.css'
 import Sidebar from '../components/Sidebar.vue'
 import MapAIP from '../components/MapAIP.vue'
 import Bottombar from '../components/Bottombar.vue'
+import { ref, onMounted } from 'vue'
 
 const ipcRenderer = window.electron.ipcRenderer
 
@@ -18,6 +19,11 @@ ipcRenderer.on('receiveResponse', (event, arg) => {
 function sendRequest(arg) {
   ipcRenderer.send('sendRequest', arg)
 }
+
+onMounted(() => {
+  ipcRenderer.send('onSimulation');
+})
+
 </script>
 
 <template>

@@ -72,6 +72,14 @@ app.whenReady().then(() => {
     mainWindow.webContents.send('updateData', data);
   });
 
+  ipcMain.on('onSimulation', (event, arg) => {
+    flagSimulation=true;
+  });
+
+  ipcMain.on('onLive', (event, arg) => {
+    flagSimulation=false;
+  });
+
   createWindow()
 
   app.on('activate', function () {
@@ -94,6 +102,7 @@ app.on('window-all-closed', () => {
 // code. You can also put them in separate files and require them here.
 
 var data;
+var flagSimulation= true;
 
 const net = require('net');
 
@@ -142,8 +151,14 @@ function sendRequest(request) {
 
 function receiveRequest(request) {
   console.log('Received from client : ', request);
-  if (hasHand) {
-    sendRequestServer('REQUEST: '+request)
+  if (flagSimulation) {
+    
+  } else { // live
+    if (hasHand) {
+      sendRequestServer('REQUEST: '+request)
+    } //else {
+    // TODO notify the student
+    //}
   }
 }
 
