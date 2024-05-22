@@ -249,14 +249,21 @@ onMounted(async () => {
     interestPoints.forEach((point) => {
       const transformed = transformCoord(point[0], point[1], container_map.offsetWidth)
       const button = document.createElement('button')
+      const text_bouton = document.createElement('p')
+      text_bouton.innerText = point[3]
+      text_bouton.style.opacity = 0
       button.style.position = 'absolute'
+      text_bouton.style.position = 'absolute'
       button.style.width = '1%'
       button.style.left = `${Math.round((transformed.x / container_map.offsetWidth) * 100)}%`
+      text_bouton.style.left = `${Math.round((transformed.x / container_map.offsetWidth) * 100)}%`
       const container_height = (maxPos.x * container_map.offsetWidth) / maxPos.y
       button.style.top = `${Math.round((transformed.y / container_height) * 100)}%`
+      text_bouton.style.top = `${Math.round((transformed.y / container_height) * 100)}%`
       button.id = point[3]
-      button.onclick = () => console.log(button.id)
+      button.onclick = function(){text_bouton.style.opacity = 1 - text_bouton.style.opacity}
       container_map.appendChild(button)
+      container_map.appendChild(text_bouton)
     })
 
     forbiddenLines.forEach((line) => {

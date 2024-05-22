@@ -286,6 +286,10 @@ function sendRequestServer(request) {
 function responseSimulation(request) {
   if (request.toLowerCase().indexOf("goto ") == 0) {
     const whereto = request.toLowerCase().substring('goto '.length).trim();
+    if (!data.id.has(whereto)){
+      console.log("invalid destination")
+      return
+    }
     const msg1 = "Going to " + whereto
     const msg2 = "Arrived at " + whereto
     const delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
