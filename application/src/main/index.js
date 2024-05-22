@@ -235,11 +235,7 @@ function receiveResponseServer(response) { // from the server
   } else if (response === 'hand timeout') {
     hasHand = false;
 
-<<<<<<< HEAD
-	} else if (response.indexOf('DATA: ')==0) {
-=======
   } else if (response.indexOf('DATA: ') == 0) {
->>>>>>> dcf96e3337afb3303b33388e63ca4bf85f6bd641
     const jsonString = response.substring('DATA: '.length);
     try {
       data = JSON.parse(jsonString);
