@@ -63,6 +63,11 @@
 }
 
 #fileAttente {
+    height: auto;
+    width: auto;
+    position: absolute;
+    bottom: 196px;
+    right: 110px;
     display: flex;
     flex-direction: row;
 }
