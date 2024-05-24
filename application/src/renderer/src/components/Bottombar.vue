@@ -8,12 +8,13 @@ const statusMessage = ref([])
 const ipcRenderer = window.electron.ipcRenderer
 
 ipcRenderer.on('updateStatus', (event, arg) => {
-  statusMessage.value.push(arg)
+  statusMessage.value.unshift(arg)
   console.log(statusMessage)
 })
 
 const containerHeight = ref('100px')
-const maxHeight = 280
+const maxHeight = window.innerHeight * 0.8
+const minHeight = window.innerHeight * 0.15
 let isResizing = false
 
 const startResizing = (e) => {
@@ -25,10 +26,12 @@ const startResizing = (e) => {
 const resize = (e) => {
   if (isResizing) {
     const newHeight = window.innerHeight - e.clientY
-    if (newHeight < maxHeight) {
-      containerHeight.value = `${newHeight}px`
-    } else {
+    if (newHeight > maxHeight) {
       containerHeight.value = `${maxHeight}px`
+    } else if (newHeight < minHeight) {
+      containerHeight.value = `${minHeight}px`
+    } else {
+      containerHeight.value = `${newHeight}px`
     }
   }
 }
@@ -53,7 +56,9 @@ onBeforeUnmount(() => {
     <div id="resize_handle" @mousedown="startResizing"></div>
     <div :style="{ height: containerHeight }" id="container_bar">
       <div id="container_statusMessages">
-        <div v-for="(message, index) in statusMessage" :key="index">{{ message }}<br /></div>
+        <div id="scrollbar">
+          <div v-for="(message, index) in statusMessage" :key="index">{{ message }}<br /></div>
+        </div>
       </div>
     </div>
   </div>

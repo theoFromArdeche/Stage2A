@@ -10,10 +10,20 @@
   position: relative;
   box-sizing: border-box;
   background-color: white;
+  overflow-y: auto;
   flex-grow: 1;
-  margin: 20px 10px 20px 10px;
+  padding: 10px;
+  margin: 10px 10px 10px 10px;
   border-radius: 10px;
   box-shadow: inset 0px 0px 5px rgba(0, 0, 0, 0.2);
+}
+
+#scrollbar {
+  height: fit-content;
+  width: fit-content;
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-start;
 }
 
 #resize_handle {
