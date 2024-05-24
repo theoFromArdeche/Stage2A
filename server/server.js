@@ -36,7 +36,7 @@ function connectToRobot() {
 	
 		// Handle incoming data from the robot
 		robotSocket.on('data', (data) => {
-			receiveResponseRobot(data.toString());
+			receiveResponseRobot(data.toString().trim().toLowerCase());
 		});
 	
 		// Handle the end of the robot connection
@@ -74,6 +74,11 @@ connectToRobot();
 
 
 function receiveResponseRobot(response) { // from the robot
+
+	if (response.startsWith("status: ")) {
+		sendToEveryone('UPDATE: '+response_update)
+	}
+
   console.log('Received from robot : ' + response)
   // send the response to the client that made the request
   sendRequest(handHolder, 'RESPONSE: '+response+'\n');
@@ -110,7 +115,7 @@ function receiveResponseRobot(response) { // from the robot
 	requestsQueue.shift();
 
   // send the updates to everyone (time + success)
-  sendToEveryone('UPDATE: '+response_update)
+  sendToEveryone('UPDATE POSITION: '+response_update)
 
   // a response is received, the timer is reset
   setHandTimeout(handHolder);
