@@ -17,10 +17,6 @@ function requestHand() {
 
 
 
-onMounted(() => {
-  ipcRenderer.send('onLive');
-})
-
 ipcRenderer.on('receiveQueue', (event, arg) => {
   const button = document.getElementById("button_demander_main");
   button_demander_main.innerText = arg.trim();

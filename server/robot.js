@@ -8,7 +8,16 @@ const server = net.createServer((socket) => {
   socket.on('data', (data) => {
     console.log('Received from server : ', data.toString());
     // Send a response back to the first server
-    const request = data.toString().substring('goto '.length);
+    var request = data.toString();
+    if (request.startsWith('goto ')) {
+      request = request.substring('goto '.length);
+		} else if (request === "dock") {
+      request = 'DockingStation2';
+    } else {
+      socket.write('ERROR')
+      return;
+    }
+    
     socket.write('Going to '+request)
     setTimeout(() => {
       socket.write('Arrived at '+request); 

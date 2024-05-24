@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import imageRobotSrc from '@src/assets/omron_png.png';
 
 var data;
 
@@ -205,9 +206,8 @@ function getMin() {
   maxPos.x -= minPos.x
   maxPos.y -= minPos.y
 }
-
 const imageRobot = new Image();
-imageRobot.src = "/src/assets/omron_png.png";
+imageRobot.src = imageRobotSrc;
 
 onMounted(async () => {
   // tell the backend that the vue has loaded
@@ -267,11 +267,12 @@ onMounted(async () => {
       const container_height = (maxPos.x * container_map.offsetWidth) / maxPos.y
       button.style.top = `${Math.round((transformed.y / container_height) * 100)}%`
       text_bouton.style.top = `${Math.round((transformed.y / container_height) * 100)}%`
+      text_bouton.style.pointerEvents="none"
       button.id = point[3].toLowerCase()
       button.onclick = function(){text_bouton.style.opacity = 1 - text_bouton.style.opacity}
       buttons.push(button)
-      container_map.appendChild(button)
       container_map.appendChild(text_bouton)
+      container_map.appendChild(button)
     })
 
     forbiddenLines.forEach((line) => {

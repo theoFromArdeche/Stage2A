@@ -6,14 +6,9 @@ import MapAIP from '../components/MapAIP.vue'
 import Bottombar from '../components/Bottombar.vue'
 import { ref, onMounted } from 'vue'
 
-const ipcRenderer = window.electron.ipcRenderer
 
 const statusMessages = ref([])
 
-
-onMounted(() => {
-  ipcRenderer.send('onSimulation');
-})
 
 </script>
 
