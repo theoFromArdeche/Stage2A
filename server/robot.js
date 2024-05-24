@@ -12,7 +12,7 @@ const server = net.createServer((socket) => {
     if (request.startsWith('goto ')) {
       request = request.substring('goto '.length);
 		} else if (request === "dock") {
-      request = 'DockingStation2';
+      request = 'dockingstation2';
     } else {
       socket.write('ERROR')
       return;
