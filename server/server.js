@@ -3,7 +3,7 @@
 const fs = require('fs');
 
 // fetch the data
-const jsonString = fs.readFileSync('./data.json', 'utf8');
+const jsonString = fs.readFileSync('./data.json', 'utf8').toLowerCase();
 
 // Parse the JSON string
 var data;
@@ -16,11 +16,11 @@ try {
 
 data.id = new Map(Object.entries(data.id)); 
 
-console.log(data)
+//console.log(data)
 
 const requestsQueue = [];
 
-var curPosRobot = 's-106';
+var curPosRobot = 'dockingstation2';
 
 
 const net = require('net');
@@ -105,7 +105,7 @@ function receiveResponseRobot(response) { // from the robot
 		data.fails[cur_id][next_id] +=1;
 		response_update = JSON.stringify({src: cur_id, dest: next_id, time: -1});;
 	}
-	console.log(data)
+	//console.log(data)
 	// pop the request
 	requestsQueue.shift();
 
@@ -244,7 +244,7 @@ function receiveRequest(clientId, msg) {
 
 		var dest;
 		if (request === "dock") {
-			dest = "DockingStation2";
+			dest = "dockingstation2";
 		} else {
 			dest = request.substring('goto '.length);
 		}

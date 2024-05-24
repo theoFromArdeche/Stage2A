@@ -81,6 +81,7 @@ app.whenReady().then(() => {
     flagSimulation=false;
   });
 
+
   createWindow()
 
   app.on('activate', function () {
@@ -123,7 +124,7 @@ const instanceSocket = net.createServer((socket) => {
   console.log('Client socket info:', socket.address());
   // received data from the client
   socket.on('data', (data) => {
-    receiveRequest(data.toString())
+    receiveRequest(data.toString().trim())
   });
 
   socket.on('end', () => {
@@ -245,7 +246,9 @@ function receiveResponseServer(response) { // from the server
       data.times[update.src][update.dest]=update.time;
       newPosRobot = update.dest;
     }
-    console.log('UPDATED DATA : ', data);
+    if (!flagSimulation) curPosRobot=newPosRobot
+
+    //console.log('UPDATED DATA : ', data);
     mainWindow.webContents.send('updateData', data);
 
   } else if (response === 'hand request accepted') {
@@ -285,7 +288,7 @@ function sendRequestServer(request) {
 
 function responseSimulation(request) {
   if (request.toLowerCase().indexOf("goto ") == 0) {
-    const whereto = request.toLowerCase().substring('goto '.length).trim();
+    const whereto = request.toLowerCase().substring('goto '.length);
     if (!data.id.has(whereto)){
       console.log("invalid destination")
       return
@@ -296,11 +299,13 @@ function responseSimulation(request) {
     mainWindow.webContents.send('updateStatus', msg1);
     setTimeout(function () {
       mainWindow.webContents.send('updateStatus', msg2);
+      curPosRobot=whereto
     }, delta_time*1000);
   }
 
-  else if (request.toLowerCase() == "dock") {
-    const whereto = request.toLowerCase().substring('dock'.length);
+  else if (request.toLowerCase() === "dock") {
+    console.log("dock")
+    const whereto = 'dockingstation2';
     const msg1 = "Going to dock"
     const msg2 = "Docking"
     const msg3 = "Docked"
@@ -310,6 +315,7 @@ function responseSimulation(request) {
       mainWindow.webContents.send('updateStatus', msg2);
       setTimeout(function () {
         mainWindow.webContents.send('updateStatus', msg3);
+        curPosRobot=whereto
       }, 1000);
     }, delta_time*1000);
 

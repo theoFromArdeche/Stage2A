@@ -3,6 +3,10 @@ import Live from '../vues/Live.vue'
 import Simulation from '../vues/Simulation.vue'
 import Parametres from '../vues/Parametres.vue'
 
+const ipcRenderer = window.electron.ipcRenderer
+
+
+
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -12,5 +16,13 @@ const router = createRouter({
     { path: '/parametres', component: Parametres } // Route pour les paramètres
   ]
 })
+
+const flags = {'/': 'onSimulation', '/live': 'onLive', '/simulation': 'onSimulation', '/parametres': 'onParametres'}
+
+router.beforeEach((to, from, next) => {
+  ipcRenderer.send(flags[to.fullPath])
+  next()
+})
+
 
 export default router
