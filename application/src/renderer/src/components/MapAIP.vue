@@ -252,7 +252,7 @@ onMounted(async () => {
       ctx_MapAIP.arc(transformed.x, transformed.y, 0.5, 0, 2 * Math.PI)
       ctx_MapAIP.fill()
     })
-
+    interestPoints = [[-291, 1132, 142, "test"]]
     interestPoints.forEach((point) => {
       const transformed = transformCoord(point[0], point[1], container_map.offsetWidth)
       const button = document.createElement('button')
@@ -422,7 +422,7 @@ onMounted(async () => {
   // Exemple d'utilisation de la fonction :
   document.addEventListener('keydown', function (event) {
     if (event.code === 'Space') {
-      animateLineBetweenButtons('s-111-2', 's-106')
+      animateLineBetweenButtons('s-111-2', 's-114')
     }
     else if (event.key === 'p') {
       animateLineBetweenButtons('s-106', 's-111-2')

@@ -74,11 +74,11 @@ app.whenReady().then(() => {
 
   ipcMain.on('onSimulation', (event, arg) => {
     flagSimulation=true;
-    curPosRobot=newPosRobot;
   });
 
   ipcMain.on('onLive', (event, arg) => {
     flagSimulation=false;
+    curPosRobot=newPosRobot;
   });
 
 
@@ -297,9 +297,9 @@ function responseSimulation(request) {
     const msg2 = "Arrived at " + whereto
     const delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
     mainWindow.webContents.send('updateStatus', msg1);
+    curPosRobot=whereto
     setTimeout(function () {
       mainWindow.webContents.send('updateStatus', msg2);
-      curPosRobot=whereto
     }, delta_time*1000);
   }
 
@@ -311,11 +311,11 @@ function responseSimulation(request) {
     const msg3 = "Docked"
     const delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
     mainWindow.webContents.send('updateStatus', msg1);
+    curPosRobot=whereto
     setTimeout(function () {
       mainWindow.webContents.send('updateStatus', msg2);
       setTimeout(function () {
         mainWindow.webContents.send('updateStatus', msg3);
-        curPosRobot=whereto
       }, 1000);
     }, delta_time*1000);
 
