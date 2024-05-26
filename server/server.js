@@ -282,6 +282,7 @@ function receiveRequest(clientId, msg) {
 			if (position==0) { // clientId not in the queue
 				requestQueue.push(clientId);
 				position=requestQueue.length
+				sendToEveryone(`HAND QUEUE UPDATE: ${position}\n`);
 			}
 			sendRequest(clientId, `HAND QUEUE POSITION: ${position}\n`);
 		}
@@ -328,8 +329,10 @@ function setHandTimeout(clientId) {
 function updatePositions() {
 	// notify each client in the queue of their new position
 	for (let i=0; i<requestQueue.length; i++) {
-		sendRequest(requestQueue[i], `HAND QUEUE POSITION: ${i+1}/${requestQueue.length}\n`);
+		sendRequest(requestQueue[i], `HAND QUEUE POSITION: ${i+1}\n`);
 	}
+	// notify everyone of the new size of the queue
+	sendToEveryone(`HAND QUEUE UPDATE: ${requestQueue.length}\n`);
 }
 
 

@@ -58,11 +58,6 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
-  ipcMain.on('sendRequest', (event, arg) => {
-    // send a request to the client
-    sendRequest(arg);
-  });
-
   ipcMain.on('requestHand', (event, arg) => {
     // send a hand request to the server
     requestHand();
@@ -266,14 +261,17 @@ function receiveResponseServer(response) { // from the server
     hasHand = true;
     mainWindow.webContents.send('receiveQueue', "Vous avez la main");
 
-  } else if (response.indexOf('HAND QUEUE UPDATE: ') === 0) {
-    const response_pos = response.substring('hand queue position: '.length).split('/');
+  } else if (response.indexOf('HAND QUEUE POSITION: ') === 0) {
+    const pos = response.substring('HAND QUEUE POSITION: '.length);
 
     // update du boutton dans la fenêtre live
-    mainWindow.webContents.send('receiveQueue', "Position file d'attente : "+response_pos[0]); 
+    mainWindow.webContents.send('receiveQueue', "Position file d'attente : "+pos); 
+
+  } else if (response.indexOf('HAND QUEUE UPDATE: ') === 0) {
+    const update_nb = response.substring('HAND QUEUE UPDATE: '.length);
 
     // update de la sidebar
-    mainWindow.webContents.send('updateWaitings', response_pos[1]); 
+    mainWindow.webContents.send('updateWaitings', update_nb); 
 
   } else if (response === 'HAND TIMEOUT') {
     hasHand = false;
