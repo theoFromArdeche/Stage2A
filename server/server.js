@@ -1,8 +1,74 @@
 
 
-const fs = require('fs');
 
-// fetch the data
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const cors = require('cors');
+const compression = require('compression');
+
+const app = express();
+const port_map = 3001;
+
+
+const port_server = 2345;
+
+connectedClients = new Map(); // map to keep track of connected clients
+requestQueue = []; // array to keep track of the request queue
+handHolder = null; // variable to keep track of the hand holder
+handTimer = null;
+const handTimeout = 10*1000; // hand timeout in milliseconds (10 seconds)
+const pingTiming = 60*1000 // 60 seconds
+
+
+const requestsQueue = [];
+
+var curPosRobot = 'dockingstation2';
+
+
+const net = require('net');
+const port_robot = 3456;
+const robot_host = 'localhost';
+var robotConnected = false; 
+var robotSocket = null;
+
+
+
+
+
+
+
+
+// MAKE THE MAP AVAILABLE FOR THE CLIENTS
+
+app.use(cors());
+app.use(compression());
+
+
+app.get('/map', (req, res) => {
+  const filePath = path.join(__dirname, 'map_loria.txt');
+
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      return res.status(500).send('File not found or cannot be read');
+    }
+
+    res.send(data);
+  });
+});
+
+app.listen(port_map, () => {
+  console.log(`File server is running on http://localhost:${port_map}`);
+});
+
+
+
+
+
+
+
+// FETCH THE DATA
+
 const jsonString = fs.readFileSync('./data.json', 'utf8').toLowerCase();
 
 // Parse the JSON string
@@ -18,16 +84,18 @@ data.id = new Map(Object.entries(data.id));
 
 //console.log(data)
 
-const requestsQueue = [];
-
-var curPosRobot = 'dockingstation2';
 
 
-const net = require('net');
-const port_robot = 3456;
-const robot_host = 'localhost';
-var robotConnected = false; 
-var robotSocket = null;
+
+
+
+
+
+
+
+
+
+// CONNECT TO THE ROBOT
 
 function connectToRobot() {
 	robotSocket = net.createConnection({ host:robot_host, port: port_robot }, () => {
@@ -149,14 +217,22 @@ function sendRequestRobot(request) {
 
 
 
-const port_server = 2345;
 
-connectedClients = new Map(); // map to keep track of connected clients
-requestQueue = []; // array to keep track of the request queue
-handHolder = null; // variable to keep track of the hand holder
-handTimer = null;
-const handTimeout = 10*1000; // hand timeout in milliseconds (10 seconds)
-const pingTiming = 60*1000 // 60 seconds
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// CONNECT TO THE CLIENTS
 
 const server = net.createServer((socket) => {
 	console.log('Client connected');

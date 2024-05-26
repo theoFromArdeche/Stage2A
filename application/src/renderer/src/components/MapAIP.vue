@@ -4,12 +4,15 @@ import imageRobotSrc from '@src/assets/omron_png.png';
 
 var data;
 
+
 const ipcRenderer = window.electron.ipcRenderer;
 
 
 ipcRenderer.on('updateData', (event, arg) => {
   data = arg;
 });
+
+
 
 
 const mapCanvas = ref(null)
@@ -139,47 +142,39 @@ let forbiddenAreas = []
 let interestPoints = []
 let buttons = []
 
-const updateInfos = async () => {
-  const url =
-    'https://raw.githubusercontent.com/PIDR-2023/PIDR/requetes/server/map_loria.txt'
-  try {
-    const response = await fetch(url)
-    const content = await response.text()
-    const lines = content.split('\n')
-    let parsingDetectedLines = false
-    let parsingDetectedPoints = false
-    for (const line of lines) {
-      if (line.startsWith('Cairn:')) {
-        if (line.includes('ForbiddenLine')) {
-          forbiddenLines.push(getCoordsFl(line))
-        } else if (line.includes('ForbiddenArea')) {
-          forbiddenAreas.push(getCoordsFa(line))
-        } else {
-          interestPoints.push(getCoords(line))
-        }
-      } else if (line.trim() === 'LINES') {
-        parsingDetectedLines = true
-      } else if (parsingDetectedLines) {
-        if (line.trim() && line.includes(' ')) {
-          lineDetectedCoords.push(getLineDetectedCoords(line))
-        } else {
-          parsingDetectedLines = false
-          parsingDetectedPoints = true
-        }
-      } else if (parsingDetectedPoints) {
-        if (line.trim() && line.includes(' ')) {
-          pointDetectedCoords.push(getPointDetectedCoords(line))
-        } else {
-          parsingDetectedPoints = false
-        }
+function updateInfos(content) {
+  const lines = content.split('\n')
+  let parsingDetectedLines = false
+  let parsingDetectedPoints = false
+  for (const line of lines) {
+    if (line.startsWith('Cairn:')) {
+      if (line.includes('ForbiddenLine')) {
+        forbiddenLines.push(getCoordsFl(line))
+      } else if (line.includes('ForbiddenArea')) {
+        forbiddenAreas.push(getCoordsFa(line))
+      } else {
+        interestPoints.push(getCoords(line))
+      }
+    } else if (line.trim() === 'LINES') {
+      parsingDetectedLines = true
+    } else if (parsingDetectedLines) {
+      if (line.trim() && line.includes(' ')) {
+        lineDetectedCoords.push(getLineDetectedCoords(line))
+      } else {
+        parsingDetectedLines = false
+        parsingDetectedPoints = true
+      }
+    } else if (parsingDetectedPoints) {
+      if (line.trim() && line.includes(' ')) {
+        pointDetectedCoords.push(getPointDetectedCoords(line))
+      } else {
+        parsingDetectedPoints = false
       }
     }
-    getMin()
-    //console.log(lineDetectedCoords)
-    //console.log(pointDetectedCoords)
-  } catch (err) {
-    console.error('Error fetching file:', err)
   }
+  getMin()
+  //console.log(lineDetectedCoords)
+  //console.log(pointDetectedCoords)
 }
 
 var minPos = { x: 0, y: 0 }
@@ -211,7 +206,6 @@ imageRobot.src = imageRobotSrc;
 
 onMounted(async () => {
   // tell the backend that the vue has loaded
-  ipcRenderer.send('vue-loaded');
 
   const canvas_MapAIP = document.getElementById('canvas_MapAIP')
   const ctx_MapAIP = canvas_MapAIP.getContext('2d')
@@ -310,9 +304,15 @@ onMounted(async () => {
     })
   }
 
-  updateInfos().then(() => {
-    tailleEtTracer()
-  })
+  ipcRenderer.send('MapAIP-vue-loaded');
+  
+  var map_fetched = false;
+  ipcRenderer.on('fetchMap', (event, arg) => {
+    if (map_fetched) return;
+    map_fetched=true;
+    updateInfos(arg);
+    tailleEtTracer();
+  });
 
   //window.addEventListener('resize', tailleEtTracer)
   function add_infos(button_id_start, button_id_end){

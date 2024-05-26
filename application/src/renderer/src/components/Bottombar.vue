@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 
-const emit = defineEmits(['send-request'])
+//const emit = defineEmits(['send-request'])
 
 const statusMessage = ref([])
 

@@ -63,8 +63,9 @@ app.whenReady().then(() => {
     requestHand();
   });
 
-  ipcMain.on('vue-loaded', (event, arg) => {
+  ipcMain.on('MapAIP-vue-loaded', (event, arg) => {
     mainWindow.webContents.send('updateData', data);
+    fetchMap();
   });
 
   ipcMain.on('onSimulation', (event, arg) => {
@@ -95,8 +96,11 @@ app.on('window-all-closed', () => {
   }
 })
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
+
+
+
+
+
 
 var data;
 var flagSimulation= true;
@@ -105,13 +109,24 @@ var newPosRobot;
 
 const net = require('net');
 
-const port_instance = 1234; // choose an open port
+const port_instance = 1234;
+const port_server = 2345;
+const port_map = 3001;
 
 var clientSocket = null;
 var clientConnected = false;
 var hasHand = false;
 
-// set up l'instance pour être accessible pour l'etudiant
+const server_host = 'localhost';
+var serverSocket = null;
+var serverConnected = false;
+
+
+
+
+
+// CONNECT TO THE STUDENT'S CODE
+
 const instanceSocket = net.createServer((socket) => {
   console.log('Client connected');
   clientSocket = socket;
@@ -142,7 +157,7 @@ instanceSocket.listen(port_instance, () => {
 
 
 
-function sendRequest(request) {
+function sendResponse(request) {
   if (!clientConnected) return;
   console.log('Send to client : ' + request)
   clientSocket.write(request);
@@ -161,8 +176,9 @@ function receiveRequest(request) {
   }
 }
 
-function receiveResponse(response) {
+function receivedResponse(response) {
   mainWindow.webContents.send('updateStatus', response);
+  sendResponse(response)
 }
 
 
@@ -171,16 +187,20 @@ function requestHand() {
 }
 
 
-const port_server = 2345;
-const server_host = 'localhost'; // the server's IP address or hostname
-var serverConnected = false;
-var serverSocket = null;
-// connect to the server
+
+
+
+
+
+
+// CONNECT TO THE SERVER
+
 function connectToServer() {
   serverSocket = net.createConnection({ host: server_host, port: port_server }, () => {
     console.log(`Connected to the server on port ${port_server}`);
     serverConnected = true;
-    serverSocket.write('DATA')
+    serverSocket.write('DATA') // fetch the data
+
 
     // Handle incoming data from the server
     serverSocket.on('data', (data) => {
@@ -222,6 +242,25 @@ function connectToServer() {
 }
 
 connectToServer();
+
+
+
+async function fetchMap() {
+  try {
+    const response = await fetch(`http://${server_host}:${port_map}/map`);
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    const data = await response.text();
+    mainWindow.webContents.send('fetchMap', data);
+  } catch (error) {
+    console.log(`Error: ${error.message}`);
+  }
+}
+
+
+
+
 
 function receiveResponseServer(response) { // from the server
   if (!response) return;
@@ -324,104 +363,14 @@ function responseSimulation(request) {
     const msg2 = "Docking"
     const msg3 = "Docked"
     const delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
-    mainWindow.webContents.send('updateStatus', msg1);
+    receivedResponse(msg1);
     curPosRobot=whereto
     setTimeout(function () {
-      mainWindow.webContents.send('updateStatus', msg2);
+      receivedResponse(msg2);
       setTimeout(function () {
-        mainWindow.webContents.send('updateStatus', msg3);
+        receivedResponse(msg3);
       }, 1000);
     }, delta_time*1000);
 
   }
 }
-
-/*
-
-
-
-initialisation de l'instance:
-ping le server (pour qu'il puisse nous envoyer les majs)
-fetch les données (matrice des temps et des réussites)
-
-
-
-
-
-etudiant -> instance
-
-
-
-
-live:
-l'étudiant demande la main (via l'instance (on appuie sur le boutton demander la main))
-l'instance demande au server et recup la réponse
-
-
-
-
-live: (on pars du principe qu'on a la main pour le serveur)
-transmettre la requete au server
-instance -> server :
-
-récup la réponse (toutes les réponses du robot)
-récup donné par le server : temps, réusite
-
-on met a jour les infos locales (matrice des temps, de réussites)
-mettre a jour le visu
-
-on envoie les réponses a l'étudiant
-
-
-
-
-live: (on pars du principe qu'on a PAS la main pour le serveur)
-on notifie l'étudiant qu'il n'a pas la main et on lui donne sa position dans la file d'attente
-
-
-
-simulation:
-renvoyer la reponse que le robot aurait renvoyé
-mettre a jour le visu (temps + réussite avec une ligne entre le départ et l'arrivée)
-(a voir si on a fait une maj du visu instantanée ou genre 2sec pour une animation)
-
-
-
-
-
-
-
-
-server:
-
-
-reçois un ping, enregistre l'instance
-
-ping l'instance toutes les x secondes pour voir si elle est encore la
-si timeout -> il supprime l'instance
-
-
-reçois une requete
-
-
-si pas dispo, ajoute a la file d'attente
-(potentiellement notifie l'instance)
-
-
-si il est dispo:
-envoyer la requete au robot
-recup la reponse
-mettre a jour les données (matrice des temps et des réussites)
-envoyer la réponse à l'instance qui a fait la requete
-envoyer les modifs a tous le monde (temps + réussite)
-
-
-
-
-une instance demande la main:
-on l'ajoute a la file d'attente (si déjà prise)
-
-il y a un timeout quand on donne la main à une instance
-
-
-*/

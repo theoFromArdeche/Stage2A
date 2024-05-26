@@ -20,6 +20,18 @@ ipcRenderer.on('receiveQueue', (event, arg) => {
   button.innerText = arg.trim();
 });
 
+
+
+
+
+/*
+<Bottombar
+          id="bottombar"
+          :statusMessages="statusMessages"
+          @send-request="sendRequest"
+        ></Bottombar>
+*/
+
 </script>
 
 <template>
@@ -33,12 +45,9 @@ ipcRenderer.on('receiveQueue', (event, arg) => {
         <button id="button_demander_main" @click="requestHand()">Demander la main</button>
       </div>
       <div id="container_bottombar">
-        <Bottombar
-          id="bottombar"
-          :statusMessages="statusMessages"
-          @send-request="sendRequest"
-        ></Bottombar>
+        <Bottombar id="bottombar"></Bottombar>
       </div>
     </div>
   </div>
 </template>
+

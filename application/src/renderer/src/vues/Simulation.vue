@@ -7,8 +7,6 @@ import Bottombar from '../components/Bottombar.vue'
 import { ref, onMounted } from 'vue'
 
 
-const statusMessages = ref([])
-
 
 </script>
 
@@ -21,11 +19,7 @@ const statusMessages = ref([])
       </div>
     </div>
     <div id="container_bottombar">
-      <Bottombar
-        id="bottombar"
-        :statusMessages="statusMessages"
-        @send-request="sendRequest"
-      ></Bottombar>
+      <Bottombar id="bottombar"></Bottombar>
     </div>
   </div>
 </template>
