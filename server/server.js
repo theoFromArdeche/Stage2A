@@ -215,7 +215,7 @@ function socketDisconnect(clientId, pingInterval) {
 		} else {
 			handHolder = requestQueue[0];
 			requestQueue.shift();
-			sendRequest(handHolder, 'hand request accepted\n');
+			sendRequest(handHolder, 'HAND REQUEST ACCEPTED\n');
 			setHandTimeout(handHolder);
 			updatePositions();
 		}
@@ -270,11 +270,11 @@ function receiveRequest(clientId, msg) {
 		if (!handHolder) {
 			// the hand is available and given to the client
 			handHolder=clientId;
-			sendRequest(clientId, 'hand request accepted\n');
+			sendRequest(clientId, 'HAND REQUEST ACCEPTED\n');
 			setHandTimeout(clientId);
 		} else {
 			if (handHolder==clientId) {
-				sendRequest(clientId, 'you already have the hand\n');
+				sendRequest(clientId, 'YOU ALREADY HAVE THE HAND\n');
 				return;
 			}
 			// the hand is not available
@@ -283,7 +283,7 @@ function receiveRequest(clientId, msg) {
 				requestQueue.push(clientId);
 				position=requestQueue.length
 			}
-			sendRequest(clientId, `hand queue position: ${position}\n`);
+			sendRequest(clientId, `HAND QUEUE POSITION: ${position}\n`);
 		}
 	} else if (msg === 'DATA') {
 		const jsonString = JSON.stringify(data, (key, value) => {
@@ -316,11 +316,11 @@ function setHandTimeout(clientId) {
 		} else { // set the first client in the queue as the hand holder
 			handHolder = requestQueue[0];
 			requestQueue.shift();
-			sendRequest(handHolder, 'hand request accepted\n');
+			sendRequest(handHolder, 'HAND REQUEST ACCEPTED\n');
 			setHandTimeout(handHolder);
 			updatePositions();
 		}
-		sendRequest(clientId, 'hand timeout\n');
+		sendRequest(clientId, 'HAND TIMEOUT\n');
 	}, handTimeout);
 }
 
@@ -328,7 +328,7 @@ function setHandTimeout(clientId) {
 function updatePositions() {
 	// notify each client in the queue of their new position
 	for (let i=0; i<requestQueue.length; i++) {
-		sendRequest(requestQueue[i], `hand queue position: ${i+1}\n`);
+		sendRequest(requestQueue[i], `HAND QUEUE POSITION: ${i+1}/${requestQueue.length}\n`);
 	}
 }
 

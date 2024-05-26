@@ -257,17 +257,25 @@ function receiveResponseServer(response) { // from the server
     const stateOfCharge = response_status[1].substring('StateOfCharge: '.length).trim();
     const location = response_status[2].substring('Location: '.length).trim();
 
-    
+    // update de la sidebar
+    mainWindow.webContents.send('updateBattery', stateOfCharge);
+    mainWindow.webContents.send('updatePosition', location);
+    mainWindow.webContents.send('updateStatus', status);
 
-  } else if (response === 'hand request accepted') {
+  } else if (response === 'HAND REQUEST ACCEPTED') {
     hasHand = true;
     mainWindow.webContents.send('receiveQueue', "Vous avez la main");
 
-  } else if (response.indexOf('hand queue position: ') === 0) {
-    const pos = response.substring('hand queue position: '.length);
-    mainWindow.webContents.send('receiveQueue', "Position file d'attente : "+pos);
+  } else if (response.indexOf('HAND QUEUE UPDATE: ') === 0) {
+    const response_pos = response.substring('hand queue position: '.length).split('/');
 
-  } else if (response === 'hand timeout') {
+    // update du boutton dans la fenêtre live
+    mainWindow.webContents.send('receiveQueue', "Position file d'attente : "+response_pos[0]); 
+
+    // update de la sidebar
+    mainWindow.webContents.send('updateWaitings', response_pos[1]); 
+
+  } else if (response === 'HAND TIMEOUT') {
     hasHand = false;
     mainWindow.webContents.send('receiveQueue', "Demander la main");
 
