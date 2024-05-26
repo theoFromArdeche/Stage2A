@@ -3,17 +3,20 @@ defineProps({
   nomRobot: String,
   etat: String,
   batterie: String,
-  fileAttente: String
+  fileAttente: String,
+  position: String
 })
+
 </script>
 
 <template>
   <div>
     <div id="container_elementSidebar">
       <div>{{ nomRobot }}</div>
-      <div>État: {{ etat }}</div>
-      <div>Batterie: {{ batterie }}%</div>
-      <div>{{ fileAttente }} en attente</div>
+      <div id = "state">État: {{ etat }}</div>
+      <div id = "battery">Batterie: {{ batterie }}</div>
+      <div id = "waiting_pos">En attente : {{ fileAttente }}</div>
+      <div id = "position">Position : {{ position }}</div>
     </div>
   </div>
 </template>

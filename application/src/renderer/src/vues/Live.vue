@@ -3,8 +3,6 @@ import '../styles/live.css'
 import '../styles/live_simulation_base.css'
 import Sidebar from '../components/Sidebar.vue'
 import MapAIP from '../components/MapAIP.vue'
-import Fils1 from '../components/Fils1.vue'
-import Fils2 from '../components/Fils2.vue'
 import Bottombar from '../components/Bottombar.vue'
 import { ref, onMounted } from 'vue'
 
@@ -19,7 +17,7 @@ function requestHand() {
 
 ipcRenderer.on('receiveQueue', (event, arg) => {
   const button = document.getElementById("button_demander_main");
-  button_demander_main.innerText = arg.trim();
+  button.innerText = arg.trim();
 });
 
 </script>
