@@ -236,8 +236,8 @@ function receiveResponseServer(response) { // from the server
     const response_body = response.substring('RESPONSE: '.length);
     receiveResponse(response_body);
 
-  } else if (response.indexOf('UPDATE: ') === 0) {
-    const update_json = response.substring('UPDATE: '.length);
+  } else if (response.indexOf('UPDATE VARIABLES: ') === 0) {
+    const update_json = response.substring('UPDATE VARIABLES: '.length);
     const update = JSON.parse(update_json);
     if (update.time === -1) { // fail
       data.fails[update.src][update.dest] += 1;
@@ -250,6 +250,14 @@ function receiveResponseServer(response) { // from the server
 
     //console.log('UPDATED DATA : ', data);
     mainWindow.webContents.send('updateData', data);
+  
+  } else if (response.indexOf('UPDATE STATUS: ') === 0) {
+    const response_status = response.substring('UPDATE STATUS: '.length).split('\n');
+    const status = response_status[0].trim();
+    const stateOfCharge = response_status[1].substring('StateOfCharge: '.length).trim();
+    const location = response_status[2].substring('Location: '.length).trim();
+
+    
 
   } else if (response === 'hand request accepted') {
     hasHand = true;

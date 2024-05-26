@@ -252,7 +252,8 @@ onMounted(async () => {
       ctx_MapAIP.arc(transformed.x, transformed.y, 0.5, 0, 2 * Math.PI)
       ctx_MapAIP.fill()
     })
-    interestPoints = [[-291, 1132, 142, "test"]]
+
+    //interestPoints = [[-291, 1132, 142, "test"]]    
     interestPoints.forEach((point) => {
       const transformed = transformCoord(point[0], point[1], container_map.offsetWidth)
       const button = document.createElement('button')

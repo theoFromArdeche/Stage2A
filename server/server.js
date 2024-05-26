@@ -76,7 +76,7 @@ connectToRobot();
 function receiveResponseRobot(response) { // from the robot
 
 	if (response.startsWith("status: ")) {
-		sendToEveryone('UPDATE: '+response_update)
+		sendToEveryone('UPDATE STATUS: '+response_update)
 	}
 
   console.log('Received from robot : ' + response)
@@ -115,7 +115,7 @@ function receiveResponseRobot(response) { // from the robot
 	requestsQueue.shift();
 
   // send the updates to everyone (time + success)
-  sendToEveryone('UPDATE POSITION: '+response_update)
+  sendToEveryone('UPDATE VARIABLES: '+response_update)
 
   // a response is received, the timer is reset
   setHandTimeout(handHolder);
