@@ -18,9 +18,9 @@ const server = net.createServer((socket) => {
       return;
     }
     
-    socket.write('Going to '+request)
+    socket.write('Going to '+request+"\n")
     setTimeout(() => {
-      socket.write('Arrived at '+request); 
+      socket.write('Arrived at '+request+"\n"); 
     }, 2630);
   });
 

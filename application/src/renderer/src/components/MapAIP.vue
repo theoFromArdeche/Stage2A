@@ -14,7 +14,6 @@ ipcRenderer.on('updateData', (event, arg) => {
 
 
 
-
 const mapCanvas = ref(null)
 
 function isDigit(charac) {
@@ -368,11 +367,14 @@ onMounted(async () => {
     ctx_transition.lineCap = 'round';
     const data_id_start = data.id.get(button_id_start);
     const data_id_end = data.id.get(button_id_end)
-    console.log(data, data_id_start, data_id_end)
+    //console.log(data, data_id_start, data_id_end)
     const successes = data.successes[data_id_start][data_id_end];
     const fails = data.fails[data_id_start][data_id_end]
-    console.log(successes, fails)
-    const success_rate = Math.round((liste.length-1)*successes/(successes+fails));
+    //console.log(successes, fails)
+    var success_rate=liste.length-1;
+    if (successes+fails!==0) {
+      success_rate = Math.round((liste.length-1)*successes/(successes+fails));
+    }
     ctx_route.strokeStyle = liste[success_rate];
     ctx_transition.strokeStyle = liste[success_rate];
 
@@ -419,6 +421,10 @@ onMounted(async () => {
     // Démarre l'animation
     requestAnimationFrame(animate);
   }
+
+  ipcRenderer.on('updateRoute', (event, src, dest) => {
+    animateLineBetweenButtons(src, dest);
+  });
 
   // Exemple d'utilisation de la fonction :
   document.addEventListener('keydown', function (event) {

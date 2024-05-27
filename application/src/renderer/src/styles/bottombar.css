@@ -7,6 +7,8 @@
 	display: flex;
 	flex-direction: column;
 	justify-content: end;
+  z-index: 5;
+  pointer-events: none;
 }
 
 #container_bar {
@@ -15,6 +17,7 @@
   box-sizing: border-box;
   position: relative;
   display: flex;
+  pointer-events: all;
 }
 
 #container_statusMessages {
@@ -43,5 +46,5 @@
   background: #ccc;
   cursor: row-resize;
   position: relative;
-  z-index: 1;
+  pointer-events: all;
 }

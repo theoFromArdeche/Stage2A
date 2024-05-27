@@ -67,14 +67,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div>
-    <div id="container_bottombar">
-      <div id="resize_handle" @mousedown="startResizing"></div>
-      <div :style="{ height: containerHeight }" id="container_bar">
-        <div ref="container_statusMessages" id="container_statusMessages">
-          <div id="scrollbar">
-            <div v-for="(message, index) in statusMessage" :key="index">{{ message }}<br /></div>
-          </div>
+  <div id="container_bottombar">
+    <div id="resize_handle" @mousedown="startResizing"></div>
+    <div :style="{ height: containerHeight }" id="container_bar">
+      <div ref="container_statusMessages" id="container_statusMessages">
+        <div id="scrollbar">
+          <div v-for="(message, index) in statusMessage" :key="index">{{ message }}<br /></div>
         </div>
       </div>
     </div>

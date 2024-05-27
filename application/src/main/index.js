@@ -179,6 +179,10 @@ function receiveRequest(request) {
 function receivedResponse(response) {
   mainWindow.webContents.send('updateStatus', response);
   sendResponse(response)
+  if (response.indexOf('Going to ') === 0) {
+    const destination = response.substring('Going to '.length).trim().toLowerCase();
+    mainWindow.webContents.send('updateRoute', curPosRobot, destination);
+  }
 }
 
 
@@ -207,7 +211,7 @@ function connectToServer() {
       const responses = data.toString().split('\n');
       for (let response of responses) {
         if (!response) continue
-        receiveResponseServer(response);
+        receiveResponseServer(response+'\n');
       }
     });
 
@@ -268,56 +272,62 @@ function receiveResponseServer(response) { // from the server
 
   if (response.indexOf('RESPONSE: ') === 0) {
     const response_body = response.substring('RESPONSE: '.length);
-    receiveResponse(response_body);
+    receivedResponse(response_body);
 
   } else if (response.indexOf('UPDATE VARIABLES: ') === 0) {
-    const update_json = response.substring('UPDATE VARIABLES: '.length);
+    const update_json = response.substring('UPDATE VARIABLES: '.length).trim();
     const update = JSON.parse(update_json);
     if (update.time === -1) { // fail
       data.fails[update.src][update.dest] += 1;
     } else { // sucess
       data.successes[update.src][update.dest]+=1;
       data.times[update.src][update.dest]=update.time;
-      newPosRobot = update.dest;
+      newPosRobot = Array.from(data.id.keys())[update.dest];
     }
     if (!flagSimulation) curPosRobot=newPosRobot
 
     //console.log('UPDATED DATA : ', data);
     mainWindow.webContents.send('updateData', data);
   
-  } else if (response.indexOf('UPDATE STATUS: ') === 0) {
-    const response_status = response.substring('UPDATE STATUS: '.length).split('\n');
-    const statusForHuman = response_status[1].trim().substring('ExtendedStatusForHumans: '.length);
-    const stateOfCharge = response_status[2].trim().substring('StateOfCharge: '.length);
-    const location = response_status[3].trim().substring('Location: '.length);
 
+  } else if (response.indexOf('ExtendedStatusForHumans: ') === 0) {
+    const statusForHuman = response.trim().substring('ExtendedStatusForHumans: '.length);
     // update de la sidebar
-    mainWindow.webContents.send('updateBattery', stateOfCharge);
-    mainWindow.webContents.send('updatePosition', location);
     mainWindow.webContents.send('updateStatus', statusForHuman);
 
-  } else if (response === 'HAND REQUEST ACCEPTED') {
+  } else if (response.indexOf('StateOfCharge: ') === 0) {
+    const stateOfCharge = response.trim().substring('StateOfCharge: '.length);
+    // update de la sidebar
+    mainWindow.webContents.send('updateBattery', stateOfCharge);
+
+  } else if (response.indexOf('Location: ') === 0) {
+    const location = response.trim().substring('Location: '.length);
+    // update de la sidebar
+    mainWindow.webContents.send('updatePosition', location);
+
+
+  } else if (response === 'HAND REQUEST ACCEPTED\n') {
     hasHand = true;
     mainWindow.webContents.send('receiveQueue', "Vous avez la main");
 
   } else if (response.indexOf('HAND QUEUE POSITION: ') === 0) {
-    const pos = response.substring('HAND QUEUE POSITION: '.length);
+    const pos = response.substring('HAND QUEUE POSITION: '.length).trim();
 
     // update du boutton dans la fenêtre live
     mainWindow.webContents.send('receiveQueue', "Position file d'attente : "+pos); 
 
   } else if (response.indexOf('HAND QUEUE UPDATE: ') === 0) {
-    const update_nb = response.substring('HAND QUEUE UPDATE: '.length);
+    const update_nb = response.substring('HAND QUEUE UPDATE: '.length).trim();
 
     // update de la sidebar
     mainWindow.webContents.send('updateWaitings', update_nb); 
 
-  } else if (response === 'HAND TIMEOUT') {
+  } else if (response === 'HAND TIMEOUT\n') {
     hasHand = false;
     mainWindow.webContents.send('receiveQueue', "Demander la main");
 
 	} else if (response.indexOf('DATA: ') === 0) {
-    const response_array = response.substring('DATA: '.length).split("FLAG_SPLIT");
+    const response_array = response.substring('DATA: '.length).trim().split("FLAG_SPLIT");
     const jsonString = response_array[0];
     try {
       data = JSON.parse(jsonString);

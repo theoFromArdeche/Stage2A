@@ -17,7 +17,7 @@ connectedClients = new Map(); // map to keep track of connected clients
 requestQueue = []; // array to keep track of the request queue
 handHolder = null; // variable to keep track of the hand holder
 handTimer = null;
-const handTimeout = 10*1000; // hand timeout in milliseconds (10 seconds)
+const handTimeout = 60*1000; // hand timeout in milliseconds (10 seconds)
 const pingTiming = 60*1000 // 60 seconds
 
 
@@ -27,6 +27,7 @@ var curPosRobot = 'dockingstation2';
 
 
 const net = require('net');
+const { request } = require('http');
 const port_robot = 3456;
 const robot_host = 'localhost';
 var robotConnected = false; 
@@ -104,7 +105,7 @@ function connectToRobot() {
 	
 		// Handle incoming data from the robot
 		robotSocket.on('data', (data) => {
-			receiveResponseRobot(data.toString().trim().toLowerCase());
+			receiveResponseRobot(data.toString());
 		});
 	
 		// Handle the end of the robot connection
@@ -143,16 +144,15 @@ connectToRobot();
 
 function receiveResponseRobot(response) { // from the robot
 
-	if (response.startsWith("status: ")) {
-		sendToEveryone('UPDATE STATUS: '+response_update)
+	if (response.startsWith("ExtendedStatusForHumans: ")) {
+		sendToEveryone(response)
 	}
 
   console.log('Received from robot : ' + response)
   // send the response to the client that made the request
-  sendRequest(handHolder, 'RESPONSE: '+response+'\n');
+  sendRequest(handHolder, 'RESPONSE: '+response);
 
   if (response.startsWith("Going to ")) return;
-
 	var response_update;
 	const cur_id=data.id.get(curPosRobot);
 	const next_id=data.id.get(requestsQueue[0].dest);

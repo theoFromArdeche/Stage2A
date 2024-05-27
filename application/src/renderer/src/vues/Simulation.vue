@@ -18,6 +18,6 @@ import { ref, onMounted } from 'vue'
         <MapAIP></MapAIP>
       </div>
     </div>
-    <Bottombar id="bottombar"></Bottombar>
+    <Bottombar></Bottombar>
   </div>
 </template>
