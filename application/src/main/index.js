@@ -287,14 +287,14 @@ function receiveResponseServer(response) { // from the server
   
   } else if (response.indexOf('UPDATE STATUS: ') === 0) {
     const response_status = response.substring('UPDATE STATUS: '.length).split('\n');
-    const status = response_status[0].trim();
-    const stateOfCharge = response_status[1].substring('StateOfCharge: '.length).trim();
-    const location = response_status[2].substring('Location: '.length).trim();
+    const statusForHuman = response_status[1].trim().substring('ExtendedStatusForHumans: '.length);
+    const stateOfCharge = response_status[2].trim().substring('StateOfCharge: '.length);
+    const location = response_status[3].trim().substring('Location: '.length);
 
     // update de la sidebar
     mainWindow.webContents.send('updateBattery', stateOfCharge);
     mainWindow.webContents.send('updatePosition', location);
-    mainWindow.webContents.send('updateStatus', status);
+    mainWindow.webContents.send('updateStatus', statusForHuman);
 
   } else if (response === 'HAND REQUEST ACCEPTED') {
     hasHand = true;
@@ -373,6 +373,6 @@ function responseSimulation(request) {
     }, delta_time*1000);
 
   } else {
-    receivedResponse("Invalid command "+request);
+    receivedResponse("Unknown command "+request);
   }
 }
