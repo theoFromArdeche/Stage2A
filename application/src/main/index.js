@@ -316,7 +316,7 @@ function receiveResponseServer(response) { // from the server
     hasHand = false;
     mainWindow.webContents.send('receiveQueue', "Demander la main");
 
-	} else if (response.indexOf('DATA: ') === 0) { 
+	} else if (response.indexOf('DATA: ') === 0) {
     const response_array = response.substring('DATA: '.length).split("FLAG_SPLIT");
     const jsonString = response_array[0];
     try {
@@ -372,5 +372,10 @@ function responseSimulation(request) {
       }, 1000);
     }, delta_time*1000);
 
+  }
+
+  else {
+    const msg1 = "Invalid command"
+    mainWindow.webContents.send('updateStatus', msg1);
   }
 }
