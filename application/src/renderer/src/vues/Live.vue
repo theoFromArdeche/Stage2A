@@ -44,9 +44,7 @@ ipcRenderer.on('receiveQueue', (event, arg) => {
       <div id="container_buttons">
         <button id="button_demander_main" @click="requestHand()">Demander la main</button>
       </div>
-      <div id="container_bottombar">
-        <Bottombar id="bottombar"></Bottombar>
-      </div>
+      <Bottombar id="bottombar"></Bottombar>
     </div>
   </div>
 </template>

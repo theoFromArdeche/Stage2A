@@ -27,8 +27,8 @@ async function updateScrollbar(flagScroll, oldScrollTop) {
 };
 
 const containerHeight = ref('100px')
-const maxHeight = window.innerHeight * 0.8
-const minHeight = window.innerHeight * 0.15
+const coeffMaxHeight = 0.8
+const minHeight = 100 // pixels
 let isResizing = false
 
 const startResizing = (e) => {
@@ -39,13 +39,14 @@ const startResizing = (e) => {
 
 const resize = (e) => {
   if (isResizing) {
-    const newHeight = window.innerHeight - e.clientY
-    if (newHeight > maxHeight) {
-      containerHeight.value = `${maxHeight}px`
+    const window_height = window.innerHeight
+    const newHeight = window_height - e.clientY
+    if (newHeight > window_height*coeffMaxHeight) {
+      containerHeight.value = `${coeffMaxHeight*100}%`
     } else if (newHeight < minHeight) {
       containerHeight.value = `${minHeight}px`
     } else {
-      containerHeight.value = `${newHeight}px`
+      containerHeight.value = `${newHeight/window_height*100}%`
     }
   }
 }
@@ -67,11 +68,13 @@ onBeforeUnmount(() => {
 
 <template>
   <div>
-    <div id="resize_handle" @mousedown="startResizing"></div>
-    <div :style="{ height: containerHeight }" id="container_bar">
-      <div ref="container_statusMessages" id="container_statusMessages">
-        <div id="scrollbar">
-          <div v-for="(message, index) in statusMessage" :key="index">{{ message }}<br /></div>
+    <div id="container_bottombar">
+      <div id="resize_handle" @mousedown="startResizing"></div>
+      <div :style="{ height: containerHeight }" id="container_bar">
+        <div ref="container_statusMessages" id="container_statusMessages">
+          <div id="scrollbar">
+            <div v-for="(message, index) in statusMessage" :key="index">{{ message }}<br /></div>
+          </div>
         </div>
       </div>
     </div>

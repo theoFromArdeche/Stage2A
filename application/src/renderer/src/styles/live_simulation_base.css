@@ -19,12 +19,7 @@
     position: relative;
 }
 
-#container_bottombar {
-  width: 100%;
-  box-sizing: border-box;
-  position: absolute;
-  bottom: 0;
-}
+
 
 #map {
     mix-blend-mode: multiply;
