@@ -354,9 +354,9 @@ function responseSimulation(request) {
     setTimeout(function () {
       mainWindow.webContents.send('updateStatus', msg2);
     }, delta_time*1000);
-  }
 
-  else if (request.toLowerCase() === "dock") {
+
+  } else if (request.toLowerCase() === "dock") {
     console.log("dock")
     const whereto = 'dockingstation2';
     const msg1 = "Going to dock"
@@ -372,10 +372,7 @@ function responseSimulation(request) {
       }, 1000);
     }, delta_time*1000);
 
-  }
-
-  else {
-    const msg1 = "Invalid command"
-    mainWindow.webContents.send('updateStatus', msg1);
+  } else {
+    receivedResponse("Invalid command "+request);
   }
 }
