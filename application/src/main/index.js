@@ -346,22 +346,22 @@ function responseSimulation(request) {
       console.log("invalid destination")
       return
     }
-    const msg1 = "Going to " + whereto
-    const msg2 = "Arrived at " + whereto
+    const msg1 = "Going to " + whereto+"\n"
+    const msg2 = "Arrived at " + whereto+"\n"
     const delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
-    mainWindow.webContents.send('updateStatus', msg1);
+    receivedResponse(msg1);
     curPosRobot=whereto
     setTimeout(function () {
-      mainWindow.webContents.send('updateStatus', msg2);
+      receivedResponse(msg2);
     }, delta_time*1000);
 
 
   } else if (request.toLowerCase() === "dock") {
     console.log("dock")
     const whereto = 'dockingstation2';
-    const msg1 = "Going to dock"
-    const msg2 = "Docking"
-    const msg3 = "Docked"
+    const msg1 = "Going to dock\n"
+    const msg2 = "Docking\n"
+    const msg3 = "Docked\n"
     const delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
     receivedResponse(msg1);
     curPosRobot=whereto
@@ -373,6 +373,6 @@ function responseSimulation(request) {
     }, delta_time*1000);
 
   } else {
-    receivedResponse("Unknown command "+request);
+    receivedResponse("Unknown command "+request+"\n");
   }
 }
