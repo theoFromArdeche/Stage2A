@@ -3,8 +3,8 @@ import ElementSidebar from './ElementSidebar.vue'
 import { ref, onMounted } from 'vue'
 const ipcRenderer = window.electron.ipcRenderer;
 
-const batterie = ref("unknown")
-const position = ref("unknown")
+const batterie = ref("78%")
+const position = ref("2413 3600")
 const nbr_attente = ref("unknown")
 const etat = ref("unknown")
 

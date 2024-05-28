@@ -41,10 +41,8 @@ ipcRenderer.on('receiveQueue', (event, arg) => {
       <div id="container_map">
         <MapAIP></MapAIP>
       </div>
-      <div id="container_buttons">
-        <button id="button_demander_main" @click="requestHand()">Demander la main</button>
-      </div>
-      <Bottombar></Bottombar>
+      <Bottombar @requestHand="requestHand" :flagLive="true">
+      </Bottombar>
     </div>
   </div>
 </template>

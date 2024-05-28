@@ -17,7 +17,7 @@ connectedClients = new Map(); // map to keep track of connected clients
 requestQueue = []; // array to keep track of the request queue
 handHolder = null; // variable to keep track of the hand holder
 handTimer = null;
-const handTimeout = 60*1000; // hand timeout in milliseconds (10 seconds)
+const handTimeout = 10*1000; // hand timeout in milliseconds (10 seconds)
 const pingTiming = 60*1000 // 60 seconds
 
 
@@ -247,6 +247,9 @@ const server = net.createServer((socket) => {
 	// add the socket to the connected clients map
 	connectedClients.set(clientId, socket);
 
+	// update the client
+	updateClientQueue(clientId);
+
 	// send a ping to the client every 5 seconds to check if it's still there
 	const pingInterval = setInterval(() => {
 		socket.write('PING\n');
@@ -300,7 +303,9 @@ function socketDisconnect(clientId, pingInterval) {
 	}
 }
 
-
+function updateClientQueue(clientId) {
+	sendRequest(clientId, `HAND QUEUE UPDATE: ${requestsQueue.length}\n`)
+}
 
 
 function sendRequest(clientId, msg) {

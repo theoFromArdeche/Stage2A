@@ -18,6 +18,7 @@ import { ref, onMounted } from 'vue'
         <MapAIP></MapAIP>
       </div>
     </div>
-    <Bottombar></Bottombar>
+    <Bottombar :flagLive="false">
+    </Bottombar>
   </div>
 </template>

@@ -1,7 +1,15 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick} from 'vue'
 
-//const emit = defineEmits(['send-request'])
+const emit = defineEmits(['requestHand'])
+const props = defineProps({
+  flagLive: {
+    type: Boolean,
+    required: true
+  }
+});
+
+
 
 const statusMessage = ref([])
 const container_statusMessages = ref(null)
@@ -68,6 +76,9 @@ onBeforeUnmount(() => {
 
 <template>
   <div id="container_bottombar">
+    <div v-if="props.flagLive" id="container_buttons">
+      <button id="button_demander_main" @click="emit('requestHand')">Demander la main</button>
+    </div>
     <div id="resize_handle" @mousedown="startResizing"></div>
     <div :style="{ height: containerHeight }" id="container_bar">
       <div ref="container_statusMessages" id="container_statusMessages">

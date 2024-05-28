@@ -65,6 +65,7 @@ app.whenReady().then(() => {
 
   ipcMain.on('MapAIP-vue-loaded', (event, arg) => {
     mainWindow.webContents.send('updateData', data);
+    mainWindow.webContents.send('updateWaitings', queueSize); 
     fetchMap();
   });
 
@@ -120,7 +121,7 @@ var hasHand = false;
 const server_host = 'localhost';
 var serverSocket = null;
 var serverConnected = false;
-
+var queueSize = 0;
 
 
 
@@ -337,6 +338,7 @@ function receiveResponseServer(response) { // from the server
 
     // update de la sidebar
     mainWindow.webContents.send('updateWaitings', update_nb); 
+    queueSize=update_nb
 
   } else if (response === 'HAND TIMEOUT\n') {
     hasHand = false;
@@ -386,7 +388,7 @@ function responseSimulation(request) {
   } else if (request.toLowerCase() === "dock") {
     console.log("dock")
     const whereto = 'dockingstation2';
-    const msg1 = "Going to dock\n"
+    const msg1 = "Going to dockingstation2\n"
     const msg2 = "Docking\n"
     const msg3 = "Docked\n"
     const delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
