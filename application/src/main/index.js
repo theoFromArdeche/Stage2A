@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -170,9 +170,14 @@ function receiveRequest(request) {
   } else { // live
     if (hasHand) {
       sendRequestServer('REQUEST: '+request);
-    } //else {
-    // TODO notify the student
-    //}
+    } else {
+      dialog.showMessageBox({
+        type: 'warning',
+        title: 'Warning',
+        message: "Une requête a été reçue, mais vous n'avez pas la main.\n\nPour utiliser le jumeau numérique : allez dans l'onglet 'Simulation'.\nPour utiliser le robot réel : allez dans l'onglet 'Live', demandez la main, puis envoyez des requêtes à l'adresse localhost avec le port 1234.",
+        buttons: ['OK']
+      });
+    }
   }
 }
 
@@ -218,7 +223,7 @@ function connectToServer() {
     // Handle the end of the server connection
     serverSocket.on('end', () => {
       console.log('WARNING: Server disconnected');
-      serverConnected = false;
+      serverDisconnected()
 
       // Attempt to reconnect to the server after a delay
       setTimeout(connectToServer, 5000); // 5 seconds
@@ -227,7 +232,7 @@ function connectToServer() {
     // Handle errors in the server connection
     serverSocket.on('error', (err) => {
       console.error('Socket error:', err);
-      serverConnected = false;
+      serverDisconnected()
 
       // Attempt to reconnect to the server after a delay
       setTimeout(connectToServer, 5000); // 5 seconds
@@ -248,6 +253,17 @@ function connectToServer() {
 connectToServer();
 
 
+function serverDisconnected() {
+  serverConnected = false;
+  hasHand = false;
+  mainWindow.webContents.send('receiveQueue', "Demander la main");
+  dialog.showMessageBox({
+    type: 'warning',
+    title: 'Warning',
+    message: "Vous n'êtes plus connecté au serveur.",
+    buttons: ['OK']
+  });
+}
 
 async function fetchMap() {
   try {
@@ -353,7 +369,8 @@ function responseSimulation(request) {
   if (request.toLowerCase().indexOf("goto ") == 0) {
     const whereto = request.toLowerCase().substring('goto '.length);
     if (!data.id.has(whereto)){
-      console.log("invalid destination")
+      //console.log("invalid destination")
+      receivedResponse("Unknown destination "+whereto+"\n");
       return
     }
     const msg1 = "Going to " + whereto+"\n"

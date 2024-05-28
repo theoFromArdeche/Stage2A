@@ -152,18 +152,17 @@ function receiveResponseRobot(response) { // from the robot
   // send the response to the client that made the request
   sendRequest(handHolder, 'RESPONSE: '+response);
 
-  if (response.startsWith("Going to ")) return;
-	var response_update;
-	const cur_id=data.id.get(curPosRobot);
-	const next_id=data.id.get(requestsQueue[0].dest);
-	if (response.startsWith("Arrived at ")) {
+  if (response.startsWith("Arrived at ")) {
+		var response_update;
+		const cur_id=data.id.get(curPosRobot);
+		const next_id=data.id.get(requestsQueue[0].dest);
 		// update the current position of the robot
 		curPosRobot = requestsQueue[0].dest;
 		
 		const new_time = (Date.now()-requestsQueue[0].time)/1000;
 		console.log("NEW TIME: ", new_time)
 		
-  	// update the data (matrix of times and successes)
+		// update the data (matrix of times and successes)
 		data.times[cur_id][next_id] = (data.times[cur_id][next_id]*data.successes[cur_id][next_id] + new_time) / (data.successes[cur_id][next_id] + 1);
 		data.successes[cur_id][next_id] +=1;
 
@@ -171,19 +170,22 @@ function receiveResponseRobot(response) { // from the robot
 		data.times[cur_id][next_id] = Math.round(data.times[cur_id][next_id]*100)/100;
 
 		response_update = JSON.stringify({src: cur_id, dest: next_id, time: data.times[cur_id][next_id]});
-	} else {
-		// update the current position of the robot
-		// TODO curPosRobot = ???
+		
+		//console.log(data)
+		// pop the request
+		requestsQueue.shift();
+		
+		// send the updates to everyone (time + success)
+		sendToEveryone('UPDATE VARIABLES: '+response_update)
 
-		data.fails[cur_id][next_id] +=1;
-		response_update = JSON.stringify({src: cur_id, dest: next_id, time: -1});;
-	}
-	//console.log(data)
-	// pop the request
-	requestsQueue.shift();
+  }//else if { // fail
+	// update the current position of the robot
+	// TODO curPosRobot = ???
 
-  // send the updates to everyone (time + success)
-  sendToEveryone('UPDATE VARIABLES: '+response_update)
+	// data.fails[cur_id][next_id] +=1;
+	// response_update = JSON.stringify({src: cur_id, dest: next_id, time: -1});;
+	//}
+
 
   // a response is received, the timer is reset
   setHandTimeout(handHolder);
@@ -310,6 +312,9 @@ function sendRequest(clientId, msg) {
 }
 
 function receiveRequest(clientId, msg) {
+	// a request is received, the timer is reset
+  setHandTimeout(handHolder);
+
 	console.log(`Received from client ${clientId}: ${msg}`);
 	if (msg === 'PING') {
 		return;
@@ -319,7 +324,8 @@ function receiveRequest(clientId, msg) {
 
 		const request = msg.substring('REQUEST: '.length).toLowerCase();
 		if (!request.startsWith('goto ')&&request!=="dock") {
-			console.log('invalid command\n');
+			//console.log('invalid command\n');
+			sendRequestRobot(request)
 			return;
 		}
 
@@ -330,7 +336,8 @@ function receiveRequest(clientId, msg) {
 			dest = request.substring('goto '.length);
 		}
 		if (!data.id.has(dest)) {
-			console.log('invalid destination\n');
+			//console.log('invalid destination\n');
+			sendRequest(clientId, 'RESPONSE: Unknown destination '+ dest +'\n'); // TEMPORAIRE
 			return;
 		}
 
@@ -387,6 +394,7 @@ function sendToEveryone(msg) {
 
 
 function setHandTimeout(clientId) {
+	clearTimeout(handTimer);
 	handTimer = setTimeout(() => {
 		if (requestQueue.length===0) { // queue is empty
 			handHolder=null;

@@ -14,7 +14,7 @@ const server = net.createServer((socket) => {
 		} else if (request === "dock") {
       request = 'dockingstation2';
     } else {
-      socket.write('ERROR')
+      socket.write("Unknown command "+request+"\n")
       return;
     }
     
