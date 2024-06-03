@@ -13,10 +13,10 @@ const port_map = 3001;
 
 const port_server = 2345;
 
-connectedClients = new Map(); // map to keep track of connected clients
-requestQueue = []; // array to keep track of the request queue
-handHolder = null; // variable to keep track of the hand holder
-handTimer = null;
+const connectedClients = new Map(); // map to keep track of connected clients
+var handQueue = []; // array to keep track of the request queue
+var handHolder = null; // variable to keep track of the hand holder
+var handTimer = null;
 const handTimeout = 10*1000; // hand timeout in milliseconds (10 seconds)
 const pingTiming = 60*1000 // 60 seconds
 
@@ -27,7 +27,6 @@ var curPosRobot = 'dockingstation2';
 
 
 const net = require('net');
-const { request } = require('http');
 const port_robot = 3456;
 const robot_host = 'localhost';
 var robotConnected = false; 
@@ -287,24 +286,26 @@ function socketDisconnect(clientId, pingInterval) {
 	// stop the ping interval
 	clearInterval(pingInterval);
 	// remove the client from the request queue
-	requestQueue = requestQueue.filter((req) => req.clientId !== clientId);
+	handQueue = handQueue.filter((id) => id !== clientId);
 	// if the client was the hand holder, set a new owner
 	if (handHolder === clientId) {
 		clearTimeout(handTimer);
-		if (requestQueue.length===0) {
+		if (handQueue.length===0) {
 			handHolder=null;
 		} else {
-			handHolder = requestQueue[0];
-			requestQueue.shift();
+			handHolder = handQueue[0];
+			handQueue.shift();
 			sendRequest(handHolder, 'HAND REQUEST ACCEPTED\n');
 			setHandTimeout(handHolder);
-			updatePositions();
 		}
 	}
+	
+	// update the clients
+	updatePositions();
 }
 
 function updateClientQueue(clientId) {
-	sendRequest(clientId, `HAND QUEUE UPDATE: ${requestsQueue.length}\n`)
+	sendRequest(clientId, `HAND QUEUE UPDATE: ${handQueue.length}\n`)
 }
 
 
@@ -366,10 +367,10 @@ function receiveRequest(clientId, msg) {
 				return;
 			}
 			// the hand is not available
-			position = requestQueue.indexOf(clientId) + 1;
+			position = handQueue.indexOf(clientId) + 1;
 			if (position==0) { // clientId not in the queue
-				requestQueue.push(clientId);
-				position=requestQueue.length
+				handQueue.push(clientId);
+				position=handQueue.length
 				sendToEveryone(`HAND QUEUE UPDATE: ${position}\n`);
 			}
 			sendRequest(clientId, `HAND QUEUE POSITION: ${position}\n`);
@@ -401,11 +402,11 @@ function sendToEveryone(msg) {
 function setHandTimeout(clientId) {
 	clearTimeout(handTimer);
 	handTimer = setTimeout(() => {
-		if (requestQueue.length===0) { // queue is empty
+		if (handQueue.length===0) { // queue is empty
 			handHolder=null;
 		} else { // set the first client in the queue as the hand holder
-			handHolder = requestQueue[0];
-			requestQueue.shift();
+			handHolder = handQueue[0];
+			handQueue.shift();
 			sendRequest(handHolder, 'HAND REQUEST ACCEPTED\n');
 			setHandTimeout(handHolder);
 			updatePositions();
@@ -417,11 +418,11 @@ function setHandTimeout(clientId) {
 
 function updatePositions() {
 	// notify each client in the queue of their new position
-	for (let i=0; i<requestQueue.length; i++) {
-		sendRequest(requestQueue[i], `HAND QUEUE POSITION: ${i+1}\n`);
+	for (let i=0; i<handQueue.length; i++) {
+		sendRequest(handQueue[i], `HAND QUEUE POSITION: ${i+1}\n`);
 	}
 	// notify everyone of the new size of the queue
-	sendToEveryone(`HAND QUEUE UPDATE: ${requestQueue.length}\n`);
+	sendToEveryone(`HAND QUEUE UPDATE: ${handQueue.length}\n`);
 }
 
 
