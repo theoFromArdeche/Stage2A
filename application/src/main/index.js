@@ -2,7 +2,6 @@ import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { time } from 'console';
 
 var mainWindow;
 
@@ -322,7 +321,7 @@ function receiveResponseServer(response) { // from the server
   } else if (response.indexOf('ExtendedStatusForHumans: ') === 0) {
     const statusForHuman = response.trim().substring('ExtendedStatusForHumans: '.length);
     // update de la sidebar
-    mainWindow.webContents.send('sidebar-updateStatus', statusForHuman);
+    mainWindow.webContents.send('Sidebar-updateStatus', statusForHuman);
 
   } else if (response.indexOf('StateOfCharge: ') === 0) {
     const stateOfCharge = response.trim().substring('StateOfCharge: '.length);

@@ -17,7 +17,7 @@ ipcRenderer.on('updatePosition', (event, arg) => {
   position.value = `${parseInt(pos_arr[0])} ${parseInt(pos_arr[1])} ${parseInt(pos_arr[2])}`;
 })
 
-ipcRenderer.on('sidebar-updateStatus', (event, arg) => {
+ipcRenderer.on('Sidebar-updateStatus', (event, arg) => {
   etat.value = arg.trim()
 })
 

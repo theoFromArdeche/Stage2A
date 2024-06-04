@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import imageRobotSrc from '@src/assets/omron_png.png';
-import { depthTexture, min } from 'three/examples/jsm/nodes/Nodes.js';
 
 var data;
 

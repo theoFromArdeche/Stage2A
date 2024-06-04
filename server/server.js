@@ -35,7 +35,7 @@ const port_robot = 3456;
 const robot_host = 'localhost';
 var robotConnected = false; 
 var robotSocket = null;
-
+const robotPassword = "password"
 
 
 
@@ -105,6 +105,7 @@ function connectToRobot() {
 	robotSocket = net.createConnection({ host:robot_host, port: port_robot }, () => {
 		console.log(`Connected to the robot on port ${port_robot}`);
 		robotConnected = true;
+		robotSocket.write(robotPassword)
 	
 		// Handle incoming data from the robot
 		robotSocket.on('data', (data) => {
