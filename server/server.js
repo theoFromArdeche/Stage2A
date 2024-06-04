@@ -167,7 +167,7 @@ function receiveResponseRobot(response) { // from the robot
 
   if (response.startsWith('Arrived at ')) {
 		clearInterval(statusTimer);
-		sendRequestRobot('status');
+		sendRequestRobot('status\n');
 		flagStatus=false;
 
 		var response_update;
@@ -197,9 +197,9 @@ function receiveResponseRobot(response) { // from the robot
 
   } else if (response.startsWith('Going to ')&&!flagStatus) { // &&!flagStatus to prevent issues when sending multiples goto
 		flagStatus=true;
-		sendRequestRobot('status');
+		sendRequestRobot('status\n');
 		statusTimer = setInterval(() => {
-			sendRequestRobot('status');
+			sendRequestRobot('status\n');
 		}, statusInterval);
 	}// else if () { // fail
 	// update the current position of the robot
@@ -219,7 +219,7 @@ function sendRequestRobot(request) {
     // wait for the robot to be connected
     const checkConnection = () => {
       if (robotConnected) {
-        console.log('Send to robot : ' + request);
+        console.log('Send to robot : |' + request+'|');
         robotSocket.write(request, (err) => {
           if (err) {
             reject(err);
@@ -279,7 +279,7 @@ const server = net.createServer((socket) => {
 
 	// received data from the client
 	socket.on('data', (data) => {
-		const msg = data.toString().trim();
+		const msg = data.toString();
 		receiveRequest(clientId, msg);
 	});
 
@@ -345,21 +345,21 @@ function receiveRequest(clientId, msg) {
   setHandTimeout(handHolder);
 
 	console.log(`Received from client ${clientId}: ${msg}`);
-	if (msg === 'PING') {
+	if (msg === 'PING\n') {
 		return;
 	} else if (msg.startsWith('REQUEST: ')) {
 
 		if (handHolder != clientId) return;
 
 		const request = msg.substring('REQUEST: '.length).toLowerCase();
-		if (!request.startsWith('goto ')&&request!=='dock') {
+		if (!request.startsWith('goto ')&&request!=='dock\n') {
 			//console.log('invalid command\n');
 			sendRequestRobot(request)
 			return;
 		}
 
 		var dest;
-		if (request === 'dock') {
+		if (request === 'dock\n') {
 			dest = 'dockingstation2';
 		} else {
 			dest = request.substring('goto '.length);
@@ -378,7 +378,7 @@ function receiveRequest(clientId, msg) {
 		// the timeout will be rest when the response is received
 		clearTimeout(handTimer);
 
-	} else if (msg === 'HAND') {
+	} else if (msg === 'HAND\n') {
 		if (!handHolder) {
 			// the hand is available and given to the client
 			handHolder=clientId;
@@ -398,7 +398,7 @@ function receiveRequest(clientId, msg) {
 			}
 			sendRequest(clientId, `HAND QUEUE POSITION: ${position}\n`);
 		}
-	} else if (msg === 'DATA') {
+	} else if (msg === 'DATA\n') {
 		const jsonString = JSON.stringify(data, (key, value) => {
 			// If the value is a Map, convert it to an object
 			if (value instanceof Map) {
