@@ -167,7 +167,7 @@ function receiveResponseRobot(response) { // from the robot
 
   if (response.startsWith('Arrived at ')) {
 		clearInterval(statusTimer);
-		sendRequestRobot('status\n');
+		sendRequestRobot('status');
 		flagStatus=false;
 
 		var response_update;
@@ -219,8 +219,8 @@ function sendRequestRobot(request) {
     // wait for the robot to be connected
     const checkConnection = () => {
       if (robotConnected) {
-        console.log('Send to robot : |' + request+'|');
-        robotSocket.write(request, (err) => {
+        console.log('Send to robot : ' + request);
+        robotSocket.write(request+'\n', (err) => {
           if (err) {
             reject(err);
           } else {
@@ -279,7 +279,7 @@ const server = net.createServer((socket) => {
 
 	// received data from the client
 	socket.on('data', (data) => {
-		const msg = data.toString();
+		const msg = data.toString().trim();
 		receiveRequest(clientId, msg);
 	});
 
@@ -345,21 +345,21 @@ function receiveRequest(clientId, msg) {
   setHandTimeout(handHolder);
 
 	console.log(`Received from client ${clientId}: ${msg}`);
-	if (msg === 'PING\n') {
+	if (msg === 'PING') {
 		return;
 	} else if (msg.startsWith('REQUEST: ')) {
 
 		if (handHolder != clientId) return;
 
 		const request = msg.substring('REQUEST: '.length).toLowerCase();
-		if (!request.startsWith('goto ')&&request!=='dock\n') {
+		if (!request.startsWith('goto ')&&request!=='dock') {
 			//console.log('invalid command\n');
 			sendRequestRobot(request)
 			return;
 		}
 
 		var dest;
-		if (request === 'dock\n') {
+		if (request === 'dock') {
 			dest = 'dockingstation2';
 		} else {
 			dest = request.substring('goto '.length);
@@ -378,7 +378,7 @@ function receiveRequest(clientId, msg) {
 		// the timeout will be rest when the response is received
 		clearTimeout(handTimer);
 
-	} else if (msg === 'HAND\n') {
+	} else if (msg === 'HAND') {
 		if (!handHolder) {
 			// the hand is available and given to the client
 			handHolder=clientId;
@@ -398,7 +398,7 @@ function receiveRequest(clientId, msg) {
 			}
 			sendRequest(clientId, `HAND QUEUE POSITION: ${position}\n`);
 		}
-	} else if (msg === 'DATA\n') {
+	} else if (msg === 'DATA') {
 		const jsonString = JSON.stringify(data, (key, value) => {
 			// If the value is a Map, convert it to an object
 			if (value instanceof Map) {
