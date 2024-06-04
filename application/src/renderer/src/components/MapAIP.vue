@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import imageRobotSrc from '@src/assets/omron_png.png';
+import { depthTexture, min } from 'three/examples/jsm/nodes/Nodes.js';
 
 var data;
 
@@ -197,6 +198,7 @@ function getMin() {
   pointDetectedCoords.forEach((detectedPoints) => {
     getMinPoint(detectedPoints)
   })
+  //console.log("Extreme pos: ", minPos.x, minPos.y, maxPos.x, maxPos.y)
   maxPos.x -= minPos.x
   maxPos.y -= minPos.y
 }
@@ -215,6 +217,15 @@ onMounted(async () => {
   const canvas_transition_robot = document.getElementById("canvas_transition_robot");
   const ctx_transition_robot = canvas_transition_robot.getContext('2d');
 
+  function transformCoord(x, y, width) {
+    const diff = width / maxPos.y
+    //if ((1 - (y - minPos.y) / maxPos.y)*width<350) console.log((1 - (y - minPos.y) / maxPos.y) * width, x, y)
+    return {
+      x: (1 - (y - minPos.y) / maxPos.y) * width,
+      y: (maxPos.x - x + minPos.x) * diff
+    }
+  }
+
   function tailleEtTracer() {
     //ctx.clearRect(0, 0, canvas.width, canvas.height)
 
@@ -229,14 +240,6 @@ onMounted(async () => {
     canvas_transition_robot.width = canvas_MapAIP.width
     canvas_transition_robot.height = canvas_MapAIP.height
 
-    function transformCoord(x, y, width) {
-      const diff = width / maxPos.y
-      //if ((1 - (y - minPos.y) / maxPos.y)*width<350) console.log((1 - (y - minPos.y) / maxPos.y) * width, x, y)
-      return {
-        x: (1 - (y - minPos.y) / maxPos.y) * width,
-        y: (maxPos.x - x + minPos.x) * diff
-      }
-    }
 
     pointDetectedCoords.forEach((point) => {
       const transformed = transformCoord(point[0], point[1], canvas_MapAIP.width)
@@ -314,11 +317,11 @@ onMounted(async () => {
   });
 
   //window.addEventListener('resize', tailleEtTracer)
-  function add_infos(button_id_start, button_id_end){
+  function add_infos(src, dest){
     var left_pos
     var top_pos
     buttons.forEach((button) => {
-      if (button.id == button_id_end){
+      if (button.id == dest){
         left_pos = button.style.left
         top_pos = button.style.top
       }
@@ -326,7 +329,7 @@ onMounted(async () => {
     let infos = document.createElement('p')
     infos.style.left = left_pos
     infos.style.top = top_pos
-    let contenu = "Temps de parcours : " + data.times[data.id.get(button_id_start)][data.id.get(button_id_end)]
+    let contenu = "Temps de parcours : " + data.times[data.id.get(src)][data.id.get(dest)]
     infos.innerText = contenu
     setTimeout(function () {
         infos.remove()
@@ -334,56 +337,77 @@ onMounted(async () => {
   }
 
   function clearCanvas() {
-    ctx_transition.clearRect(0, 0, canvas_transition.width, canvas_transition.height); //à modifier si les tout les canvas ne seront plus de la meme taille
+    ctx_transition.clearRect(0, 0, canvas_transition.width, canvas_transition.height);
   }
   
-  function animateLineBetweenButtons(button_id_start, button_id_end) {
-    if (!data.id.has(button_id_start)||!data.id.has(button_id_end)) return;
-    // Récupère les références des deux boutons et du canvas
-    const button_start = document.getElementById(button_id_start);
-    const button_end = document.getElementById(button_id_end);
+  function animateLineBetweenButtons(src, dest, flagSimulation, duration) {
+    var x1, y1, x2, y2, dx, dy;
 
-    // Vérifie que les deux boutons et le canvas existent
-    if (!button_start || !button_end || !canvas_route || !ctx_route) {
-      console.error(`Un ou plusieurs éléments n'ont pas été trouvés : ${button_id_start}, ${button_id_end}, #canvas_route`);
-      return;
+    if (flagSimulation) {
+      // Récupère les références des deux boutons et du canvas
+      const button_start = document.getElementById(src);
+      const button_end = document.getElementById(dest);
+
+      // Vérifie que les deux boutons et le canvas existent
+      if (!button_start || !button_end || !canvas_route || !ctx_route) {
+        console.error(`Un ou plusieurs éléments n'ont pas été trouvés : ${src}, ${dest}, #canvas_route`);
+        return;
+      }
+
+      // Récupère les positions des deux boutons (par rapport au conteneur)
+      const diff = canvas_route.width / canvas_route.offsetWidth
+
+      x1 = button_start.offsetLeft * diff
+      y1 = button_start.offsetTop * diff
+      x2 = button_end.offsetLeft * diff
+      y2 = button_end.offsetTop * diff
+
+      // Propriétés de la ligne
+      const liste = ["rgb(255, 0, 0)", "rgb(253, 36, 0)", "rgb(251, 53, 0)", "rgb(249, 67, 0)", "rgb(246, 79, 0)", "rgb(243, 89, 0)", "rgb(240, 98, 0)", "rgb(236, 108, 0)", "rgb(231, 117, 0)", "rgb(226, 125, 0)", "rgb(221, 132, 0)", "rgb(216, 139, 0)", "rgb(211, 146, 0)", "rgb(205, 153, 0)", "rgb(200, 159, 0)", "rgb(194, 165, 0)", "rgb(188, 170, 0)", "rgb(181, 176, 0)", "rgb(175, 181, 0)", "rgb(168, 187, 0)", "rgb(161, 192, 0)", "rgb(153, 197, 0)", "rgb(144, 202, 0)", "rgb(135, 207, 0)", "rgb(124, 212, 0)", "rgb(111, 217, 0)", "rgb(96, 222, 0)", "rgb(80, 226, 0)", "rgb(59, 231, 0)", "rgb(19, 235, 15)"]
+      const data_id_start = data.id.get(src);
+      const data_id_end = data.id.get(dest)
+      //console.log(data, data_id_start, data_id_end)
+      const successes = data.successes[data_id_start][data_id_end];
+      const fails = data.fails[data_id_start][data_id_end]
+      //console.log(successes, fails)
+      var success_rate=liste.length-1;
+      if (successes+fails!==0) {
+        success_rate = Math.round((liste.length-1)*successes/(successes+fails));
+      }
+      ctx_route.strokeStyle = liste[success_rate];
+      ctx_transition.strokeStyle = liste[success_rate];
+
+    } else { // Live
+      const src_arr = src.split(' ');
+      const dest_arr = dest.split(' ');
+      x1 = parseFloat(src_arr[0])
+      y1 = parseFloat(src_arr[1])
+      x2 = parseFloat(dest_arr[0])
+      y2 = parseFloat(dest_arr[1])
+
+      const transformedSrc = transformCoord(x1, y1, canvas_MapAIP.width);
+      const transformedDest = transformCoord(x2, y2, canvas_MapAIP.width);
+
+      x1=transformedSrc.x; y1=transformedSrc.y;
+      x2=transformedDest.x; y2=transformedDest.y;
+
+      ctx_route.strokeStyle = "rgb(19, 235, 15)";
+      ctx_transition.strokeStyle = "rgb(19, 235, 15)";
     }
 
-    // Récupère les positions des deux boutons (par rapport au conteneur)
-    const diff = canvas_route.width / canvas_route.offsetWidth
-
-    const x1 = button_start.offsetLeft * diff
-    const y1 = button_start.offsetTop * diff
-    const x2 = button_end.offsetLeft * diff
-    const y2 = button_end.offsetTop * diff
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-
-    // Propriétés de la ligne
-    const liste = ["rgb(255, 0, 0)", "rgb(253, 36, 0)", "rgb(251, 53, 0)", "rgb(249, 67, 0)", "rgb(246, 79, 0)", "rgb(243, 89, 0)", "rgb(240, 98, 0)", "rgb(236, 108, 0)", "rgb(231, 117, 0)", "rgb(226, 125, 0)", "rgb(221, 132, 0)", "rgb(216, 139, 0)", "rgb(211, 146, 0)", "rgb(205, 153, 0)", "rgb(200, 159, 0)", "rgb(194, 165, 0)", "rgb(188, 170, 0)", "rgb(181, 176, 0)", "rgb(175, 181, 0)", "rgb(168, 187, 0)", "rgb(161, 192, 0)", "rgb(153, 197, 0)", "rgb(144, 202, 0)", "rgb(135, 207, 0)", "rgb(124, 212, 0)", "rgb(111, 217, 0)", "rgb(96, 222, 0)", "rgb(80, 226, 0)", "rgb(59, 231, 0)", "rgb(19, 235, 15)"]
+    dx = x2 - x1;
+    dy = y2 - y1;
     ctx_route.lineWidth = 10;
     ctx_transition.lineWidth = 10;
     ctx_route.lineCap = 'round';
     ctx_transition.lineCap = 'round';
-    const data_id_start = data.id.get(button_id_start);
-    const data_id_end = data.id.get(button_id_end)
-    //console.log(data, data_id_start, data_id_end)
-    const successes = data.successes[data_id_start][data_id_end];
-    const fails = data.fails[data_id_start][data_id_end]
-    //console.log(successes, fails)
-    var success_rate=liste.length-1;
-    if (successes+fails!==0) {
-      success_rate = Math.round((liste.length-1)*successes/(successes+fails));
-    }
-    ctx_route.strokeStyle = liste[success_rate];
-    ctx_transition.strokeStyle = liste[success_rate];
 
     // Animation
     let startTime = performance.now();
     function animate(currentTime) {
       // Avancement du robot
       const speedup = 1
-      const animationTime = data.times[data.id.get(button_id_start)][data.id.get(button_id_end)]*1000/speedup
+      const animationTime = duration/speedup
       const elapsedTime = currentTime - startTime;
       const progress = Math.min(elapsedTime / animationTime, 1);
 
@@ -413,7 +437,7 @@ onMounted(async () => {
         ctx_route.moveTo(x1, y1);
         ctx_route.lineTo(newX, newY);
         ctx_route.stroke();
-        add_infos(button_id_start, button_id_end)
+        //add_infos(src, dest)
         setTimeout(clearCanvas, 500)
       }
     }
@@ -423,16 +447,23 @@ onMounted(async () => {
   }
 
   ipcRenderer.on('updateRoute', (event, src, dest) => {
-    animateLineBetweenButtons(src, dest);
+    if (!data.id.has(src)||!data.id.has(dest)) return;
+
+    const duration = data.times[data.id.get(src)][data.id.get(dest)]*1000;
+    animateLineBetweenButtons(src, dest, true, duration);
+  });
+
+  ipcRenderer.on('drawSegment', (event, src, dest, duration) => {
+    animateLineBetweenButtons(src, dest, false, duration);
   });
 
   // Exemple d'utilisation de la fonction :
   document.addEventListener('keydown', function (event) {
     if (event.code === 'Space') {
-      animateLineBetweenButtons('s-111-2', 's-114')
+      animateLineBetweenButtons('s-111-2', 's-114', true, 5*1000)
     }
     else if (event.key === 'p') {
-      animateLineBetweenButtons('s-106', 's-111-2')
+      animateLineBetweenButtons('s-106', 's-111-2', true, 5*1000)
     }
     else if (event.key === 'c') {
       ctx_route.clearRect(0, 0, canvas_route.width, canvas_route.height);

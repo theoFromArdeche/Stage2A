@@ -13,16 +13,23 @@ ipcRenderer.on('updateBattery', (event, arg) => {
 })
 
 ipcRenderer.on('updatePosition', (event, arg) => {
-  position.value = arg.trim()
+  const pos_arr = arg.split(' ');
+  position.value = `${parseInt(pos_arr[0])} ${parseInt(pos_arr[1])} ${parseInt(pos_arr[2])}`;
 })
 
-ipcRenderer.on('updateStatus', (event, arg) => {
+ipcRenderer.on('sidebar-updateStatus', (event, arg) => {
   etat.value = arg.trim()
 })
 
 ipcRenderer.on('updateWaitings', (event, arg) => {
   nbr_attente.value = arg.trim()
 })
+
+
+onMounted(() => {
+  ipcRenderer.send('Sidebar-vue-loaded')
+})
+
 </script>
 
 <template>

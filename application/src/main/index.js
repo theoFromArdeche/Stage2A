@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { time } from 'console';
 
 var mainWindow;
 
@@ -69,6 +70,10 @@ app.whenReady().then(() => {
     fetchMap();
   });
 
+  ipcMain.on('Sidebar-vue-loaded', (event, arg) => {
+    mainWindow.webContents.send('updatePosition', curLocationRobot);
+  });
+
   ipcMain.on('onSimulation', (event, arg) => {
     flagSimulation=true;
   });
@@ -107,6 +112,9 @@ var data;
 var flagSimulation= true;
 var curPosRobot;
 var newPosRobot;
+var curLocationRobot = ""; // coords x, y, z example : "-384 1125 0.00"
+var timeStatus = -1;
+var timeEndAnim = -1;
 
 const net = require('net');
 
@@ -185,9 +193,13 @@ function receiveRequest(request) {
 function receivedResponse(response) {
   mainWindow.webContents.send('updateStatus', response);
   sendResponse(response)
-  if (response.indexOf('Going to ') === 0) {
+  if (response.indexOf('Going to ') !== 0) return;
+
+  if (flagSimulation) {
     const destination = response.substring('Going to '.length).trim().toLowerCase();
     mainWindow.webContents.send('updateRoute', curPosRobot, destination);
+  } else {
+    timeStatus=Date.now();
   }
 }
 
@@ -310,7 +322,7 @@ function receiveResponseServer(response) { // from the server
   } else if (response.indexOf('ExtendedStatusForHumans: ') === 0) {
     const statusForHuman = response.trim().substring('ExtendedStatusForHumans: '.length);
     // update de la sidebar
-    mainWindow.webContents.send('updateStatus', statusForHuman);
+    mainWindow.webContents.send('sidebar-updateStatus', statusForHuman);
 
   } else if (response.indexOf('StateOfCharge: ') === 0) {
     const stateOfCharge = response.trim().substring('StateOfCharge: '.length);
@@ -322,6 +334,25 @@ function receiveResponseServer(response) { // from the server
     // update de la sidebar
     mainWindow.webContents.send('updatePosition', location);
 
+    // if in "Live" draw the segment oldLocation - curLocation
+    if (!flagSimulation) {
+      if (timeEndAnim-Date.now()<100) { // 100 ms
+        mainWindow.webContents.send('drawSegment', curLocationRobot, location, Date.now()-timeStatus);
+
+      } else {
+        const temp_time=timeEndAnim-Date.now();
+        const temp_curLocationRobot=curLocationRobot;
+        const temp_location = location;
+        const temp_duration = Date.now()-timeStatus
+        setTimeout(()=> {
+          mainWindow.webContents.send('drawSegment', temp_curLocationRobot, temp_location, temp_duration);
+        }, temp_time)
+      }
+    }
+
+    curLocationRobot = location
+    timeEndAnim = 2*Date.now()-timeStatus
+    timeStatus = Date.now();
 
   } else if (response === 'HAND REQUEST ACCEPTED\n') {
     hasHand = true;

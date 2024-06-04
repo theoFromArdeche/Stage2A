@@ -17,13 +17,17 @@ const connectedClients = new Map(); // map to keep track of connected clients
 var handQueue = []; // array to keep track of the request queue
 var handHolder = null; // variable to keep track of the hand holder
 var handTimer = null;
-const handTimeout = 10*1000; // hand timeout in milliseconds (10 seconds)
-const pingTiming = 60*1000 // 60 seconds
+var flagStatus = false;	
+var statusTimer = null;
+const statusInterval = 1 * 1000;
+const handTimeout = 10 * 1000; // hand timeout in milliseconds (10 seconds)
+const pingTiming = 60 * 1000 // 60 seconds
 
 
 const requestsQueue = [];
 
 var curPosRobot = 'dockingstation2';
+var curLocationRobot = 'Location: -384 1125 0'
 
 
 const net = require('net');
@@ -142,16 +146,29 @@ connectToRobot();
 
 
 function receiveResponseRobot(response) { // from the robot
+	console.log('Received from robot : ' + response)
 
-	if (response.startsWith("ExtendedStatusForHumans: ")) {
+	// a response is received, the timer is reset
+  setHandTimeout(handHolder); // warning : problem if the robot bugs and sends 'Parking' every milliseconds (it happens sometimes)
+
+	if (response.startsWith('ExtendedStatusForHumans: ')) {
 		sendToEveryone(response)
-	}
 
-  console.log('Received from robot : ' + response)
+		// update the current location of the robot
+		const response_arr = response.split('\n');
+		curLocationRobot = response_arr[3];
+		return;
+	} 
+
+
   // send the response to the client that made the request
-  sendRequest(handHolder, 'RESPONSE: '+response);
+	sendRequest(handHolder, 'RESPONSE: '+response);
 
-  if (response.startsWith("Arrived at ")) {
+  if (response.startsWith('Arrived at ')) {
+		clearInterval(statusTimer);
+		sendRequestRobot('status');
+		flagStatus=false;
+
 		var response_update;
 		const cur_id=data.id.get(curPosRobot);
 		const next_id=data.id.get(requestsQueue[0].dest);
@@ -159,7 +176,7 @@ function receiveResponseRobot(response) { // from the robot
 		curPosRobot = requestsQueue[0].dest;
 		
 		const new_time = (Date.now()-requestsQueue[0].time)/1000;
-		console.log("NEW TIME: ", new_time)
+		console.log('NEW TIME: ', new_time)
 		
 		// update the data (matrix of times and successes)
 		data.times[cur_id][next_id] = (data.times[cur_id][next_id]*data.successes[cur_id][next_id] + new_time) / (data.successes[cur_id][next_id] + 1);
@@ -175,9 +192,15 @@ function receiveResponseRobot(response) { // from the robot
 		requestsQueue.shift();
 		
 		// send the updates to everyone (time + success)
-		sendToEveryone('UPDATE VARIABLES: '+response_update)
+		sendToEveryone('UPDATE VARIABLES: '+response_update+'\n')
 
-  }//else if { // fail
+  } else if (response.startsWith('Going to ')&&!flagStatus) { // &&!flagStatus to prevent issues when sending multiples goto
+		flagStatus=true;
+		sendRequestRobot('status');
+		statusTimer = setInterval(() => {
+			sendRequestRobot('status');
+		}, statusInterval);
+	}// else if () { // fail
 	// update the current position of the robot
 	// TODO curPosRobot = ???
 
@@ -186,8 +209,7 @@ function receiveResponseRobot(response) { // from the robot
 	//}
 
 
-  // a response is received, the timer is reset
-  setHandTimeout(handHolder);
+  
 }
 
 
@@ -329,15 +351,15 @@ function receiveRequest(clientId, msg) {
 		if (handHolder != clientId) return;
 
 		const request = msg.substring('REQUEST: '.length).toLowerCase();
-		if (!request.startsWith('goto ')&&request!=="dock") {
+		if (!request.startsWith('goto ')&&request!=='dock') {
 			//console.log('invalid command\n');
 			sendRequestRobot(request)
 			return;
 		}
 
 		var dest;
-		if (request === "dock") {
-			dest = "dockingstation2";
+		if (request === 'dock') {
+			dest = 'dockingstation2';
 		} else {
 			dest = request.substring('goto '.length);
 		}
@@ -384,7 +406,7 @@ function receiveRequest(clientId, msg) {
 			// Otherwise, return the value as is
 			return value;
 		});
-		sendRequest(clientId, 'DATA: '+jsonString+'FLAG_SPLIT'+curPosRobot);
+		sendRequest(clientId, 'DATA: '+jsonString+'FLAG_SPLIT'+curPosRobot+'\n'+curLocationRobot+'\n');
 	}
 }
 
@@ -424,5 +446,3 @@ function updatePositions() {
 	// notify everyone of the new size of the queue
 	sendToEveryone(`HAND QUEUE UPDATE: ${handQueue.length}\n`);
 }
-
-
