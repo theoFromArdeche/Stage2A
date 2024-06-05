@@ -15,10 +15,10 @@ const server = net.createServer((socket) => {
       request = request.substring('goto '.length);
       startTime = Date.now();
 
-		} else if (request === 'dock') {
+		} else if (request === 'dock\n') {
       request = 'dockingstation2';
     
-    } else if (request === 'status') {
+    } else if (request === 'status\n') {
       const response = status();
       socket.write(response);
       return;

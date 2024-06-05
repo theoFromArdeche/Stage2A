@@ -35,7 +35,7 @@ const port_robot = 3456;
 const robot_host = 'localhost';
 var robotConnected = false; 
 var robotSocket = null;
-const robotPassword = 'password\n'
+const robotPassword = 'password'
 
 
 
@@ -105,7 +105,7 @@ function connectToRobot() {
 	robotSocket = net.createConnection({ host:robot_host, port: port_robot }, () => {
 		console.log(`Connected to the robot on port ${port_robot}`);
 		robotConnected = true;
-		robotSocket.write(robotPassword)
+		sendRequestRobot(robotPassword)
 	
 		// Handle incoming data from the robot
 		robotSocket.on('data', (data) => {
@@ -148,11 +148,6 @@ connectToRobot();
 
 function receiveResponseRobot(response) { // from the robot
 	console.log(`Received from robot : ${response}`)
-
-	// a response is received, the timer is reset
-	if (handHolder) {
-		setHandTimeout(handHolder); // warning : problem if the robot bugs and sends 'Parking' every milliseconds (it happens sometimes)
-	}
   
 	if (response.startsWith('ExtendedStatusForHumans: ')||response.startsWith('Status: ')) {
 		sendToEveryone(response)
@@ -168,16 +163,23 @@ function receiveResponseRobot(response) { // from the robot
 	} 
 
 
-  // send the response to the client that made the request
-	const response_arr = response.split('\n');
-	for (let i=0; i<response_arr.length; i++) {
-		sendRequest(handHolder, `RESPONSE: ${response_arr[i]}\n`);
+	// a response is received, the timer is reset
+	if (handHolder) {
+		setHandTimeout(handHolder); // warning : problem if the robot bugs and sends 'Parking' every milliseconds (it happens sometimes)
+
+		// send the response to the client that made the request
+		const response_arr = response.split('\n');
+		for (let i=0; i<response_arr.length; i++) {
+			if (!response_arr[i]) continue
+			sendRequest(handHolder, `RESPONSE: ${response_arr[i]}\n`);
+		}
 	}
+
 
 	// if the robot is not moving anymore, stop the status requests
 	if (response.startsWith('Arrived at ')||response.startsWith('Parked')||response.startsWith('DockingState: Docked')) {
 		clearInterval(statusTimer);
-		sendRequestRobot('status\n');
+		sendRequestRobot('status');
 		flagStatus=false;
 	}
 
@@ -211,9 +213,9 @@ function receiveResponseRobot(response) { // from the robot
   } else if ((response.startsWith('Going to ')||response.startsWith('Parking')||response.startsWith('Docking'))&&!flagStatus) { // &&!flagStatus to prevent issues when sending multiples goto
 		clearInterval(statusTimer);
 		flagStatus=true;
-		sendRequestRobot('status\n');
+		sendRequestRobot('status');
 		statusTimer = setInterval(() => {
-			sendRequestRobot('status\n');
+			sendRequestRobot('status');
 		}, statusInterval);
 	}// else if () { // fail
 	// update the current position of the robot
