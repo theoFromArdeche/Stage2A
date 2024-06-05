@@ -20,7 +20,7 @@ var handTimer = null;
 var flagStatus = false;	
 var statusTimer = null;
 const statusInterval = 1 * 1000;
-const handTimeout = 10 * 1000; // hand timeout in milliseconds (10 seconds)
+const handTimeout = 60 * 1000; // hand timeout in milliseconds (10 seconds)
 const pingTiming = 60 * 1000 // 60 seconds
 
 
@@ -150,26 +150,39 @@ function receiveResponseRobot(response) { // from the robot
 	console.log(`Received from robot : ${response}`)
 
 	// a response is received, the timer is reset
-  setHandTimeout(handHolder); // warning : problem if the robot bugs and sends 'Parking' every milliseconds (it happens sometimes)
-
-	if (response.startsWith('ExtendedStatusForHumans: ')) {
+	if (handHolder) {
+		setHandTimeout(handHolder); // warning : problem if the robot bugs and sends 'Parking' every milliseconds (it happens sometimes)
+	}
+  
+	if (response.startsWith('ExtendedStatusForHumans: ')||response.startsWith('Status: ')) {
 		sendToEveryone(response)
 
 		// update the current location of the robot
 		const response_arr = response.split('\n');
-		curLocationRobot = response_arr[3];
+		for (let i=0; i<response_arr.length; i++) {
+			if (!response_arr[i].startsWith('Location: ')) continue
+			curLocationRobot = response_arr[i];
+			break;
+		}
 		return;
 	} 
 
 
   // send the response to the client that made the request
-	sendRequest(handHolder, `RESPONSE: ${response}`);
+	const response_arr = response.split('\n');
+	for (let i=0; i<response_arr.length; i++) {
+		sendRequest(handHolder, `RESPONSE: ${response_arr[i]}\n`);
+	}
+
+	// if the robot is not moving anymore, stop the status requests
+	if (response.startsWith('Arrived at ')||response.startsWith('Parked')||response.startsWith('DockingState: Docked')) {
+		clearInterval(statusTimer);
+		sendRequestRobot('status\n');
+		flagStatus=false;
+	}
+
 
   if (response.startsWith('Arrived at ')) {
-		clearInterval(statusTimer);
-		sendRequestRobot('status');
-		flagStatus=false;
-
 		var response_update;
 		const cur_id=data.id.get(curPosRobot);
 		const next_id=data.id.get(requestsQueue[0].dest);
@@ -195,7 +208,7 @@ function receiveResponseRobot(response) { // from the robot
 		// send the updates to everyone (time + success)
 		sendToEveryone(`UPDATE VARIABLES: ${response_update}\n`)
 
-  } else if ((response.startsWith('Going to ')||response.startsWith('Parking'))&&!flagStatus) { // &&!flagStatus to prevent issues when sending multiples goto
+  } else if ((response.startsWith('Going to ')||response.startsWith('Parking')||response.startsWith('Docking'))&&!flagStatus) { // &&!flagStatus to prevent issues when sending multiples goto
 		clearInterval(statusTimer);
 		flagStatus=true;
 		sendRequestRobot('status\n');
@@ -343,7 +356,6 @@ function sendRequest(clientId, msg) {
 
 function receiveRequest(clientId, msg) {
 	// a request is received, the timer is reset
-  setHandTimeout(handHolder);
 
 	console.log(`Received from client ${clientId}: ${msg}`);
 	if (msg === 'PING') {
@@ -351,6 +363,7 @@ function receiveRequest(clientId, msg) {
 	} else if (msg.startsWith('REQUEST: ')) {
 
 		if (handHolder != clientId) return;
+		setHandTimeout(handHolder);
 
 		const request = msg.substring('REQUEST: '.length).toLowerCase();
 		if (!request.startsWith('goto ')&&request!=='dock') {
