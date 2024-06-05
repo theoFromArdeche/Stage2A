@@ -111,7 +111,7 @@ var data;
 var flagSimulation= true;
 var curPosRobot;
 var newPosRobot;
-var curLocationRobot = ""; // coords x, y, z example : "-384 1125 0.00"
+var curLocationRobot = ''; // coords x, y, z example : '-384 1125 0.00'
 var timeStatus = -1;
 var timeEndAnim = -1;
 
@@ -167,7 +167,7 @@ instanceSocket.listen(port_instance, () => {
 
 function sendResponse(request) {
   if (!clientConnected) return;
-  console.log('Send to client : ' + request)
+  console.log(`Send to client : ${request}`)
   clientSocket.write(request);
 }
 
@@ -177,7 +177,7 @@ function receiveRequest(request) {
     responseSimulation(request);
   } else { // live
     if (hasHand) {
-      sendRequestServer('REQUEST: '+request);
+      sendRequestServer(`REQUEST: ${request}`);
     } else {
       dialog.showMessageBox({
         type: 'warning',
@@ -228,7 +228,7 @@ function connectToServer() {
       const responses = data.toString().split('\n');
       for (let response of responses) {
         if (!response) continue
-        receiveResponseServer(response+'\n');
+        receiveResponseServer(`${response}\n`);
       }
     });
 
@@ -268,7 +268,7 @@ connectToServer();
 function serverDisconnected() {
   serverConnected = false;
   hasHand = false;
-  mainWindow.webContents.send('receiveQueue', "Demander la main");
+  mainWindow.webContents.send('receiveQueue', 'Demander la main');
   dialog.showMessageBox({
     type: 'warning',
     title: 'Warning',
@@ -296,7 +296,7 @@ async function fetchMap() {
 
 function receiveResponseServer(response) { // from the server
   if (!response) return;
-  console.log('Received from server : ' + response)
+  console.log(`Received from server : ${response}`)
 
   if (response.indexOf('RESPONSE: ') === 0) {
     const response_body = response.substring('RESPONSE: '.length);
@@ -333,7 +333,7 @@ function receiveResponseServer(response) { // from the server
     // update de la sidebar
     mainWindow.webContents.send('updatePosition', location);
 
-    // if in "Live" draw the segment oldLocation - curLocation
+    // if in 'Live' draw the segment oldLocation - curLocation
     if (!flagSimulation) {
       if (timeEndAnim-Date.now()<100) { // 100 ms
         mainWindow.webContents.send('drawSegment', curLocationRobot, location, Date.now()-timeStatus);
@@ -355,7 +355,7 @@ function receiveResponseServer(response) { // from the server
 
   } else if (response === 'HAND REQUEST ACCEPTED\n') {
     hasHand = true;
-    mainWindow.webContents.send('receiveQueue', "Vous avez la main");
+    mainWindow.webContents.send('receiveQueue', 'Vous avez la main');
 
   } else if (response.indexOf('HAND QUEUE POSITION: ') === 0) {
     const pos = response.substring('HAND QUEUE POSITION: '.length).trim();
@@ -372,10 +372,10 @@ function receiveResponseServer(response) { // from the server
 
   } else if (response === 'HAND TIMEOUT\n') {
     hasHand = false;
-    mainWindow.webContents.send('receiveQueue', "Demander la main");
+    mainWindow.webContents.send('receiveQueue', 'Demander la main');
 
 	} else if (response.indexOf('DATA: ') === 0) {
-    const response_array = response.substring('DATA: '.length).trim().split("FLAG_SPLIT");
+    const response_array = response.substring('DATA: '.length).trim().split('FLAG_SPLIT');
     const jsonString = response_array[0];
     try {
       data = JSON.parse(jsonString);
@@ -392,21 +392,21 @@ function receiveResponseServer(response) { // from the server
 
 function sendRequestServer(request) {
   if (!serverConnected) return;
-  console.log('Send to server : ' + request)
+  console.log(`Send to server : ${request}`)
   serverSocket.write(request);
 }
 
 
 function responseSimulation(request) {
-  if (request.toLowerCase().indexOf("goto ") == 0) {
+  if (request.toLowerCase().indexOf('goto ') == 0) {
     const whereto = request.toLowerCase().substring('goto '.length);
     if (!data.id.has(whereto)){
-      //console.log("invalid destination")
-      receivedResponse("Unknown destination "+whereto+"\n");
+      //console.log('invalid destination')
+      receivedResponse(`Unknown destination ${whereto}\n`);
       return
     }
-    const msg1 = "Going to " + whereto+"\n"
-    const msg2 = "Arrived at " + whereto+"\n"
+    const msg1 = `Going to ${whereto}\n`
+    const msg2 = `Arrived at ${whereto}\n`
     const delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
     receivedResponse(msg1);
     curPosRobot=whereto
@@ -415,12 +415,12 @@ function responseSimulation(request) {
     }, delta_time*1000);
 
 
-  } else if (request.toLowerCase() === "dock") {
-    console.log("dock")
+  } else if (request.toLowerCase() === 'dock') {
+    console.log('dock')
     const whereto = 'dockingstation2';
-    const msg1 = "Going to dockingstation2\n"
-    const msg2 = "Docking\n"
-    const msg3 = "Docked\n"
+    const msg1 = 'Going to dockingstation2\n'
+    const msg2 = 'Docking\n'
+    const msg3 = 'Docked\n'
     const delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
     receivedResponse(msg1);
     curPosRobot=whereto
@@ -432,6 +432,21 @@ function responseSimulation(request) {
     }, delta_time*1000);
 
   } else {
-    receivedResponse("Unknown command "+request+"\n");
+    receivedResponse(`CommandError: ${request}\n`);
   }
 }
+
+
+
+/*
+
+regex to replace 'some phrase ' + variable + ' some other phrase ' + variable2 + ... 
+to : `some phrase ${varibale} some other phrase ${variable2} ...`
+
+('|`)([^'`]*?)\1\s*\+\s*([a-zA-Z0-9_]+)|([a-zA-Z0-9_]+)\s*\+\s*('|`)([^'`]*?)\5
+`$2${$3}${$4}$6`
+
+('|`)([^'`]*?)\1\s*\+\s*('|`)([^'`]*?)\3|\$\{\}
+$1$2$4$1
+
+*/

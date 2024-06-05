@@ -35,7 +35,7 @@ const port_robot = 3456;
 const robot_host = 'localhost';
 var robotConnected = false; 
 var robotSocket = null;
-const robotPassword = "password"
+const robotPassword = 'password\n'
 
 
 
@@ -147,7 +147,7 @@ connectToRobot();
 
 
 function receiveResponseRobot(response) { // from the robot
-	console.log('Received from robot : ' + response)
+	console.log(`Received from robot : ${response}`)
 
 	// a response is received, the timer is reset
   setHandTimeout(handHolder); // warning : problem if the robot bugs and sends 'Parking' every milliseconds (it happens sometimes)
@@ -163,7 +163,7 @@ function receiveResponseRobot(response) { // from the robot
 
 
   // send the response to the client that made the request
-	sendRequest(handHolder, 'RESPONSE: '+response);
+	sendRequest(handHolder, `RESPONSE: ${response}`);
 
   if (response.startsWith('Arrived at ')) {
 		clearInterval(statusTimer);
@@ -193,9 +193,10 @@ function receiveResponseRobot(response) { // from the robot
 		requestsQueue.shift();
 		
 		// send the updates to everyone (time + success)
-		sendToEveryone('UPDATE VARIABLES: '+response_update+'\n')
+		sendToEveryone(`UPDATE VARIABLES: ${response_update}\n`)
 
-  } else if (response.startsWith('Going to ')&&!flagStatus) { // &&!flagStatus to prevent issues when sending multiples goto
+  } else if ((response.startsWith('Going to ')||response.startsWith('Parking'))&&!flagStatus) { // &&!flagStatus to prevent issues when sending multiples goto
+		clearInterval(statusTimer);
 		flagStatus=true;
 		sendRequestRobot('status\n');
 		statusTimer = setInterval(() => {
@@ -219,8 +220,8 @@ function sendRequestRobot(request) {
     // wait for the robot to be connected
     const checkConnection = () => {
       if (robotConnected) {
-        console.log('Send to robot : ' + request);
-        robotSocket.write(request+'\n', (err) => {
+        console.log(`Send to robot : ${request}`);
+        robotSocket.write(`${request}\n`, (err) => {
           if (err) {
             reject(err);
           } else {
@@ -366,7 +367,7 @@ function receiveRequest(clientId, msg) {
 		}
 		if (!data.id.has(dest)) {
 			//console.log('invalid destination\n');
-			sendRequest(clientId, 'RESPONSE: Unknown destination '+ dest +'\n'); // TEMPORAIRE
+			sendRequest(clientId, `RESPONSE: Unknown destination ${dest}\n`); // TEMPORAIRE
 			return;
 		}
 
@@ -407,7 +408,7 @@ function receiveRequest(clientId, msg) {
 			// Otherwise, return the value as is
 			return value;
 		});
-		sendRequest(clientId, 'DATA: '+jsonString+'FLAG_SPLIT'+curPosRobot+'\n'+curLocationRobot+'\n');
+		sendRequest(clientId, `DATA: ${jsonString}FLAG_SPLIT${curPosRobot}\n${curLocationRobot}\n`);
 	}
 }
 

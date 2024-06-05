@@ -15,21 +15,21 @@ const server = net.createServer((socket) => {
       request = request.substring('goto '.length);
       startTime = Date.now();
 
-		} else if (request === "dock") {
+		} else if (request === 'dock') {
       request = 'dockingstation2';
     
-    } else if (request === "status") {
+    } else if (request === 'status') {
       const response = status();
       socket.write(response);
       return;
     } else {
-      socket.write("Unknown command "+request+"\n")
+      socket.write(`CommandError: ${request}\n`)
       return;
     }
     
-    socket.write('Going to '+request+"\n")
+    socket.write(`Going to ${request}\n`)
     setTimeout(() => {
-      socket.write('Arrived at '+request+"\n"); 
+      socket.write(`Arrived at ${request}\n`); 
     }, duration);
   });
 
