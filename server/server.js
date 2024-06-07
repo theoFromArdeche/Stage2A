@@ -24,7 +24,7 @@ const handTimeout = 60 * 1000; // hand timeout in milliseconds (10 seconds)
 const pingTiming = 60 * 1000 // 60 seconds
 
 
-const requestsQueue = [];
+const requestDict = null;
 
 var curPosRobot = 'dockingstation2';
 var curLocationRobot = 'Location: -384 1125 0'
@@ -176,6 +176,18 @@ function receiveResponseRobot(response) { // from the robot
 	}
 
 
+	if (response.startsWith('Interrupted')) {
+		requestDict=null;
+	}
+
+	if (response.startsWith('EStop')) {
+		//if (requestDict) {
+
+		//}
+		requestDict=null;
+	}
+
+
 	// if the robot is not moving anymore, stop the status requests
 	if (response.startsWith('Arrived at ')||response.startsWith('Parked')||response.startsWith('DockingState: Docked')) {
 		clearInterval(statusTimer);
@@ -186,19 +198,20 @@ function receiveResponseRobot(response) { // from the robot
 
   if (response.startsWith('Arrived at ')) {
 		const response_dest = response.substring('Arrived at '.length).toLowerCase();
-		if (requestsQueue.empty()||response_dest!==requestsQueue[0].dest) {
+		if (!requestDict||response_dest!==requestDict.dest) {
 			curPosRobot = response_dest;
-			if (!requestsQueue.empty()) requestsQueue.shift();
+			// update the requestDict
+			requestDict=null;
 			return
 		}
 
 		var response_update;
 		const cur_id=data.id.get(curPosRobot);
-		const next_id=data.id.get(requestsQueue[0].dest);
+		const next_id=data.id.get(requestDict.dest);
 		// update the current position of the robot
-		curPosRobot = requestsQueue[0].dest;
+		curPosRobot = requestDict.dest;
 
-		const new_time = (Date.now()-requestsQueue[0].time)/1000;
+		const new_time = (Date.now()-requestDict.time)/1000;
 		console.log('NEW TIME: ', new_time)
 
 		// update the data (matrix of times and successes)
@@ -212,7 +225,7 @@ function receiveResponseRobot(response) { // from the robot
 
 		//console.log(data)
 		// pop the request
-		requestsQueue.shift();
+		requestDict = null;
 
 		// send the updates to everyone (time + success)
 		sendToEveryone(`UPDATE VARIABLES: ${response_update}\n`)
@@ -393,7 +406,7 @@ function receiveRequest(clientId, msg) {
 			return;
 		}
 
-		requestsQueue.push({time: Date.now(), dest: dest});
+		requestDict = {time: Date.now(), dest: dest};
 
 		// send the request to the robot
 		sendRequestRobot(request)
