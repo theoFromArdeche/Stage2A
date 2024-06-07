@@ -17,7 +17,7 @@ const connectedClients = new Map(); // map to keep track of connected clients
 var handQueue = []; // array to keep track of the request queue
 var handHolder = null; // variable to keep track of the hand holder
 var handTimer = null;
-var flagStatus = false;	
+var flagStatus = false;
 var statusTimer = null;
 const statusInterval = 1 * 1000;
 const handTimeout = 60 * 1000; // hand timeout in milliseconds (10 seconds)
@@ -33,7 +33,7 @@ var curLocationRobot = 'Location: -384 1125 0'
 const net = require('net');
 const port_robot = 3456;
 const robot_host = 'localhost';
-var robotConnected = false; 
+var robotConnected = false;
 var robotSocket = null;
 const robotPassword = 'password'
 
@@ -84,7 +84,7 @@ try {
 }
 
 
-data.id = new Map(Object.entries(data.id)); 
+data.id = new Map(Object.entries(data.id));
 
 //console.log(data)
 
@@ -106,31 +106,31 @@ function connectToRobot() {
 		console.log(`Connected to the robot on port ${port_robot}`);
 		robotConnected = true;
 		sendRequestRobot(robotPassword)
-	
+
 		// Handle incoming data from the robot
 		robotSocket.on('data', (data) => {
 			receiveResponseRobot(data.toString());
 		});
-	
+
 		// Handle the end of the robot connection
 		robotSocket.on('end', () => {
 			console.log('WARNING : Robot disconnected');
 			robotConnected = false;
-	
+
 			// Attempt to reconnect to the robot after a delay
 			setTimeout(connectToRobot, 5000); // 5 seconds
 		});
-	
+
 		// Handle errors in the robot connection
 		robotSocket.on('error', (err) => {
 			console.error('Socket error:', err);
 			robotConnected = false;
-	
+
 			// Attempt to reconnect to the robot after a delay
 			setTimeout(connectToRobot, 5000); // 5 seconds
 		});
 	});
-  
+
 	// If the connection to the robot fails, retry after a delay
 	robotSocket.on('error', (err) => {
 	  if (err.code === 'ECONNREFUSED') {
@@ -141,14 +141,14 @@ function connectToRobot() {
 	  }
 	});
 }
-  
+
 connectToRobot();
 
 
 
 function receiveResponseRobot(response) { // from the robot
 	console.log(`Received from robot : ${response}`)
-  
+
 	if (response.startsWith('ExtendedStatusForHumans: ')||response.startsWith('Status: ')) {
 		sendToEveryone(response)
 
@@ -160,7 +160,7 @@ function receiveResponseRobot(response) { // from the robot
 			break;
 		}
 		return;
-	} 
+	}
 
 
 	// a response is received, the timer is reset
@@ -185,15 +185,22 @@ function receiveResponseRobot(response) { // from the robot
 
 
   if (response.startsWith('Arrived at ')) {
+		const response_dest = response.substring('Arrived at '.length).toLowerCase();
+		if (requestsQueue.empty()||response_dest!==requestsQueue[0].dest) {
+			curPosRobot = response_dest;
+			if (!requestsQueue.empty()) requestsQueue.shift();
+			return
+		}
+
 		var response_update;
 		const cur_id=data.id.get(curPosRobot);
 		const next_id=data.id.get(requestsQueue[0].dest);
 		// update the current position of the robot
 		curPosRobot = requestsQueue[0].dest;
-		
+
 		const new_time = (Date.now()-requestsQueue[0].time)/1000;
 		console.log('NEW TIME: ', new_time)
-		
+
 		// update the data (matrix of times and successes)
 		data.times[cur_id][next_id] = (data.times[cur_id][next_id]*data.successes[cur_id][next_id] + new_time) / (data.successes[cur_id][next_id] + 1);
 		data.successes[cur_id][next_id] +=1;
@@ -202,11 +209,11 @@ function receiveResponseRobot(response) { // from the robot
 		data.times[cur_id][next_id] = Math.round(data.times[cur_id][next_id]*100)/100;
 
 		response_update = JSON.stringify({src: cur_id, dest: next_id, time: data.times[cur_id][next_id]});
-		
+
 		//console.log(data)
 		// pop the request
 		requestsQueue.shift();
-		
+
 		// send the updates to everyone (time + success)
 		sendToEveryone(`UPDATE VARIABLES: ${response_update}\n`)
 
@@ -226,7 +233,7 @@ function receiveResponseRobot(response) { // from the robot
 	//}
 
 
-  
+
 }
 
 
@@ -338,7 +345,7 @@ function socketDisconnect(clientId, pingInterval) {
 			setHandTimeout(handHolder);
 		}
 	}
-	
+
 	// update the clients
 	updatePositions();
 }
@@ -353,7 +360,7 @@ function sendRequest(clientId, msg) {
 	// get the socket for the client from the connected clients map
 	const socket = connectedClients.get(clientId);
 	if (socket) socket.write(msg);
-	
+
 }
 
 function receiveRequest(clientId, msg) {
