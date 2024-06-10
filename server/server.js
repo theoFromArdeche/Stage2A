@@ -24,7 +24,7 @@ const handTimeout = 60 * 1000; // hand timeout in milliseconds (10 seconds)
 const pingTiming = 60 * 1000 // 60 seconds
 
 
-const requestDict = null;
+var requestDict = null;
 
 var curPosRobot = 'dockingstation2';
 var curLocationRobot = 'Location: -384 1125 0'
@@ -230,7 +230,7 @@ function receiveResponseRobot(response) { // from the robot
 		// send the updates to everyone (time + success)
 		sendToEveryone(`UPDATE VARIABLES: ${response_update}\n`)
 
-  } else if ((response.startsWith('Going to ')||response.startsWith('Parking')||response.startsWith('Docking'))&&!flagStatus) { // &&!flagStatus to prevent issues when sending multiples goto
+  } else if ((response.startsWith('Going to ')||response.startsWith('Parking')||response.startsWith('DockingState: Docking'))&&!flagStatus) { // &&!flagStatus to prevent issues when sending multiples goto
 		clearInterval(statusTimer);
 		flagStatus=true;
 		sendRequestRobot('status');
@@ -483,3 +483,11 @@ function updatePositions() {
 	// notify everyone of the new size of the queue
 	sendToEveryone(`HAND QUEUE UPDATE: ${handQueue.length}\n`);
 }
+
+
+
+
+// https://github.com/OmronAPAC/Omron_LD_ROS_Package/blob/master/docs/DeveloperGuide.adoc#map-loading-reading
+
+
+// https://github.com/OmronAPAC/Omron_LD_ROS_Package/issues/5
