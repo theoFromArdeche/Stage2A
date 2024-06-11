@@ -1,11 +1,5 @@
 
 
-module.exports = {
-	sendToRobot, sendToClient, sendToAllClients, setHandTimeout, updatePositions,
-	robotSocket, robotConnected, handHolder, curPosRobot, curLocationRobot, connectedClients, handQueue, database
-}
-
-
 var robotSocket = null;
 var robotConnected = false;
 var handHolder = null;
@@ -15,6 +9,12 @@ const connectedClients = new Map();
 var handQueue = [];
 const handTimeout = 60 * 1000;
 var database;
+
+
+module.exports = {
+	sendToRobot, sendToClient, sendToAllClients, setHandTimeout, updatePositions,
+	robotSocket, robotConnected, handHolder, curPosRobot, curLocationRobot, connectedClients, handQueue, database
+}
 
 
 

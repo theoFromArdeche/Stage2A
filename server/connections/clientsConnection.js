@@ -1,12 +1,11 @@
 
 
-module.exports = { connectToClients }
-
 var {
 	sendToRobot, sendToClient, sendToAllClients, setHandTimeout, updatePositions,
 	handHolder, curPosRobot, curLocationRobot, connectedClients, handQueue, database
 } = require('./handler');
 
+module.exports = { connectToClients }
 
 const net = require('net');
 
