@@ -5,7 +5,7 @@ var startTime = Date.now();
 const duration = 120*1000;
 
 const server = net.createServer((socket) => {
-  console.log('Client connected');
+  console.log('Server connected');
 
   socket.on('data', (data) => {
     console.log('Received from server : ', data.toString());
@@ -17,7 +17,7 @@ const server = net.createServer((socket) => {
 
 		} else if (request === 'dock\n') {
       request = 'dockingstation2';
-    
+
     } else if (request === 'status\n') {
       const response = status();
       socket.write(response);
@@ -26,10 +26,10 @@ const server = net.createServer((socket) => {
       socket.write(`CommandError: ${request}\n`)
       return;
     }
-    
+
     socket.write(`Going to ${request}\n`)
     setTimeout(() => {
-      socket.write(`Arrived at ${request}\n`); 
+      socket.write(`Arrived at ${request}\n`);
     }, duration);
   });
 
@@ -48,10 +48,11 @@ function status() {
   const elapsedTime = currentTime - startTime;
 
   // Calculate the sinusoidal values
-  const A = 16700/2; // Amplitude for x-axis (constant in this case)
+	const coeffAmplitude = 0.80
+  const A = 16700/2*coeffAmplitude; // Amplitude for x-axis (constant in this case)
   const B = 44260; // Amplitude for y-axis
 
-  const x = Math.round(A * (1 + Math.sin((10 * Math.PI / duration) * elapsedTime))) - 6260;
+  const x = Math.round(A * (1 + Math.sin((10 * Math.PI / duration) * elapsedTime))) - 6260*coeffAmplitude;
   const y = B*elapsedTime/duration - 12440;
 
   // return the sinusoidal values
