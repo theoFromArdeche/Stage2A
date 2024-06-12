@@ -1,16 +1,12 @@
 
 
-var {
-	sendToRobot, sendToClient, sendToAllClients, setHandTimeout, updatePositions,
-	handHolder, curPosRobot, curLocationRobot, connectedClients, handQueue, database
-} = require('./handler');
+var handler = require('./handler');
 
 module.exports = { connectToClients }
 
 const net = require('net');
 
 const port_server = 2345;
-var handTimer = null;
 const pingTiming = 60 * 1000;
 
 
@@ -25,7 +21,7 @@ function connectToClients() {
 		console.log(`Client connected with id: ${clientId}`);
 
 		// add the socket to the connected clients map
-		connectedClients.set(clientId, socket);
+		handler.accessState('connectedClients').set(clientId, socket);
 
 		// update the client
 		updateClientQueue(clientId);
@@ -66,30 +62,30 @@ function connectToClients() {
 
 function socketDisconnect(clientId, pingInterval) {
 	// remove the socket from the connected clients map
-	connectedClients.delete(clientId);
+	handler.accessState('connectedClients').delete(clientId);
 	// stop the ping interval
 	clearInterval(pingInterval);
 	// remove the client from the request queue
-	handQueue = handQueue.filter((id) => id !== clientId);
+	handler.accessState('handQueue', handler.accessState('handQueue').filter((id) => id !== clientId));
 	// if the client was the hand holder, set a new owner
-	if (handHolder === clientId) {
-		clearTimeout(handTimer);
-		if (handQueue.length===0) {
-			handHolder=null;
+	if (handler.accessState('handHolder') === clientId) {
+		clearTimeout(handler.accessState('handTimer'));
+		if (handler.accessState('handQueue').length===0) {
+			handler.accessState('handHolder',null);
 		} else {
-			handHolder = handQueue[0];
-			handQueue.shift();
-			sendToClient(handHolder, 'HAND REQUEST ACCEPTED\n');
-			setHandTimeout(handHolder);
+			handler.accessState('handHolder', handler.accessState('handQueue')[0]);
+			handler.accessState('handQueue').shift();
+			handler.sendToClient(handler.accessState('handHolder'), 'HAND REQUEST ACCEPTED\n');
+			handler.setHandTimeout(handler.accessState('handHolder'));
 		}
 	}
 
 	// update the clients
-	updatePositions();
+	handler.updatePositions();
 }
 
 function updateClientQueue(clientId) {
-	sendToClient(clientId, `HAND QUEUE UPDATE: ${handQueue.length}\n`)
+	handler.sendToClient(clientId, `HAND QUEUE UPDATE: ${handler.accessState('handQueue').length}\n`)
 }
 
 
@@ -103,13 +99,13 @@ function receiveRequest(clientId, msg) {
 		return;
 	} else if (msg.startsWith('REQUEST: ')) {
 
-		if (handHolder != clientId) return;
-		setHandTimeout(handHolder);
+		if (handler.accessState('handHolder') != clientId) return;
+		handler.setHandTimeout(handler.accessState('handHolder'));
 
 		const request = msg.substring('REQUEST: '.length).toLowerCase();
 		if (!request.startsWith('goto ')&&request!=='dock') {
 			//console.log('invalid command\n');
-			sendToRobot(request)
+			handler.sendToRobot(request)
 			return;
 		}
 
@@ -119,50 +115,75 @@ function receiveRequest(clientId, msg) {
 		} else {
 			dest = request.substring('goto '.length);
 		}
+
+		/*
 		if (!data.id.has(dest)) {
 			//console.log('invalid destination\n');
-			sendToClient(clientId, `RESPONSE: Unknown destination ${dest}\n`); // TEMPORAIRE
+			handler.sendToClient(clientId, `RESPONSE: Unknown destination ${dest}\n`); // TEMPORAIRE
 			return;
-		}
+		}*/
 
-		requestDict = {time: Date.now(), dest: dest};
+		handler.accessState('requestDict', {time: Date.now(), dest: dest});
 
 		// send the request to the robot
-		sendToRobot(request)
+		handler.sendToRobot(request)
 
 		// the timeout will be rest when the response is received
-		clearTimeout(handTimer);
+		clearTimeout(handler.accessState('handTimer'));
 
 	} else if (msg === 'HAND') {
-		if (!handHolder) {
+		if (!handler.accessState('handHolder')) {
 			// the hand is available and given to the client
-			handHolder=clientId;
-			sendToClient(clientId, 'HAND REQUEST ACCEPTED\n');
-			setHandTimeout(clientId);
+			handler.accessState('handHolder',clientId);
+			handler.sendToClient(clientId, 'HAND REQUEST ACCEPTED\n');
+			handler.setHandTimeout(clientId);
 		} else {
-			if (handHolder==clientId) {
-				sendToClient(clientId, 'YOU ALREADY HAVE THE HAND\n');
+			if (handler.accessState('handHolder')==clientId) {
+				handler.sendToClient(clientId, 'YOU ALREADY HAVE THE HAND\n');
 				return;
 			}
 			// the hand is not available
-			position = handQueue.indexOf(clientId) + 1;
+			position = handler.accessState('handQueue').indexOf(clientId) + 1;
 			if (position==0) { // clientId not in the queue
-				handQueue.push(clientId);
-				position=handQueue.length
-				sendToAllClients(`HAND QUEUE UPDATE: ${position}\n`);
+				handler.accessState('handQueue').push(clientId);
+				position=handler.accessState('handQueue').length
+				handler.sendToAllClients(`HAND QUEUE UPDATE: ${position}\n`);
 			}
-			sendToClient(clientId, `HAND QUEUE POSITION: ${position}\n`);
+			handler.sendToClient(clientId, `HAND QUEUE POSITION: ${position}\n`);
 		}
 	} else if (msg === 'DATA') {
-		const jsonString = JSON.stringify(data, (key, value) => {
-			// If the value is a Map, convert it to an object
-			if (value instanceof Map) {
-				return Object.fromEntries(value.entries());
-			}
-			// Otherwise, return the value as is
-			return value;
-		});
-		sendToClient(clientId, `DATA: ${jsonString}FLAG_SPLIT${curPosRobot}\n${curLocationRobot}\n`);
+		sendData(clientId);
 	}
 }
 
+
+
+async function sendData(clientId) {
+	const data = new Map();
+	data.set('id', new Map());
+
+	var id=0;
+	await handler.accessState('database').collection('labels').find().forEach(doc => {
+		data.get('id').set(doc.label, id)
+		id++;
+	});
+
+	for (let collection of ['fails', 'successes', 'times']) {
+		data.set(collection, new Array(id));
+		await handler.accessState('database').collection(collection).find().forEach(doc => {
+			const row = new Array(id);
+			Object.entries(doc[collection]).forEach(element => {
+				row[data.get('id').get(element[0])]=element[1];
+			})
+			data.get(collection)[data.get('id').get(doc.label)]=row;
+		});
+	}
+
+	const jsonString = JSON.stringify(data, (key, value) => {
+		if (value instanceof Map) {
+			return Object.fromEntries(value.entries());
+		}
+		return value;
+	});
+	handler.sendToClient(clientId, `DATA: ${jsonString}FLAG_SPLIT${handler.accessState('curPosRobot')}\n${handler.accessState('curLocationRobot')}\n`);
+}

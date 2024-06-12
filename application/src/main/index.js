@@ -65,7 +65,7 @@ app.whenReady().then(() => {
 
   ipcMain.on('MapAIP-vue-loaded', (event, arg) => {
     mainWindow.webContents.send('updateData', data);
-    mainWindow.webContents.send('updateWaitings', queueSize); 
+    mainWindow.webContents.send('updateWaitings', queueSize);
     fetchMap();
   });
 
@@ -305,18 +305,20 @@ function receiveResponseServer(response) { // from the server
   } else if (response.indexOf('UPDATE VARIABLES: ') === 0) {
     const update_json = response.substring('UPDATE VARIABLES: '.length).trim();
     const update = JSON.parse(update_json);
+		const id_src = data.id.get(update.src)
+		const id_dest = data.id.get(update.dest)
     if (update.time === -1) { // fail
-      data.fails[update.src][update.dest] += 1;
+      data.fails[id_src][id_dest] += 1;
     } else { // sucess
-      data.successes[update.src][update.dest]+=1;
-      data.times[update.src][update.dest]=update.time;
-      newPosRobot = Array.from(data.id.keys())[update.dest];
+      data.successes[id_src][id_dest]+=1;
+      data.times[id_src][id_dest]=update.time;
+      newPosRobot = Array.from(data.id.keys())[id_dest];
     }
     if (!flagSimulation) curPosRobot=newPosRobot
 
     //console.log('UPDATED DATA : ', data);
     mainWindow.webContents.send('updateData', data);
-  
+
 
   } else if (response.indexOf('ExtendedStatusForHumans: ') === 0) {
     const statusForHuman = response.trim().substring('ExtendedStatusForHumans: '.length);
@@ -361,13 +363,13 @@ function receiveResponseServer(response) { // from the server
     const pos = response.substring('HAND QUEUE POSITION: '.length).trim();
 
     // update du boutton dans la fenêtre live
-    mainWindow.webContents.send('receiveQueue', "Position file d'attente : "+pos); 
+    mainWindow.webContents.send('receiveQueue', "Position file d'attente : "+pos);
 
   } else if (response.indexOf('HAND QUEUE UPDATE: ') === 0) {
     const update_nb = response.substring('HAND QUEUE UPDATE: '.length).trim();
 
     // update de la sidebar
-    mainWindow.webContents.send('updateWaitings', update_nb); 
+    mainWindow.webContents.send('updateWaitings', update_nb);
     queueSize=update_nb
 
   } else if (response === 'HAND TIMEOUT\n') {
@@ -440,7 +442,7 @@ function responseSimulation(request) {
 
 /*
 
-regex to replace 'some phrase ' + variable + ' some other phrase ' + variable2 + ... 
+regex to replace 'some phrase ' + variable + ' some other phrase ' + variable2 + ...
 to : `some phrase ${varibale} some other phrase ${variable2} ...`
 
 ('|`)([^'`]*?)\1\s*\+\s*([a-zA-Z0-9_]+)|([a-zA-Z0-9_]+)\s*\+\s*('|`)([^'`]*?)\5

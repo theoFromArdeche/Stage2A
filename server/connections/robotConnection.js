@@ -1,9 +1,6 @@
 
 
-var {
-	sendToRobot, sendToClient, sendToAllClients, setHandTimeout,
-	robotSocket, robotConnected, handHolder, curPosRobot, curLocationRobot, database
-} = require('./handler');
+var handler = require('./handler');
 
 module.exports = { connectToRobot, receiveResponseRobot }
 
@@ -12,7 +9,6 @@ const net = require('net');
 var flagStatus = false;
 var statusTimer = null;
 const statusInterval = 1 * 1000;
-var requestDict = null;
 const port_robot = 3456;
 const robot_host = 'localhost';
 const robotPassword = 'password';
@@ -20,37 +16,37 @@ const robotPassword = 'password';
 
 
 function connectToRobot() {
-	robotSocket = net.createConnection({ host:robot_host, port: port_robot }, () => {
+	handler.accessState('robotSocket', net.createConnection({ host: robot_host, port: port_robot }, () => {
 		console.log(`Connected to the robot on port ${port_robot}`);
-		robotConnected = true;
-		sendToRobot(robotPassword)
+		handler.accessState('robotConnected', true);
+		handler.sendToRobot(robotPassword);
 
 		// Handle incoming data from the robot
-		robotSocket.on('data', (data) => {
+		handler.accessState('robotSocket').on('data', (data) => {
 			receiveResponseRobot(data.toString());
 		});
 
 		// Handle the end of the robot connection
-		robotSocket.on('end', () => {
+		handler.accessState('robotSocket').on('end', () => {
 			console.log('WARNING : Robot disconnected');
-			robotConnected = false;
+			handler.accessState('robotConnected', false);
 
 			// Attempt to reconnect to the robot after a delay
 			setTimeout(connectToRobot, 5000); // 5 seconds
 		});
 
 		// Handle errors in the robot connection
-		robotSocket.on('error', (err) => {
+		handler.accessState('robotSocket').on('error', (err) => {
 			console.error('Socket error:', err);
-			robotConnected = false;
+			handler.accessState('robotConnected', false);
 
 			// Attempt to reconnect to the robot after a delay
 			setTimeout(connectToRobot, 5000); // 5 seconds
 		});
-	});
+	}));
 
 	// If the connection to the robot fails, retry after a delay
-	robotSocket.on('error', (err) => {
+	handler.accessState('robotSocket').on('error', (err) => {
 	  if (err.code === 'ECONNREFUSED') {
 		console.log('WARNING : Robot is not available, retrying in 5 seconds...');
 		setTimeout(connectToRobot, 5000); // 5 seconds
@@ -64,16 +60,16 @@ function connectToRobot() {
 
 
 function receiveResponseRobot(response) { // from the robot
-	console.log(`Received from robot : ${response}`)
+	console.log(`Received from robot : ${response}`);
 
 	if (response.startsWith('ExtendedStatusForHumans: ')||response.startsWith('Status: ')) {
-		sendToAllClients(response)
+		handler.sendToAllClients(response);
 
 		// update the current location of the robot
 		const response_arr = response.split('\n');
 		for (let i=0; i<response_arr.length; i++) {
-			if (!response_arr[i].startsWith('Location: ')) continue
-			curLocationRobot = response_arr[i];
+			if (!response_arr[i].startsWith('Location: ')) continue;
+			handler.accessState('curLocationRobot', response_arr[i]);
 			break;
 		}
 		return;
@@ -81,56 +77,96 @@ function receiveResponseRobot(response) { // from the robot
 
 
 	// a response is received, the timer is reset
-	if (handHolder) {
-		setHandTimeout(handHolder); // warning : problem if the robot bugs and sends 'Parking' every milliseconds (it happens sometimes)
+	if (handler.accessState('handHolder')) {
+		handler.setHandTimeout(handler.accessState('handHolder')); // warning : problem if the robot bugs and sends 'Parking' every milliseconds (it happens sometimes)
 
 		// send the response to the client that made the request
 		const response_arr = response.split('\n');
 		for (let i=0; i<response_arr.length; i++) {
-			if (!response_arr[i]) continue
-			sendToClient(handHolder, `RESPONSE: ${response_arr[i]}\n`);
+			if (!response_arr[i]) continue;
+			handler.sendToClient(handler.accessState('handHolder'), `RESPONSE: ${response_arr[i]}\n`);
 		}
 	}
 
 
 	if (response.startsWith('Interrupted')) {
-		requestDict=null;
+		handler.accessState('requestDict', null);
 	}
 
 	if (response.startsWith('EStop')) {
-		//if (requestDict) {
+		//if (handler.accessState('requestDict')) {
 
 		//}
-		requestDict=null;
+		handler.accessState('requestDict', null);
 	}
 
 
 	// if the robot is not moving anymore, stop the status requests
 	if (response.startsWith('Arrived at ')||response.startsWith('Parked')||response.startsWith('DockingState: Docked')) {
 		clearInterval(statusTimer);
-		sendToRobot('status');
+		handler.sendToRobot('status');
 		flagStatus=false;
 	}
 
 
   if (response.startsWith('Arrived at ')) {
-		const response_dest = response.substring('Arrived at '.length).toLowerCase();
-		if (!requestDict||response_dest!==requestDict.dest) {
-			curPosRobot = response_dest;
+		const response_dest = response.substring('Arrived at '.length).toLowerCase().trim();
+		if (!handler.accessState('requestDict')||response_dest!==handler.accessState('requestDict').dest) {
+			handler.accessState('curPosRobot', response_dest);
 			// update the requestDict
-			requestDict=null;
+			handler.accessState('requestDict', null);
 			return
 		}
 
 		var response_update;
-		const cur_id=data.id.get(curPosRobot);
-		const next_id=data.id.get(requestDict.dest);
+		const src=handler.accessState('curPosRobot');
+		const dest=handler.accessState('requestDict').dest;
 		// update the current position of the robot
-		curPosRobot = requestDict.dest;
+		handler.accessState('curPosRobot', dest);
 
-		const new_time = (Date.now()-requestDict.time)/1000;
-		console.log('NEW TIME: ', new_time)
+		const new_time = (Date.now()-handler.accessState('requestDict').time)/1000;
+		console.log('NEW TIME: ', new_time);
 
+
+
+		var flagError=false;
+		for (let label of [src, dest]) {
+			handler.accessState('database').collection('labels').findOne({label: label}).then(doc => {
+				if (!doc) {
+					flagError=true;
+					console.log(`Could not find ${label} in the database`);
+				}
+			})
+			.catch(error => {
+				console.log(error);
+				flagError=true;
+				console.log(`Could not find ${label} in the database`);
+			});
+		}
+
+		if  (flagError) return;
+
+
+
+		handler.accessState('database').collection('times').findOne({label: src}).then(doc => {
+			doc.times[dest]=new_time;
+			handler.accessState('database').collection('times').updateOne(
+				{_id: doc._id},
+				{$set: {times: doc.times}}
+			);
+		});
+
+		handler.accessState('database').collection('successes').findOne({label: src}).then(doc => {
+			doc.successes[dest]++;
+			handler.accessState('database').collection('successes').updateOne(
+				{_id: doc._id},
+				{$set: {successes: doc.successes}}
+			);
+		});
+
+		response_update = JSON.stringify({src: src, dest: dest, time: new_time});
+
+		/*
 		// update the data (matrix of times and successes)
 		data.times[cur_id][next_id] = (data.times[cur_id][next_id]*data.successes[cur_id][next_id] + new_time) / (data.successes[cur_id][next_id] + 1);
 		data.successes[cur_id][next_id] +=1;
@@ -140,23 +176,24 @@ function receiveResponseRobot(response) { // from the robot
 
 		response_update = JSON.stringify({src: cur_id, dest: next_id, time: data.times[cur_id][next_id]});
 
-		//console.log(data)
-		// pop the request
-		requestDict = null;
+		*/
+
+		// remove the request
+		handler.accessState('requestDict', null);
 
 		// send the updates to everyone (time + success)
-		sendToAllClients(`UPDATE VARIABLES: ${response_update}\n`)
+		handler.sendToAllClients(`UPDATE VARIABLES: ${response_update}\n`)
 
   } else if ((response.startsWith('Going to ')||response.startsWith('Parking')||response.startsWith('DockingState: Docking'))&&!flagStatus) { // &&!flagStatus to prevent issues when sending multiples goto
 		clearInterval(statusTimer);
 		flagStatus=true;
-		sendToRobot('status');
+		handler.sendToRobot('status');
 		statusTimer = setInterval(() => {
-			sendToRobot('status');
+			handler.sendToRobot('status');
 		}, statusInterval);
 	}// else if () { // fail
 	// update the current position of the robot
-	// TODO curPosRobot = ???
+	// TODO handler.accessState('curPosRobot', ???)
 
 	// data.fails[cur_id][next_id] +=1;
 	// response_update = JSON.stringify({src: cur_id, dest: next_id, time: -1});;

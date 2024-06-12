@@ -7,7 +7,7 @@ const compression = require('compression');
 const { connectToDatabase, getDatabase }  = require('./data/database');
 const { connectToRobot } = require('./connections/robotConnection');
 const { connectToClients } = require('./connections/clientsConnection');
-var { database } = require('./connections/handler')
+var handler = require('./connections/handler')
 
 const app = express();
 const port_map = 3001;
@@ -49,7 +49,7 @@ function connectDB() {
 				console.log('Map could not be loaded');
 				return;
 			}
-			database = getDatabase();
+			handler.accessState('database', getDatabase());
 			await updateDatabase();
 			startServer();
 		}
@@ -61,7 +61,6 @@ connectDB();
 
 
 async function updateDatabase() {
-
 	const interestPoints = [];
 	const lines = mapData.split('\n');
   for (const line of lines) {
@@ -74,7 +73,7 @@ async function updateDatabase() {
 	// look for new interrestPoints
 	const newInterrestPoints = []
 	for (let point of interestPoints) {
-		await database.collection('labels')
+		await handler.accessState('database').collection('labels')
 		.findOne({label: point})
 		.then(doc => {
 			if (!doc) {
@@ -86,13 +85,13 @@ async function updateDatabase() {
 
 	// delete the useless interestPoints
 	for (let collection of ['labels', 'fails', 'successes', 'times']) {
-		await database.collection(collection).deleteMany({label: {$nin: interestPoints}})
+		await handler.accessState('database').collection(collection).deleteMany({label: {$nin: interestPoints}})
 	}
 
 
 	// update the old interestPoints
 	for (let collection of ['fails', 'successes', 'times']) {
-		await database.collection(collection).find().forEach(doc => {
+		await handler.accessState('database').collection(collection).find().forEach(doc => {
 			const fails = new Map(Object.entries(doc[collection]));
 
 			// delete useless points
@@ -107,7 +106,7 @@ async function updateDatabase() {
 				fails.set(point.label, 0)
 			})
 
-			database.collection(collection).updateOne(
+			handler.accessState('database').collection(collection).updateOne(
 				{_id: doc._id},
 				{$set: {[collection]: fails}}
 			)
@@ -118,7 +117,7 @@ async function updateDatabase() {
 	if (newInterrestPoints.length===0) return;
 
 	// add the new interestPoints
-	database.collection('labels').insertMany(newInterrestPoints);
+	handler.accessState('database').collection('labels').insertMany(newInterrestPoints);
 
 	const allPoints = new Map();
 	interestPoints.forEach(point => {
@@ -133,7 +132,7 @@ async function updateDatabase() {
 				[collection]: allPoints
 			})
 		})
-		database.collection(collection).insertMany(insert)
+		handler.accessState('database').collection(collection).insertMany(insert)
 	}
 }
 
@@ -142,7 +141,7 @@ async function updateDatabase() {
 function getName(line) {
   const regex = /ICON\s+"([^"]+)"/
   const match = line.match(regex)
-  return match[1]
+  return match[1].toLowerCase()
 }
 
 
@@ -150,8 +149,8 @@ function getName(line) {
 // CONNECT TO THE ROBOT AND THE CLIENTS
 
 function startServer() {
-	//connectToRobot();
-	//connectToClients();
+	connectToRobot();
+	connectToClients();
 }
 
 
@@ -188,10 +187,6 @@ data.id = new Map(Object.entries(data.id));
 
 
 /*
-
-1) fetch la map et regarder si la db est a jour avec la map (points d'intérets)
-si pas a jour la mettre a jour (ajouter les points d'intérets manquants et updates les matrices)
-si a jour, continuer
 
 
 2) modifer le code en enlevant la variable data, on veut acceder a la db et la modifier quand il faut

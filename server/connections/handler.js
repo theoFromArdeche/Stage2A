@@ -1,20 +1,32 @@
 
-
-var robotSocket = null;
-var robotConnected = false;
-var handHolder = null;
-var curPosRobot = 'dockingstation2';
-var curLocationRobot = 'Location: -384 1125 0';
-const connectedClients = new Map();
-var handQueue = [];
-const handTimeout = 60 * 1000;
-var database;
+var state = {
+	robotSocket: null,
+	robotConnected: false,
+	handHolder: null,
+	curPosRobot: 'dockingstation2',
+	curLocationRobot: 'Location: -384 1125 0',
+	connectedClients: new Map(),
+	requestDict: null,
+	handQueue: [],
+	handTimer: null,
+	handTimeout: 60 * 1000,
+	database: null
+};
 
 
 module.exports = {
-	sendToRobot, sendToClient, sendToAllClients, setHandTimeout, updatePositions,
-	robotSocket, robotConnected, handHolder, curPosRobot, curLocationRobot, connectedClients, handQueue, database
+	sendToRobot, sendToClient, sendToAllClients, setHandTimeout, updatePositions, accessState
 }
+
+
+function accessState(key, value) {
+	if (value !== undefined) {
+			state[key] = value;  // setter
+	}
+	return state[key];  // getter
+}
+
+
 
 
 
@@ -22,9 +34,9 @@ function sendToRobot(request) {
   new Promise((resolve, reject) => {
     // wait for the robot to be connected
     const checkConnection = () => {
-      if (robotConnected) {
+      if (accessState('robotConnected')) {
         console.log(`Send to robot : ${request}`);
-        robotSocket.write(`${request}\n`, (err) => {
+        accessState('robotSocket').write(`${request}\n`, (err) => {
           if (err) {
             reject(err);
           } else {
@@ -44,7 +56,7 @@ function sendToRobot(request) {
 function sendToClient(clientId, msg) {
 	console.log(`Send to client ${clientId}: ${msg}`);
 	// get the socket for the client from the connected clients map
-	const socket = connectedClients.get(clientId);
+	const socket = accessState('connectedClients').get(clientId);
 	if (socket) socket.write(msg);
 }
 
@@ -52,9 +64,7 @@ function sendToClient(clientId, msg) {
 
 function sendToAllClients(msg) {
 	console.log(`Send to everyone : ${msg}`)
-	// iterate over the connectedClients map
-	for (let [clientId, socket] of connectedClients.entries()) {
-		// send the message to the client
+	for (let [clientId, socket] of accessState('connectedClients').entries()) {
 		socket.write(msg);
 	}
 }
@@ -62,28 +72,28 @@ function sendToAllClients(msg) {
 
 
 function setHandTimeout(clientId) {
-	clearTimeout(handTimer);
-	handTimer = setTimeout(() => {
-		if (handQueue.length===0) { // queue is empty
-			handHolder=null;
+	clearTimeout(accessState('handTimer'));
+	accessState('handTimer', setTimeout(() => {
+		if (accessState('handQueue').length===0) { // queue is empty
+			accessState('handHolder', null);
 		} else { // set the first client in the queue as the hand holder
-			handHolder = handQueue[0];
-			handQueue.shift();
-			sendToClient(handHolder, 'HAND REQUEST ACCEPTED\n');
-			setHandTimeout(handHolder);
+			accessState('handHolder', accessState('handQueue')[0]);
+			accessState('handQueue').shift();
+			sendToClient(accessState('handHolder'), 'HAND REQUEST ACCEPTED\n');
+			setHandTimeout(accessState('handHolder'));
 			updatePositions();
 		}
 		sendToClient(clientId, 'HAND TIMEOUT\n');
-	}, handTimeout);
+	}, accessState('handTimeout')));
 }
 
 
 
 function updatePositions() {
 	// notify each client in the queue of their new position
-	for (let i=0; i<handQueue.length; i++) {
-		sendToClient(handQueue[i], `HAND QUEUE POSITION: ${i+1}\n`);
+	for (let i=0; i<accessState('handQueue').length; i++) {
+		sendToClient(accessState('handQueue')[i], `HAND QUEUE POSITION: ${i+1}\n`);
 	}
 	// notify everyone of the new size of the queue
-	sendToAllClients(`HAND QUEUE UPDATE: ${handQueue.length}\n`);
+	sendToAllClients(`HAND QUEUE UPDATE: ${accessState('handQueue').length}\n`);
 }
