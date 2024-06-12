@@ -2,7 +2,7 @@ const net = require('net');
 
 const port_server = 3456; // choose an open port
 var startTime = Date.now();
-const duration = 120*1000;
+const duration = 1.2*1000;
 
 const server = net.createServer((socket) => {
   console.log('Server connected');

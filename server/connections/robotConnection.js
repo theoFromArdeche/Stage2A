@@ -59,7 +59,7 @@ function connectToRobot() {
 
 
 
-function receiveResponseRobot(response) { // from the robot
+async function receiveResponseRobot(response) { // from the robot
 	console.log(`Received from robot : ${response}`);
 
 	if (response.startsWith('ExtendedStatusForHumans: ')||response.startsWith('Status: ')) {
@@ -128,10 +128,9 @@ function receiveResponseRobot(response) { // from the robot
 		console.log('NEW TIME: ', new_time);
 
 
-
 		var flagError=false;
 		for (let label of [src, dest]) {
-			handler.accessState('database').collection('labels').findOne({label: label}).then(doc => {
+			await handler.accessState('database').collection('labels').findOne({label: label}).then(doc => {
 				if (!doc) {
 					flagError=true;
 					console.log(`Could not find ${label} in the database`);
