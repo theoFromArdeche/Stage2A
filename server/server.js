@@ -36,7 +36,7 @@ app.listen(port_map, () => {
 
 
 
-// CONNECT TO THE DATABASE
+// CONNECT AND UPDATE THE DATABASE
 
 function connectDB() {
 	connectToDatabase(async error => {
@@ -152,49 +152,6 @@ function startServer() {
 	connectToRobot();
 	connectToClients();
 }
-
-
-
-
-
-
-
-
-
-/*
-
-// FETCH THE DATA
-
-const jsonString = fs.readFileSync('./data.json', 'utf8').toLowerCase();
-
-// Parse the JSON string
-var data;
-try {
-  data = JSON.parse(jsonString);
-} catch (err) {
-  console.log('Error parsing JSON:', err);
-}
-
-
-data.id = new Map(Object.entries(data.id));
-//console.log(data);
-
-*/
-
-
-
-
-
-
-/*
-
-
-2) modifer le code en enlevant la variable data, on veut acceder a la db et la modifier quand il faut
-il faudra modifier l'envoie de data aux instances
-
-*/
-
-
 
 
 

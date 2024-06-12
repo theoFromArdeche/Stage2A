@@ -1,7 +1,12 @@
+
+
 const { MongoClient } = require('mongodb');
+
 module.exports = { connectToDatabase, getDatabase }
 
 var db;
+
+
 
 function connectToDatabase(callbackFonction) {
 	MongoClient.connect('mongodb://localhost:27017/AIPL')
@@ -14,6 +19,9 @@ function connectToDatabase(callbackFonction) {
 			callbackFonction(error);
 		});
 }
+
+
+
 function getDatabase() {
 	return db;
 }
