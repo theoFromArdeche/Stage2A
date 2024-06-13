@@ -6,7 +6,6 @@ module.exports = { connectToRobot, receiveResponseRobot }
 
 const net = require('net');
 
-var flagStatus = false;
 var statusTimer = null;
 const statusInterval = 1 * 1000;
 const port_robot = 3456;
@@ -96,7 +95,7 @@ async function receiveResponseRobot(response) { // from the robot
 
 	if (response.startsWith('EStop')) { // fail
 		if (!handler.accessState('interruptedRequest')) {
-			console.log("Error: EStop without interrrupt");
+			console.log('Error: EStop without interrrupt');
 			return;
 		}
 		handler.accessState('database').collection('fails').findOne({label: handler.accessState('interruptedRequest').src}).then(doc => {
@@ -116,7 +115,6 @@ async function receiveResponseRobot(response) { // from the robot
 	if (response.startsWith('Arrived at ')||response.startsWith('Parked')||response.startsWith('DockingState: Docked')) {
 		clearInterval(statusTimer);
 		handler.sendToRobot('status');
-		flagStatus=false;
 		handler.accessState('interruptedRequest', null);
 	}
 
@@ -195,12 +193,24 @@ async function receiveResponseRobot(response) { // from the robot
 		// send the updates to everyone (time + success)
 		handler.sendToAllClients(`UPDATE VARIABLES: ${response_update}\n`)
 
-  } else if ((response.startsWith('Going to ')||response.startsWith('Parking')||response.startsWith('DockingState: Docking'))&&!flagStatus) { // &&!flagStatus to prevent issues when sending multiples goto
+  } else if ((response.startsWith('Going to ')||response.startsWith('Parking')||response.startsWith('DockingState: Docking'))) {
 		clearInterval(statusTimer);
-		flagStatus=true;
 		handler.sendToRobot('status');
 		statusTimer = setInterval(() => {
 			handler.sendToRobot('status');
 		}, statusInterval);
+
+		var dest;
+		if (response.startsWith('Going to ')) {
+			dest=response.substring('Going to '.length).trim();
+		} else if (response.startsWith('Parking')) {
+			dest='standby1';
+		} else if (response.startsWith('DockingState: Docking')) {
+			dest='dockingstation2';
+		}
+
+		if (!handler.accessState('interruptedRequest')) {
+			handler.accessState('requestDict', {time: Date.now(), dest: dest});
+		}
 	}
 }

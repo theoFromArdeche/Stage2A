@@ -21,17 +21,6 @@ ipcRenderer.on('receiveQueue', (event, arg) => {
 });
 
 
-
-
-
-/*
-<Bottombar
-          id="bottombar"
-          :statusMessages="statusMessages"
-          @send-request="sendRequest"
-        ></Bottombar>
-*/
-
 </script>
 
 <template>

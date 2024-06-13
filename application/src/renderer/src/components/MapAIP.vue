@@ -1,6 +1,5 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import imageRobotSrc from '@src/assets/omron_png.png';
 
 var data;
 
@@ -201,8 +200,6 @@ function getMin() {
   maxPos.x -= minPos.x
   maxPos.y -= minPos.y
 }
-const imageRobot = new Image();
-imageRobot.src = imageRobotSrc;
 
 onMounted(async () => {
   // tell the backend that the vue has loaded
@@ -248,7 +245,7 @@ onMounted(async () => {
       ctx_MapAIP.fill()
     })
 
-    //interestPoints = [[-291, 1132, 142, "test"]]    
+    //interestPoints = [[-291, 1132, 142, "test"]]
     interestPoints.forEach((point) => {
       const transformed = transformCoord(point[0], point[1], container_map.offsetWidth)
       const button = document.createElement('button')
@@ -306,7 +303,7 @@ onMounted(async () => {
   }
 
   ipcRenderer.send('MapAIP-vue-loaded');
-  
+
   var map_fetched = false;
   ipcRenderer.on('fetchMap', (event, arg) => {
     if (map_fetched) return;
@@ -338,9 +335,9 @@ onMounted(async () => {
   function clearCanvas() {
     ctx_transition.clearRect(0, 0, canvas_transition.width, canvas_transition.height);
   }
-  
+
   function animateLineBetweenButtons(src, dest, flagSimulation, duration) {
-    var x1, y1, x2, y2, dx, dy;
+    var start_x, start_y, end_x, end_y, dx, dy, rotationDeg;
 
     if (flagSimulation) {
       // Récupère les références des deux boutons et du canvas
@@ -356,10 +353,10 @@ onMounted(async () => {
       // Récupère les positions des deux boutons (par rapport au conteneur)
       const diff = canvas_route.width / canvas_route.offsetWidth
 
-      x1 = button_start.offsetLeft * diff
-      y1 = button_start.offsetTop * diff
-      x2 = button_end.offsetLeft * diff
-      y2 = button_end.offsetTop * diff
+      start_x = button_start.offsetLeft * diff
+      start_y = button_start.offsetTop * diff
+      end_x = button_end.offsetLeft * diff
+      end_y = button_end.offsetTop * diff
 
       // Propriétés de la ligne
       const liste = ["rgb(255, 0, 0)", "rgb(253, 36, 0)", "rgb(251, 53, 0)", "rgb(249, 67, 0)", "rgb(246, 79, 0)", "rgb(243, 89, 0)", "rgb(240, 98, 0)", "rgb(236, 108, 0)", "rgb(231, 117, 0)", "rgb(226, 125, 0)", "rgb(221, 132, 0)", "rgb(216, 139, 0)", "rgb(211, 146, 0)", "rgb(205, 153, 0)", "rgb(200, 159, 0)", "rgb(194, 165, 0)", "rgb(188, 170, 0)", "rgb(181, 176, 0)", "rgb(175, 181, 0)", "rgb(168, 187, 0)", "rgb(161, 192, 0)", "rgb(153, 197, 0)", "rgb(144, 202, 0)", "rgb(135, 207, 0)", "rgb(124, 212, 0)", "rgb(111, 217, 0)", "rgb(96, 222, 0)", "rgb(80, 226, 0)", "rgb(59, 231, 0)", "rgb(19, 235, 15)"]
@@ -379,27 +376,40 @@ onMounted(async () => {
     } else { // Live
       const src_arr = src.split(' ');
       const dest_arr = dest.split(' ');
-      x1 = parseFloat(src_arr[0])
-      y1 = parseFloat(src_arr[1])
-      x2 = parseFloat(dest_arr[0])
-      y2 = parseFloat(dest_arr[1])
+      start_x = parseFloat(src_arr[0])
+      start_y = parseFloat(src_arr[1])
+      end_x = parseFloat(dest_arr[0])
+      end_y = parseFloat(dest_arr[1])
+			rotationDeg = 270-parseFloat(src_arr[2])
 
-      const transformedSrc = transformCoord(x1, y1, canvas_MapAIP.width);
-      const transformedDest = transformCoord(x2, y2, canvas_MapAIP.width);
+      const transformedSrc = transformCoord(start_x, start_y, canvas_MapAIP.width);
+      const transformedDest = transformCoord(end_x, end_y, canvas_MapAIP.width);
 
-      x1=transformedSrc.x; y1=transformedSrc.y;
-      x2=transformedDest.x; y2=transformedDest.y;
+      start_x=transformedSrc.x; start_y=transformedSrc.y;
+      end_x=transformedDest.x; end_y=transformedDest.y;
 
       ctx_route.strokeStyle = "rgb(19, 235, 15)";
       ctx_transition.strokeStyle = "rgb(19, 235, 15)";
     }
 
-    dx = x2 - x1;
-    dy = y2 - y1;
+    dx = end_x - start_x;
+    dy = end_y - start_y;
     ctx_route.lineWidth = 10;
     ctx_transition.lineWidth = 10;
     ctx_route.lineCap = 'round';
     ctx_transition.lineCap = 'round';
+
+		const robot = document.getElementById('robot');
+		const diff = canvas_route.width / canvas_route.offsetWidth
+		robot.style.top = `${end_y / diff / container_map.offsetHeight * 100}%`
+		robot.style.left = `${end_x / diff / container_map.offsetWidth * 100}%`
+		robot.style.transition = `left linear ${duration}ms, top linear ${duration}ms, transform linear 500ms`
+
+		if (flagSimulation) {
+			rotationDeg = Math.atan2(dy, dx)*180/Math.PI;
+		}
+		robot.style.transform = `translate(-50%, -50%) rotate(${rotationDeg}deg)`
+
 
     // Animation
     let startTime = performance.now();
@@ -411,29 +421,25 @@ onMounted(async () => {
       const progress = Math.min(elapsedTime / animationTime, 1);
 
       // Calcule la nouvelle position du trait
-      const newX = x1 + dx * progress;
-      const newY = y1 + dy * progress;
-
-      const imageWidth = imageRobot.width/2;
-      const imageHeight = imageRobot.height/2;
+      const newX = start_x + dx * progress;
+      const newY = start_y + dy * progress;
 
       ctx_transition_robot.clearRect(0, 0, canvas_transition_robot.width, canvas_transition_robot.height);
-      ctx_transition_robot.drawImage(imageRobot, newX-imageWidth/2, newY-imageHeight/2, imageWidth, imageHeight);
 
       // Efface le canvas et dessine le nouveau trait
       ctx_transition.clearRect(0, 0, canvas_transition.width, canvas_transition.height);
       ctx_transition.beginPath();
-      ctx_transition.moveTo(x1, y1);
+      ctx_transition.moveTo(start_x, start_y);
       ctx_transition.lineTo(newX, newY);
       ctx_transition.stroke();
-      
 
-      
+
+
       if (progress < 1) {
         requestAnimationFrame(animate);
       } else {
         ctx_route.beginPath();
-        ctx_route.moveTo(x1, y1);
+        ctx_route.moveTo(start_x, start_y);
         ctx_route.lineTo(newX, newY);
         ctx_route.stroke();
         //add_infos(src, dest)
@@ -473,6 +479,16 @@ onMounted(async () => {
 
 
 <template>
+	<div id="robot">
+		<div id="triangleRobot">
+			<div></div>
+		</div>
+		<div id="triangleCutter">
+		</div>
+		<div id="borderRobot">
+			<div></div>
+		</div>
+	</div>
   <canvas id="canvas_MapAIP"></canvas>
   <canvas id="canvas_route"></canvas>
   <canvas id="canvas_transition"></canvas>

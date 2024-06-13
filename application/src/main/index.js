@@ -363,7 +363,7 @@ function receiveResponseServer(response) { // from the server
     const pos = response.substring('HAND QUEUE POSITION: '.length).trim();
 
     // update du boutton dans la fenêtre live
-    mainWindow.webContents.send('receiveQueue', "Position file d'attente : "+pos);
+    mainWindow.webContents.send('receiveQueue', `Position file d'attente : ${pos}`);
 
   } else if (response.indexOf('HAND QUEUE UPDATE: ') === 0) {
     const update_nb = response.substring('HAND QUEUE UPDATE: '.length).trim();

@@ -17,3 +17,75 @@
   position: absolute;
   width: 100%;
 }
+
+
+
+
+
+#robot {
+	width: 2.5%;
+	aspect-ratio: 1.5;
+	border-radius: 20% / 50%;
+	position: absolute;
+	top: 0;
+	left: 0;
+	transform: translate(-50%, -50%);
+	background-color: #39ae4a;
+	z-index: 5;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+
+#borderRobot{
+	position: relative;
+	width: 40%;
+	aspect-ratio: 1;
+	border-radius: 100%;
+	background-color: white;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#borderRobot > div{
+	width: 75%;
+	aspect-ratio: 1;
+	border-radius: 100%;
+	background-color: #9ccd6e;
+}
+
+
+
+#triangleCutter {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: 52%;
+	aspect-ratio: 1;
+	border-radius: 100%;
+	background-color: #39ae4a;
+}
+
+
+
+
+#triangleRobot {
+	position: absolute;
+	width: 85%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+
+#triangleRobot > div {
+	position: absolute;
+	right: 10%;
+	width: 20%;
+	aspect-ratio: 1;
+	background-color: white;
+	transform: rotate(45deg);
+}

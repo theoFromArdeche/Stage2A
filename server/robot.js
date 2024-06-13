@@ -2,7 +2,7 @@ const net = require('net');
 
 const port_server = 3456; // choose an open port
 var startTime = Date.now();
-const duration = 1.2*1000;
+const duration = 120*1000;
 
 const server = net.createServer((socket) => {
   console.log('Server connected');
@@ -55,8 +55,15 @@ function status() {
   const x = Math.round(A * (1 + Math.sin((10 * Math.PI / duration) * elapsedTime))) - 6260*coeffAmplitude;
   const y = B*elapsedTime/duration - 12440;
 
-  // return the sinusoidal values
-  return `ExtendedStatusForHumans: docked\nStatus: docked\nStateOfCharge: ${Math.round((1-elapsedTime/duration)*100*100)/100}\nLocation: ${x} ${y} 0\n`
+	const futur_x = Math.round(A * (1 + Math.sin((10 * Math.PI / duration) * (elapsedTime+100)))) - 6260 * coeffAmplitude;
+	const futur_y = B * (elapsedTime+100) / duration - 12440;
+
+	const dx = futur_x - x;
+	const dy = futur_y - y;
+
+	const rotateDeg = Math.atan2(dy, dx)*180/Math.PI;
+
+  return `ExtendedStatusForHumans: docked\nStatus: docked\nStateOfCharge: ${Math.round((1-elapsedTime/duration)*100*100)/100}\nLocation: ${x} ${y} ${rotateDeg}\n`
 }
 
 
