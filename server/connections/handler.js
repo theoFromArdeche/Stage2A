@@ -7,6 +7,7 @@ var state = {
 	curLocationRobot: 'Location: -384 1125 0',
 	connectedClients: new Map(),
 	requestDict: null,
+	interruptedRequest: null,
 	handQueue: [],
 	handTimer: null,
 	handTimeout: 60 * 1000,

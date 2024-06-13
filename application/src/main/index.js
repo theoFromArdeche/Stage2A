@@ -309,12 +309,12 @@ function receiveResponseServer(response) { // from the server
 		const id_dest = data.id.get(update.dest)
     if (update.time === -1) { // fail
       data.fails[id_src][id_dest] += 1;
-    } else { // sucess
+    } else { // success
       data.successes[id_src][id_dest]+=1;
       data.times[id_src][id_dest]=update.time;
       newPosRobot = Array.from(data.id.keys())[id_dest];
+			if (!flagSimulation) curPosRobot=newPosRobot
     }
-    if (!flagSimulation) curPosRobot=newPosRobot
 
     //console.log('UPDATED DATA : ', data);
     mainWindow.webContents.send('updateData', data);

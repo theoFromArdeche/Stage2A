@@ -122,8 +122,9 @@ function receiveRequest(clientId, msg) {
 			handler.sendToClient(clientId, `RESPONSE: Unknown destination ${dest}\n`); // TEMPORAIRE
 			return;
 		}*/
-
-		handler.accessState('requestDict', {time: Date.now(), dest: dest});
+		if (!handler.accessState('interruptedRequest')) {
+			handler.accessState('requestDict', {time: Date.now(), dest: dest});
+		}
 
 		// send the request to the robot
 		handler.sendToRobot(request)

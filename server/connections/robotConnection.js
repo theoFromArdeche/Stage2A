@@ -89,15 +89,26 @@ async function receiveResponseRobot(response) { // from the robot
 	}
 
 
-	if (response.startsWith('Interrupted')) {
+	if (response.startsWith('Interrupted')) { // interrupted by an other request or by an EStop
+		handler.accessState('interruptedRequest', handler.accessState('requestDict'));
 		handler.accessState('requestDict', null);
 	}
 
-	if (response.startsWith('EStop')) {
-		//if (handler.accessState('requestDict')) {
+	if (response.startsWith('EStop')) { // fail
+		if (!handler.accessState('interruptedRequest')) {
+			console.log("Error: EStop without interrrupt");
+			return;
+		}
+		handler.accessState('database').collection('fails').findOne({label: handler.accessState('interruptedRequest').src}).then(doc => {
+			doc.fails[handler.accessState('interruptedRequest').dest]++;
+			handler.accessState('database').collection('fails').updateOne(
+				{_id: doc._id},
+				{$set: {fails: doc.fails}}
+			);
+		});
 
-		//}
-		handler.accessState('requestDict', null);
+		response_update = JSON.stringify({src: src, dest: dest, time: -1});
+		handler.sendToAllClients(`UPDATE VARIABLES: ${response_update}\n`);
 	}
 
 
@@ -106,6 +117,7 @@ async function receiveResponseRobot(response) { // from the robot
 		clearInterval(statusTimer);
 		handler.sendToRobot('status');
 		flagStatus=false;
+		handler.accessState('interruptedRequest', null);
 	}
 
 
@@ -190,11 +202,5 @@ async function receiveResponseRobot(response) { // from the robot
 		statusTimer = setInterval(() => {
 			handler.sendToRobot('status');
 		}, statusInterval);
-	}// else if () { // fail
-	// update the current position of the robot
-	// TODO handler.accessState('curPosRobot', ???)
-
-	// data.fails[cur_id][next_id] +=1;
-	// response_update = JSON.stringify({src: cur_id, dest: next_id, time: -1});;
-	//}
+	}
 }
