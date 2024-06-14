@@ -3,19 +3,10 @@
   height: auto;
 }
 
-#canvas_route{
-  position:absolute;
-  width: 100%;
-}
 
-#canvas_transition{
+.drawingCanvas{
   position:absolute;
   width:100%
-}
-
-#canvas_transition_robot {
-  position: absolute;
-  width: 100%;
 }
 
 

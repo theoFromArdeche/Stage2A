@@ -210,8 +210,13 @@ onMounted(async () => {
   const ctx_route = canvas_route.getContext('2d');
   const canvas_transition = document.getElementById("canvas_transition");
   const ctx_transition = canvas_transition.getContext('2d');
-  const canvas_transition_robot = document.getElementById("canvas_transition_robot");
-  const ctx_transition_robot = canvas_transition_robot.getContext('2d');
+  const canvas_grid = document.getElementById("canvas_grid");
+  const ctx_grid = canvas_grid.getContext('2d');
+
+	const tailleCarré = 10;
+	const maxWeight = 16;
+	const dangerDistance = 5;
+	var GRID, heightGRID, widthGRID;
 
   function transformCoord(x, y, width) {
     const diff = width / maxPos.y
@@ -221,6 +226,46 @@ onMounted(async () => {
       y: (maxPos.x - x + minPos.x) * diff
     }
   }
+
+	function algoBresenham(x1, y1, x2, y2) {
+		// Bresenham's line algorithm
+		const dx = Math.abs(x2 - x1);
+		const dy = Math.abs(y2 - y1);
+		const sx = (x1 < x2) ? 1 : -1;
+		const sy = (y1 < y2) ? 1 : -1;
+		var err = dx - dy;
+
+		const steps = Math.max(dx, dy);
+
+		for (let i = 0; i <= steps; i++) {
+			let column = Math.floor(x1 / tailleCarré);
+			let row = Math.floor(y1 / tailleCarré);
+
+			if (row >= 0 && row < heightGRID && column >= 0 && column < widthGRID) {
+				GRID[row][column] = maxWeight;
+				dangerCalc(row, column)
+			}
+
+			if (2 * err > -dy) {
+				err -= dy;
+				x1 += sx;
+			}
+			if (2 * err < dx) {
+				err += dx;
+				y1 += sy;
+			}
+		}
+	}
+
+	function dangerCalc(row, column) {
+		for (let deltaRow=-dangerDistance; deltaRow<=dangerDistance; deltaRow++) {
+			for (let deltaColumn=-dangerDistance; deltaColumn<=dangerDistance; deltaColumn++) {
+				if (row+deltaRow>=heightGRID||column+deltaColumn>=widthGRID||row+deltaRow<0||column+deltaColumn<0) continue;
+				if (GRID[row+deltaRow][column+deltaColumn]) continue;
+				GRID[row+deltaRow][column+deltaColumn]=8
+			}
+		}
+	}
 
   function tailleEtTracer() {
     //ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -233,8 +278,16 @@ onMounted(async () => {
     canvas_route.height = canvas_MapAIP.height
     canvas_transition.width = canvas_MapAIP.width
     canvas_transition.height = canvas_MapAIP.height
-    canvas_transition_robot.width = canvas_MapAIP.width
-    canvas_transition_robot.height = canvas_MapAIP.height
+    canvas_grid.width = canvas_MapAIP.width
+    canvas_grid.height = canvas_MapAIP.height
+
+
+		widthGRID =  Math.ceil(canvas_grid.width/tailleCarré);
+		heightGRID = Math.ceil(canvas_grid.height/tailleCarré);
+		GRID = new Array(heightGRID);
+		for (let row=0; row<heightGRID; row++) {
+			GRID[row] = new Array(widthGRID);
+		}
 
 
     pointDetectedCoords.forEach((point) => {
@@ -243,6 +296,11 @@ onMounted(async () => {
       ctx_MapAIP.beginPath()
       ctx_MapAIP.arc(transformed.x, transformed.y, 0.5, 0, 2 * Math.PI)
       ctx_MapAIP.fill()
+
+			const row = Math.floor(transformed.y/tailleCarré);
+			const column = Math.floor(transformed.x/tailleCarré);
+			GRID[row][column]=maxWeight;
+			dangerCalc(row, column);
     })
 
     //interestPoints = [[-291, 1132, 142, "test"]]
@@ -277,17 +335,27 @@ onMounted(async () => {
       ctx_MapAIP.moveTo(start.x, start.y)
       ctx_MapAIP.lineTo(end.x, end.y)
       ctx_MapAIP.stroke()
+
+			algoBresenham(start.x, start.y, end.x, end.y);
     })
 
     forbiddenAreas.forEach((area) => {
-      const topLeft = transformCoord(area[0][0], area[0][1], canvas_MapAIP.width)
-      const bottomRight = transformCoord(area[1][0], area[1][1], canvas_MapAIP.width)
+      const bottomRight = transformCoord(area[0][0], area[0][1], canvas_MapAIP.width)
+      const topLeft = transformCoord(area[1][0], area[1][1], canvas_MapAIP.width)
       ctx_MapAIP.fillStyle = 'rgba(255, 0, 0, 0.5)'
       ctx_MapAIP.beginPath()
       ctx_MapAIP.rect(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y)
       ctx_MapAIP.fill()
       ctx_MapAIP.strokeStyle = 'red'
       ctx_MapAIP.stroke()
+
+			for (let row=Math.floor(topLeft.y/tailleCarré); row<=Math.floor(bottomRight.y/tailleCarré); row++) {
+				for (let column=Math.floor(topLeft.x/tailleCarré); column<=Math.floor(bottomRight.x/tailleCarré); column++) {
+					if (row>=heightGRID||column>=widthGRID) continue;
+					GRID[row][column]=maxWeight;
+					dangerCalc(row, column)
+				}
+			}
     })
 
     lineDetectedCoords.forEach((line) => {
@@ -299,7 +367,11 @@ onMounted(async () => {
       ctx_MapAIP.moveTo(start.x, start.y)
       ctx_MapAIP.lineTo(end.x, end.y)
       ctx_MapAIP.stroke()
+
+			algoBresenham(start.x, start.y, end.x, end.y);
     })
+		//drawGrid();
+		//drawGridWeight();
   }
 
   ipcRenderer.send('MapAIP-vue-loaded');
@@ -335,6 +407,35 @@ onMounted(async () => {
   function clearCanvas() {
     ctx_transition.clearRect(0, 0, canvas_transition.width, canvas_transition.height);
   }
+
+	function drawGrid() {
+		ctx_grid.lineWidth = 1;
+		ctx_grid.strokeStyle = "black";
+		for (let row=0; row<heightGRID; row++) {
+			ctx_grid.beginPath();
+			ctx_grid.moveTo(0, row*tailleCarré);
+			ctx_grid.lineTo(canvas_grid.width-1, row*tailleCarré);
+			ctx_grid.stroke();
+		}
+		for (let column=0; column<widthGRID; column++) {
+			ctx_grid.beginPath();
+			ctx_grid.moveTo(column*tailleCarré, 0);
+			ctx_grid.lineTo(column*tailleCarré, canvas_grid.height-1);
+			ctx_grid.stroke();
+		}
+	}
+
+	function drawGridWeight() {
+		for (let row=0; row<heightGRID; row++) {
+			for (let column=0; column<widthGRID; column++) {
+				if (!GRID[row][column]) continue;
+				ctx_grid.beginPath();
+				ctx_grid.fillStyle = GRID[row][column]===16?'black':'grey'
+				ctx_grid.rect(column*tailleCarré, row*tailleCarré, tailleCarré, tailleCarré)
+      	ctx_grid.fill()
+			}
+		}
+	}
 
   function animateLineBetweenButtons(src, dest, flagSimulation, duration) {
     var start_x, start_y, end_x, end_y, dx, dy, rotationDeg;
@@ -424,8 +525,6 @@ onMounted(async () => {
       const newX = start_x + dx * progress;
       const newY = start_y + dy * progress;
 
-      ctx_transition_robot.clearRect(0, 0, canvas_transition_robot.width, canvas_transition_robot.height);
-
       // Efface le canvas et dessine le nouveau trait
       ctx_transition.clearRect(0, 0, canvas_transition.width, canvas_transition.height);
       ctx_transition.beginPath();
@@ -490,9 +589,9 @@ onMounted(async () => {
 		</div>
 	</div>
   <canvas id="canvas_MapAIP"></canvas>
-  <canvas id="canvas_route"></canvas>
-  <canvas id="canvas_transition"></canvas>
-  <canvas id="canvas_transition_robot"></canvas>
+  <canvas id="canvas_route" class="drawingCanvas"></canvas>
+  <canvas id="canvas_transition" class="drawingCanvas"></canvas>
+  <canvas id="canvas_grid" class="drawingCanvas"></canvas>
 </template>
 
 <style scoped src="../styles/mapAIP.css"></style>
