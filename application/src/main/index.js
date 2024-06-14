@@ -108,7 +108,11 @@ app.on('window-all-closed', () => {
 
 
 var data;
-var flagSimulation= true;
+var flagSimulation = true;
+var parkingTimer = null;
+const parkingTimeout = 7 * 1000;
+var dockingTimer = null;
+const dockingTimeout = 15 * 60 * 1000;
 var curPosRobot;
 var newPosRobot;
 var curLocationRobot = ''; // coords x, y, z example : '-384 1125 0.00'
@@ -412,8 +416,20 @@ function responseSimulation(request) {
     const delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
     receivedResponse(msg1);
     curPosRobot=whereto
-    setTimeout(function () {
+
+		clearTimeout(parkingTimer);
+		clearTimeout(dockingTimer);
+    setTimeout(() => {
       receivedResponse(msg2);
+			if (whereto!=='standby1') {
+				parkingTimer = setTimeout(() => {
+					responseSimulation('goto standby1');
+				}, parkingTimeout);
+			} else {
+				dockingTimer = setTimeout(() => {
+					responseSimulation('dock');
+				}, dockingTimeout);
+			}
     }, delta_time*1000);
 
 
@@ -426,9 +442,9 @@ function responseSimulation(request) {
     const delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
     receivedResponse(msg1);
     curPosRobot=whereto
-    setTimeout(function () {
+    setTimeout(() => {
       receivedResponse(msg2);
-      setTimeout(function () {
+      setTimeout(() => {
         receivedResponse(msg3);
       }, 1000);
     }, delta_time*1000);
