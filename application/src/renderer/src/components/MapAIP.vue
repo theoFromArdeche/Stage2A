@@ -1,11 +1,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-
-var data;
+import { Heap } from 'heap-js'
 
 
 const ipcRenderer = window.electron.ipcRenderer;
 
+var data;
+var simulationTimer = null;
 
 ipcRenderer.on('updateData', (event, arg) => {
   data = arg;
@@ -214,7 +215,7 @@ onMounted(async () => {
   const ctx_grid = canvas_grid.getContext('2d');
 
 	const tailleCarré = 10;
-	const maxWeight = 16;
+	const distanceWeight = 16;
 	const dangerDistance = 5;
 	var GRID, heightGRID, widthGRID;
 
@@ -227,7 +228,7 @@ onMounted(async () => {
     }
   }
 
-	function algoBresenham(x1, y1, x2, y2) {
+	function bresenham(x1, y1, x2, y2) {
 		// Bresenham's line algorithm
 		const dx = Math.abs(x2 - x1);
 		const dy = Math.abs(y2 - y1);
@@ -242,7 +243,6 @@ onMounted(async () => {
 			let row = Math.floor(y1 / tailleCarré);
 
 			if (row >= 0 && row < heightGRID && column >= 0 && column < widthGRID) {
-				GRID[row][column] = maxWeight;
 				dangerCalc(row, column)
 			}
 
@@ -258,11 +258,11 @@ onMounted(async () => {
 	}
 
 	function dangerCalc(row, column) {
+		GRID[row][column] = Infinity;
 		for (let deltaRow=-dangerDistance; deltaRow<=dangerDistance; deltaRow++) {
 			for (let deltaColumn=-dangerDistance; deltaColumn<=dangerDistance; deltaColumn++) {
 				if (row+deltaRow>=heightGRID||column+deltaColumn>=widthGRID||row+deltaRow<0||column+deltaColumn<0) continue;
-				if (GRID[row+deltaRow][column+deltaColumn]) continue;
-				GRID[row+deltaRow][column+deltaColumn]=8
+				GRID[row+deltaRow][column+deltaColumn]=Math.max(GRID[row+deltaRow][column+deltaColumn], distanceWeight)
 			}
 		}
 	}
@@ -284,10 +284,7 @@ onMounted(async () => {
 
 		widthGRID =  Math.ceil(canvas_grid.width/tailleCarré);
 		heightGRID = Math.ceil(canvas_grid.height/tailleCarré);
-		GRID = new Array(heightGRID);
-		for (let row=0; row<heightGRID; row++) {
-			GRID[row] = new Array(widthGRID);
-		}
+		GRID = Array.from({ length: heightGRID }, () => Array(widthGRID).fill(1));
 
 
     pointDetectedCoords.forEach((point) => {
@@ -299,7 +296,6 @@ onMounted(async () => {
 
 			const row = Math.floor(transformed.y/tailleCarré);
 			const column = Math.floor(transformed.x/tailleCarré);
-			GRID[row][column]=maxWeight;
 			dangerCalc(row, column);
     })
 
@@ -336,7 +332,7 @@ onMounted(async () => {
       ctx_MapAIP.lineTo(end.x, end.y)
       ctx_MapAIP.stroke()
 
-			algoBresenham(start.x, start.y, end.x, end.y);
+			bresenham(start.x, start.y, end.x, end.y);
     })
 
     forbiddenAreas.forEach((area) => {
@@ -352,7 +348,6 @@ onMounted(async () => {
 			for (let row=Math.floor(topLeft.y/tailleCarré); row<=Math.floor(bottomRight.y/tailleCarré); row++) {
 				for (let column=Math.floor(topLeft.x/tailleCarré); column<=Math.floor(bottomRight.x/tailleCarré); column++) {
 					if (row>=heightGRID||column>=widthGRID) continue;
-					GRID[row][column]=maxWeight;
 					dangerCalc(row, column)
 				}
 			}
@@ -368,7 +363,7 @@ onMounted(async () => {
       ctx_MapAIP.lineTo(end.x, end.y)
       ctx_MapAIP.stroke()
 
-			algoBresenham(start.x, start.y, end.x, end.y);
+			bresenham(start.x, start.y, end.x, end.y);
     })
 		//drawGrid();
 		//drawGridWeight();
@@ -428,14 +423,92 @@ onMounted(async () => {
 	function drawGridWeight() {
 		for (let row=0; row<heightGRID; row++) {
 			for (let column=0; column<widthGRID; column++) {
-				if (!GRID[row][column]) continue;
+				if (GRID[row][column]===1) continue;
 				ctx_grid.beginPath();
-				ctx_grid.fillStyle = GRID[row][column]===16?'black':'grey'
-				ctx_grid.rect(column*tailleCarré, row*tailleCarré, tailleCarré, tailleCarré)
-      	ctx_grid.fill()
+				ctx_grid.fillStyle = GRID[row][column]===Infinity?'black':'grey';
+				ctx_grid.rect(column*tailleCarré, row*tailleCarré, tailleCarré, tailleCarré);
+      	ctx_grid.fill();
 			}
 		}
 	}
+
+
+	function dijkstra(start_x, start_y, end_x, end_y) {
+    const path = [];
+    const start_row = Math.floor(start_y / tailleCarré);
+    const start_column = Math.floor(start_x / tailleCarré);
+    const end_row = Math.floor(end_y / tailleCarré);
+    const end_column = Math.floor(end_x / tailleCarré);
+
+		if (start_row===end_row&&start_column===end_column) {
+			return [
+				[Math.round((start_column+0.5) * tailleCarré), Math.round((start_row+0.5) * tailleCarré)],
+				[Math.round((end_column+0.5) * tailleCarré), Math.round((end_row+0.5) * tailleCarré)]
+			]
+		}
+
+
+    const distance = Array.from({ length: heightGRID }, () => Array(widthGRID).fill(Infinity));
+    const parent = Array.from({ length: heightGRID }, () => Array(widthGRID).fill(null));
+    const visited = Array.from({ length: heightGRID }, () => Array(widthGRID).fill(false));
+
+    distance[start_row][start_column] = 0;
+
+    const pq = new Heap((a, b) => a[0] - b[0]);
+    pq.push([0, start_row, start_column, null]);
+
+		const r2 = Math.sqrt(2);
+
+    const directions = [ // delta row, delta column, coeff distance
+      [1, 0, 1], [-1, 0, 1],
+			[1, 1, r2], [-1, 1, r2],
+			[0, 1, 1], [0, -1, 1],
+			[1, 1, r2], [1, -1, r2],
+    ];
+
+    while (!pq.isEmpty()) {
+			const [dist, row, col, prevDirection] = pq.pop();
+
+			if (visited[row][col]) continue;
+			visited[row][col] = true;
+
+			if (row === end_row && col === end_column) break;
+
+			for (const [dRow, dCol, coeffDistance] of directions) {
+				const newRow = row + dRow;
+				const newCol = col + dCol;
+
+				if (newRow >= 0 && newRow < heightGRID && newCol >= 0 && newCol < widthGRID && !visited[newRow][newCol]) {
+					var newDist = dist + GRID[newRow][newCol]*coeffDistance;
+					const newDirection = [dRow, dCol];
+
+					if (prevDirection && (prevDirection[0] !== newDirection[0] || prevDirection[1] !== newDirection[1])) {
+							newDist += 1; // Penalty for changing direction
+					} else {
+							newDist -= 0.5; // Reward for continuing in the same direction
+					}
+
+					if (newDist < distance[newRow][newCol]) {
+						distance[newRow][newCol] = newDist;
+						parent[newRow][newCol] = [row, col];
+						pq.push([newDist, newRow, newCol, newDirection]);
+					}
+				}
+			}
+		}
+    var curRow = end_row;
+    var curCol = end_column;
+
+    while (curRow !== null && curCol !== null) {
+			path.push([Math.round((curCol+0.5) * tailleCarré), Math.round((curRow+0.5) * tailleCarré)]);
+			[curRow, curCol] = parent[curRow][curCol] || [null, null];
+    }
+
+    path.reverse();
+
+    return path;
+	}
+
 
   function animateLineBetweenButtons(src, dest, flagSimulation, duration) {
     var start_x, start_y, end_x, end_y, dx, dy, rotationDeg;
@@ -446,26 +519,32 @@ onMounted(async () => {
       const button_end = document.getElementById(dest);
 
       // Vérifie que les deux boutons et le canvas existent
-      if (!button_start || !button_end || !canvas_route || !ctx_route) {
-        console.error(`Un ou plusieurs éléments n'ont pas été trouvés : ${src}, ${dest}, #canvas_route`);
+      if (!button_start || !button_end) {
+        console.error(`Les boutons ${src} et ${dest} n'ont pas été trouvés`);
         return;
       }
 
       // Récupère les positions des deux boutons (par rapport au conteneur)
-      const diff = canvas_route.width / canvas_route.offsetWidth
+      const diff = canvas_route.width / canvas_route.offsetWidth;
 
-      start_x = button_start.offsetLeft * diff
-      start_y = button_start.offsetTop * diff
-      end_x = button_end.offsetLeft * diff
-      end_y = button_end.offsetTop * diff
+      start_x = button_start.offsetLeft * diff;
+      start_y = button_start.offsetTop * diff;
+      end_x = button_end.offsetLeft * diff;
+      end_y = button_end.offsetTop * diff;
 
       // Propriétés de la ligne
-      const liste = ["rgb(255, 0, 0)", "rgb(253, 36, 0)", "rgb(251, 53, 0)", "rgb(249, 67, 0)", "rgb(246, 79, 0)", "rgb(243, 89, 0)", "rgb(240, 98, 0)", "rgb(236, 108, 0)", "rgb(231, 117, 0)", "rgb(226, 125, 0)", "rgb(221, 132, 0)", "rgb(216, 139, 0)", "rgb(211, 146, 0)", "rgb(205, 153, 0)", "rgb(200, 159, 0)", "rgb(194, 165, 0)", "rgb(188, 170, 0)", "rgb(181, 176, 0)", "rgb(175, 181, 0)", "rgb(168, 187, 0)", "rgb(161, 192, 0)", "rgb(153, 197, 0)", "rgb(144, 202, 0)", "rgb(135, 207, 0)", "rgb(124, 212, 0)", "rgb(111, 217, 0)", "rgb(96, 222, 0)", "rgb(80, 226, 0)", "rgb(59, 231, 0)", "rgb(19, 235, 15)"]
+      const liste = [
+				"rgb(255, 0, 0)", "rgb(253, 36, 0)", "rgb(251, 53, 0)", "rgb(249, 67, 0)", "rgb(246, 79, 0)", "rgb(243, 89, 0)",
+				"rgb(240, 98, 0)", "rgb(236, 108, 0)", "rgb(231, 117, 0)", "rgb(226, 125, 0)", "rgb(221, 132, 0)", "rgb(216, 139, 0)",
+				"rgb(211, 146, 0)", "rgb(205, 153, 0)", "rgb(200, 159, 0)", "rgb(194, 165, 0)", "rgb(188, 170, 0)", "rgb(181, 176, 0)",
+				"rgb(175, 181, 0)", "rgb(168, 187, 0)", "rgb(161, 192, 0)", "rgb(153, 197, 0)", "rgb(144, 202, 0)", "rgb(135, 207, 0)",
+				"rgb(124, 212, 0)", "rgb(111, 217, 0)", "rgb(96, 222, 0)", "rgb(80, 226, 0)", "rgb(59, 231, 0)", "rgb(19, 235, 15)"
+			];
       const data_id_start = data.id.get(src);
-      const data_id_end = data.id.get(dest)
+      const data_id_end = data.id.get(dest);
       //console.log(data, data_id_start, data_id_end)
       const successes = data.successes[data_id_start][data_id_end];
-      const fails = data.fails[data_id_start][data_id_end]
+      const fails = data.fails[data_id_start][data_id_end];
       //console.log(successes, fails)
       var success_rate=liste.length-1;
       if (successes+fails!==0) {
@@ -477,11 +556,11 @@ onMounted(async () => {
     } else { // Live
       const src_arr = src.split(' ');
       const dest_arr = dest.split(' ');
-      start_x = parseFloat(src_arr[0])
-      start_y = parseFloat(src_arr[1])
-      end_x = parseFloat(dest_arr[0])
-      end_y = parseFloat(dest_arr[1])
-			rotationDeg = 270-parseFloat(src_arr[2])
+      start_x = parseFloat(src_arr[0]);
+      start_y = parseFloat(src_arr[1]);
+      end_x = parseFloat(dest_arr[0]);
+      end_y = parseFloat(dest_arr[1]);
+			rotationDeg = 270-parseFloat(src_arr[2]);
 
       const transformedSrc = transformCoord(start_x, start_y, canvas_MapAIP.width);
       const transformedDest = transformCoord(end_x, end_y, canvas_MapAIP.width);
@@ -501,23 +580,23 @@ onMounted(async () => {
     ctx_transition.lineCap = 'round';
 
 		const robot = document.getElementById('robot');
-		const diff = canvas_route.width / canvas_route.offsetWidth
-		robot.style.top = `${end_y / diff / container_map.offsetHeight * 100}%`
-		robot.style.left = `${end_x / diff / container_map.offsetWidth * 100}%`
-		robot.style.transition = `left linear ${duration}ms, top linear ${duration}ms, transform linear 500ms`
+		const diff = canvas_route.width / canvas_route.offsetWidth;
+		robot.style.top = `${end_y / diff / container_map.offsetHeight * 100}%`;
+		robot.style.left = `${end_x / diff / container_map.offsetWidth * 100}%`;
+		robot.style.transition = `left linear ${duration}ms, top linear ${duration}ms, transform linear 500ms`;
 
 		if (flagSimulation) {
 			rotationDeg = Math.atan2(dy, dx)*180/Math.PI;
 		}
-		robot.style.transform = `translate(-50%, -50%) rotate(${rotationDeg}deg)`
+		robot.style.transform = `translate(-50%, -50%) rotate(${rotationDeg}deg)`;
 
 
     // Animation
     let startTime = performance.now();
     function animate(currentTime) {
       // Avancement du robot
-      const speedup = 1
-      const animationTime = duration/speedup
+      const speedup = 1;
+      const animationTime = duration/speedup;
       const elapsedTime = currentTime - startTime;
       const progress = Math.min(elapsedTime / animationTime, 1);
 
@@ -542,7 +621,7 @@ onMounted(async () => {
         ctx_route.lineTo(newX, newY);
         ctx_route.stroke();
         //add_infos(src, dest)
-        setTimeout(clearCanvas, 500)
+        setTimeout(clearCanvas, 500);
       }
     }
 
@@ -550,11 +629,47 @@ onMounted(async () => {
     requestAnimationFrame(animate);
   }
 
+	function animatePath(path, index, prev_x, prev_y, duration) {
+		const cur_x=path[index][0];
+		const cur_y=path[index][1];
+
+		ctx_grid.beginPath();
+		ctx_grid.moveTo(prev_x, prev_y);
+		ctx_grid.lineTo(cur_x, cur_y);
+		ctx_grid.stroke();
+
+		if (index+1>=path.length) return;
+		simulationTimer = setTimeout(() => {
+			animatePath(path, index+1, cur_x, cur_y, duration);
+		}, Math.round(duration/(path.length)));
+	}
+
   ipcRenderer.on('updateRoute', (event, src, dest) => {
     if (!data.id.has(src)||!data.id.has(dest)) return;
 
+		clearTimeout(simulationTimer);
+
     const duration = data.times[data.id.get(src)][data.id.get(dest)]*1000;
-    animateLineBetweenButtons(src, dest, true, duration);
+
+		const button_start = document.getElementById(src);
+		const button_end = document.getElementById(dest);
+
+		const diff = canvas_route.width / canvas_route.offsetWidth;
+
+		const start_x = button_start.offsetLeft * diff;
+		const start_y = button_start.offsetTop * diff;
+		const end_x = button_end.offsetLeft * diff;
+		const end_y = button_end.offsetTop * diff;
+
+		const path = dijkstra(start_x, start_y, end_x, end_y);
+
+		ctx_grid.clearRect(0, 0, canvas_grid.width, canvas_grid.height);
+		ctx_grid.lineWidth = 5;
+		ctx_grid.strokeStyle = "black";
+
+		animatePath(path, 1, start_x, start_y, duration);
+
+    //animateLineBetweenButtons(src, dest, true, duration);
   });
 
   ipcRenderer.on('drawSegment', (event, src, dest, duration) => {

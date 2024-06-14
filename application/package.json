@@ -18,6 +18,7 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.0",
     "@electron-toolkit/utils": "^3.0.0",
+    "heap-js": "^2.5.0",
     "vue-router": "^4.3.0"
   },
   "devDependencies": {
