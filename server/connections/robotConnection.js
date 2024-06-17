@@ -7,7 +7,7 @@ module.exports = { connectToRobot, receiveResponseRobot }
 const net = require('net');
 
 var statusTimer = null;
-const statusInterval = 1 * 1000;
+const statusInterval = 0.1 * 1000;
 const port_robot = 3456;
 const robot_host = 'localhost';
 const robotPassword = 'password';

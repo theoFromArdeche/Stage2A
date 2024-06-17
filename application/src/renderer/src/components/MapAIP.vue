@@ -5,16 +5,20 @@ import { Heap } from 'heap-js'
 
 const ipcRenderer = window.electron.ipcRenderer;
 
-var data;
+var data = null;
 var simulationTimer = null;
+var animLine = null;
+const SHOW_PATH = true;
+const SHOW_PROJECTED_PATH = true;
+var destinationLive = null;
+var projectedPathInterval = null;
+const refreshRateProjectedPath = 0.1 * 1000;
 
 ipcRenderer.on('updateData', (event, arg) => {
   data = arg;
 });
 
 
-
-const mapCanvas = ref(null)
 
 function isDigit(charac) {
   for (let i = 0; i <= 9; i++) {
@@ -207,10 +211,17 @@ onMounted(async () => {
 
   const canvas_MapAIP = document.getElementById('canvas_MapAIP')
   const ctx_MapAIP = canvas_MapAIP.getContext('2d')
-  const canvas_route = document.getElementById("canvas_route");
-  const ctx_route = canvas_route.getContext('2d');
-  const canvas_transition = document.getElementById("canvas_transition");
-  const ctx_transition = canvas_transition.getContext('2d');
+
+  const canvas_path = document.getElementById("canvas_path");
+  const ctx_path = canvas_path.getContext('2d');
+	const canvas_pathTemp = document.getElementById("canvas_pathTemp");
+  const ctx_pathTemp = canvas_pathTemp.getContext('2d');
+
+  const canvas_projectedPath = document.getElementById("canvas_projectedPath");
+  const ctx_projectedPath = canvas_projectedPath.getContext('2d');
+	const canvas_projectedPathTemp = document.getElementById("canvas_projectedPathTemp");
+  const ctx_projectedPathTemp = canvas_projectedPathTemp.getContext('2d');
+
   const canvas_grid = document.getElementById("canvas_grid");
   const ctx_grid = canvas_grid.getContext('2d');
 
@@ -274,10 +285,17 @@ onMounted(async () => {
 
     canvas_MapAIP.width = 2560
     canvas_MapAIP.height = (maxPos.x * canvas_MapAIP.width) / maxPos.y
-    canvas_route.width = canvas_MapAIP.width
-    canvas_route.height = canvas_MapAIP.height
-    canvas_transition.width = canvas_MapAIP.width
-    canvas_transition.height = canvas_MapAIP.height
+
+    canvas_path.width = canvas_MapAIP.width
+    canvas_path.height = canvas_MapAIP.height
+		canvas_pathTemp.width = canvas_MapAIP.width
+    canvas_pathTemp.height = canvas_MapAIP.height
+
+    canvas_projectedPath.width = canvas_MapAIP.width
+    canvas_projectedPath.height = canvas_MapAIP.height
+		canvas_projectedPathTemp.width = canvas_MapAIP.width
+    canvas_projectedPathTemp.height = canvas_MapAIP.height
+
     canvas_grid.width = canvas_MapAIP.width
     canvas_grid.height = canvas_MapAIP.height
 
@@ -399,9 +417,6 @@ onMounted(async () => {
       }, 5000);
   }
 
-  function clearCanvas() {
-    ctx_transition.clearRect(0, 0, canvas_transition.width, canvas_transition.height);
-  }
 
 	function drawGrid() {
 		ctx_grid.lineWidth = 1;
@@ -434,11 +449,18 @@ onMounted(async () => {
 
 
 	function dijkstra(start_x, start_y, end_x, end_y) {
+		if (!heightGRID||!widthGRID) return null;
+
     const path = [];
     const start_row = Math.floor(start_y / tailleCarré);
     const start_column = Math.floor(start_x / tailleCarré);
     const end_row = Math.floor(end_y / tailleCarré);
     const end_column = Math.floor(end_x / tailleCarré);
+
+		if (start_row>=heightGRID||start_row<0||start_column>=widthGRID||start_column<0||
+				end_row>=heightGRID||end_row<0||end_column>=widthGRID||end_column<0) {
+				return null;
+		}
 
 		if (start_row===end_row&&start_column===end_column) {
 			return [
@@ -466,13 +488,18 @@ onMounted(async () => {
 			[1, 1, r2], [1, -1, r2],
     ];
 
+		var pathFound = false;
+
     while (!pq.isEmpty()) {
 			const [dist, row, col, prevDirection] = pq.pop();
 
 			if (visited[row][col]) continue;
 			visited[row][col] = true;
 
-			if (row === end_row && col === end_column) break;
+			if (row === end_row && col === end_column) {
+				pathFound = true;
+				break;
+			}
 
 			for (const [dRow, dCol, coeffDistance] of directions) {
 				const newRow = row + dRow;
@@ -490,202 +517,304 @@ onMounted(async () => {
 
 					if (newDist < distance[newRow][newCol]) {
 						distance[newRow][newCol] = newDist;
-						parent[newRow][newCol] = [row, col];
+						parent[newRow][newCol] = [row, col, newDirection];
 						pq.push([newDist, newRow, newCol, newDirection]);
 					}
 				}
 			}
 		}
+
+		if (!pathFound) return null;
+
     var curRow = end_row;
     var curCol = end_column;
+		var curDirection = [0, 0];
+		var prevDirection;
 
     while (curRow !== null && curCol !== null) {
-			path.push([Math.round((curCol+0.5) * tailleCarré), Math.round((curRow+0.5) * tailleCarré)]);
-			[curRow, curCol] = parent[curRow][curCol] || [null, null];
-    }
+			if (parent[curRow][curCol]) prevDirection=parent[curRow][curCol][2];
+			else prevDirection=[0, 0];
 
+			if (curDirection[0] !== prevDirection[0] || curDirection[1] !== prevDirection[1]) {
+				path.push([Math.round((curCol+0.5) * tailleCarré), Math.round((curRow+0.5) * tailleCarré), distance[curRow][curCol]]);
+			}
+
+			[curRow, curCol, curDirection] = parent[curRow][curCol] || [null, null, null];
+    }
     path.reverse();
 
     return path;
 	}
 
 
-  function animateLineBetweenButtons(src, dest, flagSimulation, duration) {
-    var start_x, start_y, end_x, end_y, dx, dy, rotationDeg;
+  function createAnimation(start_x, start_y, end_x, end_y, rotationDeg, duration, animRobot, showPath, ctx, ctx_temp, reverse) {
+    const dx = end_x - start_x;
+    const dy = end_y - start_y;
 
-    if (flagSimulation) {
-      // Récupère les références des deux boutons et du canvas
-      const button_start = document.getElementById(src);
-      const button_end = document.getElementById(dest);
+		if (animRobot) {
+			const robot = document.getElementById('robot');
+			const diff = canvas_path.width / canvas_path.offsetWidth;
+			robot.style.top = `${end_y / diff / container_map.offsetHeight * 100}%`;
+			robot.style.left = `${end_x / diff / container_map.offsetWidth * 100}%`;
+			robot.style.transition = `left linear ${duration}ms, top linear ${duration}ms, transform linear 500ms`;
 
-      // Vérifie que les deux boutons et le canvas existent
-      if (!button_start || !button_end) {
-        console.error(`Les boutons ${src} et ${dest} n'ont pas été trouvés`);
-        return;
-      }
+			var curDeg = 0;
+			if (robot.style.transform) {
+				curDeg = parseFloat(robot.style.transform.split('rotate(')[1].split('deg')[0]);
+			}
 
-      // Récupère les positions des deux boutons (par rapport au conteneur)
-      const diff = canvas_route.width / canvas_route.offsetWidth;
+			var curDegNormalized = curDeg % 360;
+			if (curDegNormalized < 0) {
+				curDegNormalized += 360;
+			}
 
-      start_x = button_start.offsetLeft * diff;
-      start_y = button_start.offsetTop * diff;
-      end_x = button_end.offsetLeft * diff;
-      end_y = button_end.offsetTop * diff;
+			var rotationDegNormalized = rotationDeg % 360;
+			if (rotationDegNormalized < 0) {
+				rotationDegNormalized += 360;
+			}
 
-      // Propriétés de la ligne
-      const liste = [
-				"rgb(255, 0, 0)", "rgb(253, 36, 0)", "rgb(251, 53, 0)", "rgb(249, 67, 0)", "rgb(246, 79, 0)", "rgb(243, 89, 0)",
-				"rgb(240, 98, 0)", "rgb(236, 108, 0)", "rgb(231, 117, 0)", "rgb(226, 125, 0)", "rgb(221, 132, 0)", "rgb(216, 139, 0)",
-				"rgb(211, 146, 0)", "rgb(205, 153, 0)", "rgb(200, 159, 0)", "rgb(194, 165, 0)", "rgb(188, 170, 0)", "rgb(181, 176, 0)",
-				"rgb(175, 181, 0)", "rgb(168, 187, 0)", "rgb(161, 192, 0)", "rgb(153, 197, 0)", "rgb(144, 202, 0)", "rgb(135, 207, 0)",
-				"rgb(124, 212, 0)", "rgb(111, 217, 0)", "rgb(96, 222, 0)", "rgb(80, 226, 0)", "rgb(59, 231, 0)", "rgb(19, 235, 15)"
-			];
-      const data_id_start = data.id.get(src);
-      const data_id_end = data.id.get(dest);
-      //console.log(data, data_id_start, data_id_end)
-      const successes = data.successes[data_id_start][data_id_end];
-      const fails = data.fails[data_id_start][data_id_end];
-      //console.log(successes, fails)
-      var success_rate=liste.length-1;
-      if (successes+fails!==0) {
-        success_rate = Math.round((liste.length-1)*successes/(successes+fails));
-      }
-      ctx_route.strokeStyle = liste[success_rate];
-      ctx_transition.strokeStyle = liste[success_rate];
+			const clockwiseDiff = (rotationDegNormalized - curDegNormalized + 360) % 360;
+			const counterClockwiseDiff = (curDegNormalized - rotationDegNormalized + 360) % 360;
 
-    } else { // Live
-      const src_arr = src.split(' ');
-      const dest_arr = dest.split(' ');
-      start_x = parseFloat(src_arr[0]);
-      start_y = parseFloat(src_arr[1]);
-      end_x = parseFloat(dest_arr[0]);
-      end_y = parseFloat(dest_arr[1]);
-			rotationDeg = 270-parseFloat(src_arr[2]);
-
-      const transformedSrc = transformCoord(start_x, start_y, canvas_MapAIP.width);
-      const transformedDest = transformCoord(end_x, end_y, canvas_MapAIP.width);
-
-      start_x=transformedSrc.x; start_y=transformedSrc.y;
-      end_x=transformedDest.x; end_y=transformedDest.y;
-
-      ctx_route.strokeStyle = "rgb(19, 235, 15)";
-      ctx_transition.strokeStyle = "rgb(19, 235, 15)";
-    }
-
-    dx = end_x - start_x;
-    dy = end_y - start_y;
-    ctx_route.lineWidth = 10;
-    ctx_transition.lineWidth = 10;
-    ctx_route.lineCap = 'round';
-    ctx_transition.lineCap = 'round';
-
-		const robot = document.getElementById('robot');
-		const diff = canvas_route.width / canvas_route.offsetWidth;
-		robot.style.top = `${end_y / diff / container_map.offsetHeight * 100}%`;
-		robot.style.left = `${end_x / diff / container_map.offsetWidth * 100}%`;
-		robot.style.transition = `left linear ${duration}ms, top linear ${duration}ms, transform linear 500ms`;
-
-		if (flagSimulation) {
-			rotationDeg = Math.atan2(dy, dx)*180/Math.PI;
+			var newDeg;
+			if (clockwiseDiff <= counterClockwiseDiff) {
+				newDeg = curDeg + clockwiseDiff;
+			} else {
+				newDeg = curDeg - counterClockwiseDiff;
+			}
+			robot.style.transform = `translate(-50%, -50%) rotate(${newDeg}deg)`;
 		}
-		robot.style.transform = `translate(-50%, -50%) rotate(${rotationDeg}deg)`;
 
+		if (!showPath) return;
 
-    // Animation
-    let startTime = performance.now();
+    const startTime = performance.now();
     function animate(currentTime) {
-      // Avancement du robot
       const speedup = 1;
       const animationTime = duration/speedup;
       const elapsedTime = currentTime - startTime;
       const progress = Math.min(elapsedTime / animationTime, 1);
 
-      // Calcule la nouvelle position du trait
       const newX = start_x + dx * progress;
       const newY = start_y + dy * progress;
 
-      // Efface le canvas et dessine le nouveau trait
-      ctx_transition.clearRect(0, 0, canvas_transition.width, canvas_transition.height);
-      ctx_transition.beginPath();
-      ctx_transition.moveTo(start_x, start_y);
-      ctx_transition.lineTo(newX, newY);
-      ctx_transition.stroke();
+      ctx_temp.clearRect(0, 0, canvas_path.width, canvas_path.height);
+      ctx_temp.beginPath();
+			if (reverse) {
+				ctx_temp.moveTo(newX, newY);
+      	ctx_temp.lineTo(end_x, end_y);
+			} else {
+				ctx_temp.moveTo(start_x, start_y);
+      	ctx_temp.lineTo(newX, newY);
+			}
 
-
+      ctx_temp.stroke();
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        animLine = requestAnimationFrame(animate);
       } else {
-        ctx_route.beginPath();
-        ctx_route.moveTo(start_x, start_y);
-        ctx_route.lineTo(newX, newY);
-        ctx_route.stroke();
+				if (!reverse) {
+					ctx.beginPath();
+        	ctx.moveTo(start_x, start_y);
+        	ctx.lineTo(newX, newY);
+        	ctx.stroke();
+				}
         //add_infos(src, dest)
-        setTimeout(clearCanvas, 500);
+				ctx_temp.clearRect(0, 0, canvas_path.width, canvas_path.height);
+				animLine=null;
       }
     }
-
-    // Démarre l'animation
-    requestAnimationFrame(animate);
+    animLine = requestAnimationFrame(animate);
   }
 
-	function animatePath(path, index, prev_x, prev_y, duration) {
+	function animatePath(path, index, prev_x, prev_y, duration, animRobot, showPath, showProjectedPath, ctx, ctx_temp) {
 		const cur_x=path[index][0];
 		const cur_y=path[index][1];
+		const total_dist=path[path.length-1][2];
+		const delta_dist=path[index][2]-path[index-1][2];
+		const curDuration = duration*1/path.length //delta_dist/total_dist;
 
-		ctx_grid.beginPath();
-		ctx_grid.moveTo(prev_x, prev_y);
-		ctx_grid.lineTo(cur_x, cur_y);
-		ctx_grid.stroke();
+
+		var rotationDeg = 0;
+		const diff = canvas_path.width / canvas_path.offsetWidth;
+		if (animRobot) {
+			const robot = document.getElementById('robot');
+			robot.style.top = `${cur_y / diff / container_map.offsetHeight * 100}%`;
+			robot.style.left = `${cur_x / diff / container_map.offsetWidth * 100}%`;
+			robot.style.transition = `left linear ${curDuration}ms, top linear ${curDuration}ms, transform linear ${0}ms`;
+
+
+			const dx = cur_x - prev_x;
+			const dy = cur_y - prev_y;
+			rotationDeg = Math.atan2(dy, dx)*180/Math.PI;
+		}
+
+		if (animRobot||showPath) {
+			createAnimation(prev_x, prev_y, cur_x, cur_y, rotationDeg, curDuration, animRobot, showPath, ctx, ctx_temp, false);
+		}
+
+		if (showProjectedPath) {
+			ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.width, canvas_projectedPath.height);
+		}
 
 		if (index+1>=path.length) return;
-		simulationTimer = setTimeout(() => {
-			animatePath(path, index+1, cur_x, cur_y, duration);
-		}, Math.round(duration/(path.length)));
+
+		if (curDuration===0) {
+			animatePath(path, index+1, cur_x, cur_y, duration, animRobot, showPath, showProjectedPath, ctx, ctx_temp);
+		} else {
+			simulationTimer = setTimeout(() => {
+				animatePath(path, index+1, cur_x, cur_y, duration, animRobot, showPath, showProjectedPath, ctx, ctx_temp);
+			}, curDuration);
+		}
+
+		if (showProjectedPath) {
+			animatePath(path, index+1, cur_x, cur_y, 0, false, true, false, ctx_projectedPath, ctx_projectedPathTemp);
+			createAnimation(prev_x, prev_y, cur_x, cur_y, rotationDeg, curDuration, false, true, ctx_projectedPath, ctx_projectedPathTemp, true);
+		}
 	}
 
-  ipcRenderer.on('updateRoute', (event, src, dest) => {
+
+
+  ipcRenderer.on('updatePathSimulation', (event, src, dest) => {
     if (!data.id.has(src)||!data.id.has(dest)) return;
 
-		clearTimeout(simulationTimer);
 
     const duration = data.times[data.id.get(src)][data.id.get(dest)]*1000;
 
 		const button_start = document.getElementById(src);
 		const button_end = document.getElementById(dest);
 
-		const diff = canvas_route.width / canvas_route.offsetWidth;
+		const diff = canvas_path.width / canvas_path.offsetWidth;
 
-		const start_x = button_start.offsetLeft * diff;
-		const start_y = button_start.offsetTop * diff;
+		var start_x = button_start.offsetLeft * diff;
+		var start_y = button_start.offsetTop * diff;
 		const end_x = button_end.offsetLeft * diff;
 		const end_y = button_end.offsetTop * diff;
 
+		if (simulationTimer) {
+			clearTimeout(simulationTimer);
+			ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.width, canvas_projectedPath.height);
+			ctx_projectedPathTemp.clearRect(0, 0, canvas_projectedPath.width, canvas_projectedPath.height);
+			const robot = document.getElementById('robot');
+			start_x = robot.offsetLeft * diff;
+			start_y = robot.offsetTop * diff;
+
+			if (animLine) {
+				robot.style.top = `${start_y / diff / container_map.offsetHeight * 100}%`;
+				robot.style.left = `${start_x / diff / container_map.offsetWidth * 100}%`;
+				cancelAnimationFrame(animLine);
+				animLine=null;
+				ctx_path.drawImage(canvas_pathTemp, 0, 0); // line not finished
+			}
+		} else {
+			ctx_path.clearRect(0, 0, canvas_path.width, canvas_path.height)
+		}
+
+		const liste = [
+				"rgb(255, 0, 0)", "rgb(253, 36, 0)", "rgb(251, 53, 0)", "rgb(249, 67, 0)", "rgb(246, 79, 0)", "rgb(243, 89, 0)",
+				"rgb(240, 98, 0)", "rgb(236, 108, 0)", "rgb(231, 117, 0)", "rgb(226, 125, 0)", "rgb(221, 132, 0)", "rgb(216, 139, 0)",
+				"rgb(211, 146, 0)", "rgb(205, 153, 0)", "rgb(200, 159, 0)", "rgb(194, 165, 0)", "rgb(188, 170, 0)", "rgb(181, 176, 0)",
+				"rgb(175, 181, 0)", "rgb(168, 187, 0)", "rgb(161, 192, 0)", "rgb(153, 197, 0)", "rgb(144, 202, 0)", "rgb(135, 207, 0)",
+				"rgb(124, 212, 0)", "rgb(111, 217, 0)", "rgb(96, 222, 0)", "rgb(80, 226, 0)", "rgb(59, 231, 0)", "rgb(19, 235, 15)"
+		];
+		const data_id_start = data.id.get(src);
+		const data_id_end = data.id.get(dest);
+		const successes = data.successes[data_id_start][data_id_end];
+		const fails = data.fails[data_id_start][data_id_end];
+		var success_rate=liste.length-1;
+		if (successes+fails!==0) {
+			success_rate = Math.round((liste.length-1)*successes/(successes+fails));
+		}
+
+		ctx_path.strokeStyle = liste[success_rate];
+		ctx_path.lineWidth = 5;
+		ctx_pathTemp.strokeStyle = liste[success_rate];
+		ctx_pathTemp.lineWidth = 5;
+
+		ctx_projectedPath.lineWidth = 2.5;
+		ctx_projectedPath.strokeStyle = 'lightblue';
+		ctx_projectedPathTemp.lineWidth = 2.5;
+		ctx_projectedPathTemp.strokeStyle = 'lightblue';
+
 		const path = dijkstra(start_x, start_y, end_x, end_y);
+		if (!path) return;
 
-		ctx_grid.clearRect(0, 0, canvas_grid.width, canvas_grid.height);
-		ctx_grid.lineWidth = 5;
-		ctx_grid.strokeStyle = "black";
-
-		animatePath(path, 1, start_x, start_y, duration);
-
-    //animateLineBetweenButtons(src, dest, true, duration);
+		animatePath(path, 1, start_x, start_y, duration, true, SHOW_PATH, SHOW_PROJECTED_PATH, ctx_path, ctx_pathTemp);
+		simulationTimer=null;
   });
 
-  ipcRenderer.on('drawSegment', (event, src, dest, duration) => {
-    animateLineBetweenButtons(src, dest, false, duration);
+  ipcRenderer.on('updatePathLive', (event, src, dest, duration) => {
+		const src_arr = src.split(' ');
+		const dest_arr = dest.split(' ');
+		var start_x = parseFloat(src_arr[0]);
+		var start_y = parseFloat(src_arr[1]);
+		var end_x = parseFloat(dest_arr[0]);
+		var end_y = parseFloat(dest_arr[1]);
+
+
+		const transformedSrc = transformCoord(start_x, start_y, canvas_MapAIP.width);
+		const transformedDest = transformCoord(end_x, end_y, canvas_MapAIP.width);
+
+		start_x=transformedSrc.x; start_y=transformedSrc.y;
+		end_x=transformedDest.x; end_y=transformedDest.y;
+
+		const rotationDeg = 270-parseFloat(src_arr[2]);
+
+
+		ctx_path.strokeStyle = 'rgb(19, 235, 15)';
+		ctx_path.lineWidth = 5;
+		ctx_pathTemp.strokeStyle = 'rgb(19, 235, 15)';
+		ctx_pathTemp.lineWidth = 5;
+
+    createAnimation(start_x, start_y, end_x, end_y, rotationDeg, duration, true, true, ctx_path, ctx_pathTemp, false);
   });
 
-  // Exemple d'utilisation de la fonction :
+	async function startIntervalProjectedPath() {
+		ctx_projectedPath.lineWidth = 2.5;
+		ctx_projectedPath.strokeStyle = 'lightblue';
+		ctx_projectedPathTemp.lineWidth = 2.5;
+		ctx_projectedPathTemp.strokeStyle = 'lightblue';
+
+		clearInterval(projectedPathInterval);
+		projectedPathInterval = setInterval(() => {
+			if (data.id.has(destinationLive)) {
+				ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.width, canvas_projectedPath.height);
+
+				const diff = canvas_path.width / canvas_path.offsetWidth;
+
+				const robot = document.getElementById('robot');
+				const start_x = robot.offsetLeft * diff;
+				const start_y = robot.offsetTop * diff;
+
+				const button_dest = document.getElementById(destinationLive);
+				const dest_x = button_dest.offsetLeft * diff;
+				const dest_y = button_dest.offsetTop * diff;
+
+				const path = dijkstra(start_x, start_y, dest_x, dest_y);
+				if (path) {
+					animatePath(path, 1, start_x, start_y, 0, false, true, false, ctx_projectedPath, ctx_projectedPathTemp);
+					ctx_projectedPathTemp.drawImage(canvas_projectedPath, 0, 0);
+					simulationTimer=null;
+				}
+			}
+		}, refreshRateProjectedPath)
+	}
+
+	ipcRenderer.on('updateDestinationLive', (event, arg) => {
+		destinationLive = arg;
+		startIntervalProjectedPath();
+	});
+
+	ipcRenderer.on('removeIntervalLive', (event, arg) => {
+		clearInterval(projectedPathInterval);
+		ctx_projectedPathTemp.clearRect(0, 0, canvas_projectedPathTemp.width, canvas_projectedPathTemp.height);
+		ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.width, canvas_projectedPath.height);
+	});
+
+
   document.addEventListener('keydown', function (event) {
-    if (event.code === 'Space') {
-      animateLineBetweenButtons('s-111-2', 's-114', true, 5*1000)
-    }
-    else if (event.key === 'p') {
-      animateLineBetweenButtons('s-106', 's-111-2', true, 5*1000)
-    }
-    else if (event.key === 'c') {
-      ctx_route.clearRect(0, 0, canvas_route.width, canvas_route.height);
+    if (event.key === 'c') {
+      ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.width, canvas_projectedPath.height);
+			ctx_path.clearRect(0, 0, canvas_path.width, canvas_path.height);
     }
   });
 })
@@ -704,8 +833,10 @@ onMounted(async () => {
 		</div>
 	</div>
   <canvas id="canvas_MapAIP"></canvas>
-  <canvas id="canvas_route" class="drawingCanvas"></canvas>
-  <canvas id="canvas_transition" class="drawingCanvas"></canvas>
+  <canvas id="canvas_path" class="drawingCanvas"></canvas>
+  <canvas id="canvas_pathTemp" class="drawingCanvas"></canvas>
+  <canvas id="canvas_projectedPath" class="drawingCanvas"></canvas>
+  <canvas id="canvas_projectedPathTemp" class="drawingCanvas"></canvas>
   <canvas id="canvas_grid" class="drawingCanvas"></canvas>
 </template>
 

@@ -20,7 +20,7 @@
 	position: absolute;
 	top: 0;
 	left: 0;
-	transform: translate(-50%, -50%);
+	transform: translate(-50%, -50%) rotate(0deg);
 	background-color: #39ae4a;
 	z-index: 5;
 	display: flex;

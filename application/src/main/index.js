@@ -196,13 +196,28 @@ function receiveRequest(request) {
 function receivedResponse(response) {
   mainWindow.webContents.send('updateStatus', response);
   sendResponse(response)
-  if (response.indexOf('Going to ') !== 0) return;
+
+	if (response.indexOf('Arrived at ') === 0 || response.indexOf('Parked') === 0 || response.indexOf('DockingState: Docked') === 0){
+		mainWindow.webContents.send('removeIntervalLive', destination);
+		return;
+	}
+
+
+  if (response.indexOf('Going to ') !== 0 && response.indexOf('Parking') !== 0 && response.indexOf('DockingState: Docking') !== 0) return;
+	var destination;
+	if (response.indexOf('Parking') === 0) {
+		destination = 'standby1';
+	} else if (response.indexOf('DockingState: Docking') === 0) {
+		destination = 'dockingstation2';
+	} else { // Going to
+		destination = response.substring('Going to '.length).trim().toLowerCase();
+	}
 
   if (flagSimulation) {
-    const destination = response.substring('Going to '.length).trim().toLowerCase();
-    mainWindow.webContents.send('updateRoute', curPosRobot, destination);
+    mainWindow.webContents.send('updatePathSimulation', curPosRobot, destination);
   } else {
     timeStatus=Date.now();
+    mainWindow.webContents.send('updateDestinationLive', destination);
   }
 }
 
@@ -326,23 +341,23 @@ function receiveResponseServer(response) { // from the server
 
   } else if (response.indexOf('ExtendedStatusForHumans: ') === 0) {
     const statusForHuman = response.trim().substring('ExtendedStatusForHumans: '.length);
-    // update de la sidebar
+    // update of the sidebar
     mainWindow.webContents.send('Sidebar-updateStatus', statusForHuman);
 
   } else if (response.indexOf('StateOfCharge: ') === 0) {
     const stateOfCharge = response.trim().substring('StateOfCharge: '.length);
-    // update de la sidebar
+    // update of the sidebar
     mainWindow.webContents.send('updateBattery', stateOfCharge);
 
   } else if (response.indexOf('Location: ') === 0) {
     const location = response.trim().substring('Location: '.length);
-    // update de la sidebar
+    // update of sidebar and MapAIP
     mainWindow.webContents.send('updatePosition', location);
 
-    // if in 'Live' draw the segment oldLocation - curLocation
+    // if in 'Live' draw the segment oldLocation -> curLocation
     if (!flagSimulation) {
       if (timeEndAnim-Date.now()<100) { // 100 ms
-        mainWindow.webContents.send('drawSegment', curLocationRobot, location, Date.now()-timeStatus);
+        mainWindow.webContents.send('updatePathLive', curLocationRobot, location, Date.now()-timeStatus);
 
       } else {
         const temp_time=timeEndAnim-Date.now();
@@ -350,7 +365,7 @@ function receiveResponseServer(response) { // from the server
         const temp_location = location;
         const temp_duration = Date.now()-timeStatus
         setTimeout(()=> {
-          mainWindow.webContents.send('drawSegment', temp_curLocationRobot, temp_location, temp_duration);
+          mainWindow.webContents.send('updatePathLive', temp_curLocationRobot, temp_location, temp_duration);
         }, temp_time)
       }
     }
