@@ -4,6 +4,8 @@ import Topbar from './components/Topbar.vue'
 </script>
 
 <template>
+	<div id="background">
+	</div>
   <router-view id="router_view" v-slot="{ Component }">
     <keep-alive>
       <component :is="Component" />

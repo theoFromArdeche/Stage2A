@@ -12,7 +12,7 @@
 }
 
 #container_bar {
-  background-color: #7A8B97;
+  background-color: #b8b7b7;
   border-top: 1px solid black;
   box-sizing: border-box;
   position: relative;
@@ -65,7 +65,6 @@
   width: max-content;
   border-radius: 10px;
   border-style: none;
-  box-shadow: 0px 5px 10px #959595;
   padding: 1rem 1rem 1rem 1rem;
   box-sizing: content-box;
 }
@@ -74,7 +73,6 @@
 #container_buttons > button:hover {
   transform: scale(1.05);
   transition: 0.2s;
-  background-color: white;
 }
 
 #container_buttons > button:active {

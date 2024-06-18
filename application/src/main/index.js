@@ -193,9 +193,11 @@ function receiveRequest(request) {
   }
 }
 
-function receivedResponse(response) {
-  mainWindow.webContents.send('updateStatus', response);
-  sendResponse(response)
+function receivedResponse(response, flagSimulationResponse) {
+	mainWindow.webContents.send('updateStatus', response, !flagSimulationResponse);
+	if (flagSimulationResponse === flagSimulation) {
+		sendResponse(response)
+	}
 
 	if (response.indexOf('Arrived at ') === 0 || response.indexOf('Parked') === 0 || response.indexOf('DockingState: Docked') === 0){
 		mainWindow.webContents.send('removeIntervalLive', destination);
@@ -213,11 +215,11 @@ function receivedResponse(response) {
 		destination = response.substring('Going to '.length).trim().toLowerCase();
 	}
 
-  if (flagSimulation) {
-    mainWindow.webContents.send('updatePathSimulation', curPosRobot, destination);
+  if (flagSimulationResponse) {
+    mainWindow.webContents.send('updatePathSimulation', curPosRobot, destination, false);
   } else {
     timeStatus=Date.now();
-    mainWindow.webContents.send('updateDestinationLive', destination);
+    mainWindow.webContents.send('updateDestinationLive', destination, true);
   }
 }
 
@@ -319,7 +321,7 @@ function receiveResponseServer(response) { // from the server
 
   if (response.indexOf('RESPONSE: ') === 0) {
     const response_body = response.substring('RESPONSE: '.length);
-    receivedResponse(response_body);
+    receivedResponse(response_body, false);
 
   } else if (response.indexOf('UPDATE VARIABLES: ') === 0) {
     const update_json = response.substring('UPDATE VARIABLES: '.length).trim();
@@ -340,6 +342,7 @@ function receiveResponseServer(response) { // from the server
 
 
   } else if (response.indexOf('ExtendedStatusForHumans: ') === 0) {
+
     const statusForHuman = response.trim().substring('ExtendedStatusForHumans: '.length);
     // update of the sidebar
     mainWindow.webContents.send('Sidebar-updateStatus', statusForHuman);
@@ -423,19 +426,19 @@ function responseSimulation(request) {
     const whereto = request.toLowerCase().substring('goto '.length);
     if (!data.id.has(whereto)){
       //console.log('invalid destination')
-      receivedResponse(`Unknown destination ${whereto}\n`);
+      receivedResponse(`Unknown destination ${whereto}\n`, true);
       return
     }
     const msg1 = `Going to ${whereto}\n`
     const msg2 = `Arrived at ${whereto}\n`
     const delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
-    receivedResponse(msg1);
+    receivedResponse(msg1, true);
     curPosRobot=whereto
 
 		clearTimeout(parkingTimer);
 		clearTimeout(dockingTimer);
     setTimeout(() => {
-      receivedResponse(msg2);
+      receivedResponse(msg2, true);
 			if (whereto!=='standby1') {
 				parkingTimer = setTimeout(() => {
 					responseSimulation('goto standby1');
@@ -455,17 +458,17 @@ function responseSimulation(request) {
     const msg2 = 'Docking\n'
     const msg3 = 'Docked\n'
     const delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
-    receivedResponse(msg1);
+    receivedResponse(msg1, true);
     curPosRobot=whereto
     setTimeout(() => {
-      receivedResponse(msg2);
+      receivedResponse(msg2, true);
       setTimeout(() => {
-        receivedResponse(msg3);
+        receivedResponse(msg3, true);
       }, 1000);
     }, delta_time*1000);
 
   } else {
-    receivedResponse(`CommandError: ${request}\n`);
+    receivedResponse(`CommandError: ${request}\n`, true);
   }
 }
 

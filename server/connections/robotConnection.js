@@ -78,13 +78,14 @@ async function receiveResponseRobot(response) { // from the robot
 	// a response is received, the timer is reset
 	if (handler.accessState('handHolder')) {
 		handler.setHandTimeout(handler.accessState('handHolder')); // warning : problem if the robot bugs and sends 'Parking' every milliseconds (it happens sometimes)
+	}
 
-		// send the response to the client that made the request
-		const response_arr = response.split('\n');
-		for (let i=0; i<response_arr.length; i++) {
-			if (!response_arr[i]) continue;
-			handler.sendToClient(handler.accessState('handHolder'), `RESPONSE: ${response_arr[i]}\n`);
-		}
+	// send the response
+	const response_arr = response.split('\n');
+	for (let i=0; i<response_arr.length; i++) {
+		if (!response_arr[i]) continue;
+		handler.sendToAllClients(`RESPONSE: ${response_arr[i]}\n`);
+		//handler.sendToClient(handler.accessState('handHolder'), `RESPONSE: ${response_arr[i]}\n`);
 	}
 
 

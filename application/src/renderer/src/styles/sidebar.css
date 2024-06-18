@@ -3,15 +3,11 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    border-style: solid !important;
+		align-items: center;
     box-sizing: border-box;
-    border: 2px;
-    background-color: white;
     border-radius: 10px;
-    gap: 10px;
-}
-
-
-.elementSidebar {
-    width: 100%;
+    gap: 6%;
+		font-family: 'gfont_rubik_medium', sans-serif;
+  	font-size: 16px;
+  	line-height: 20px;
 }

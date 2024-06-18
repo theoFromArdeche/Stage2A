@@ -28,7 +28,7 @@ ipcRenderer.on('receiveQueue', (event, arg) => {
     <div id="container">
       <Sidebar id="sidebar"></Sidebar>
       <div id="container_map">
-        <MapAIP></MapAIP>
+        <MapAIP :flagLive="true"></MapAIP>
       </div>
       <Bottombar @requestHand="requestHand" :flagLive="true">
       </Bottombar>

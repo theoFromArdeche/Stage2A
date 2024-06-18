@@ -16,7 +16,8 @@ const container_statusMessages = ref(null)
 
 const ipcRenderer = window.electron.ipcRenderer
 
-ipcRenderer.on('updateStatus', (event, arg) => {
+ipcRenderer.on('updateStatus', (event, arg, flagLiveResponse) => {
+	if (flagLiveResponse !== props.flagLive) return;
   const flagScroll = container_statusMessages.value.scrollHeight === container_statusMessages.value.offsetHeight + container_statusMessages.value.scrollTop;
   const oldScrollTop = container_statusMessages.value.scrollTop
   statusMessage.value.unshift(arg)

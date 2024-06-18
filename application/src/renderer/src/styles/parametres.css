@@ -160,13 +160,12 @@ input:checked+.slider:before {
   background-color: lightgray;
 }
 
-button:hover {
+#button_admin:hover {
   transform: scale(1.05);
   transition: 0.2s;
-  background-color: white;
 }
 
-button:active {
+#button_admin:active {
   transform: scale(0.95);
   transition: 0.05s;
 }

@@ -10,15 +10,16 @@ import { ref, onMounted } from 'vue'
 
 </script>
 
+
 <template>
-  <div id="main_container">
+  <div>
     <div id="container">
       <Sidebar id="sidebar"></Sidebar>
       <div id="container_map">
-        <MapAIP></MapAIP>
+        <MapAIP :flagLive="true"></MapAIP>
       </div>
+			<Bottombar :flagLive="false">
+			</Bottombar>
     </div>
-    <Bottombar :flagLive="false">
-    </Bottombar>
   </div>
 </template>

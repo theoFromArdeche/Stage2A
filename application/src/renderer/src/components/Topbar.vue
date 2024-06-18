@@ -10,12 +10,12 @@ function change_view(view, new_button_id) {
   var container_elements = document.getElementById("container_topbar").children
 
 	var cur_button = container_elements[cur_button_id].children[0]
-	cur_button.style.border="";
-	cur_button.style.backgroundColor=""
+	cur_button.style.padding="";
+	cur_button.style.marginTop = ""
 
 	var new_button = container_elements[new_button_id].children[0]
-	new_button.style.border="solid 3px #6686ad";
-	new_button.style.backgroundColor="#6686ad"
+	new_button.style.padding = "0.8rem 8rem 0.8rem 8rem"
+	new_button.style.marginTop = "3.2rem"
 
 	cur_button_id=new_button_id
 }

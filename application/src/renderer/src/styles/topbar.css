@@ -30,18 +30,17 @@
 button {
     height: 70%;
     width: fit-content;
-    padding: 0 2rem 0 2rem;
+		margin-top: 0.5rem;
+    padding: 0.2rem 2rem 0.2rem 2rem;
     border-radius: 10px;
     border-style: none;
-    box-shadow: 0px 5px 10px #959595;
-    box-sizing: border-box;
+    box-sizing: content-box;
     transition: 0.1s ease-in-out;
 }
 
 button:hover {
     transform: scale(1.05);
     transition: 0.2s;
-    background-color: white;
 }
 
 button:active {

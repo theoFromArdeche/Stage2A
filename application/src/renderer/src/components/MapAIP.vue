@@ -1,23 +1,47 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { Heap } from 'heap-js'
 
 
 const ipcRenderer = window.electron.ipcRenderer;
 
 var data = null;
-var simulationTimer = null;
-var animLine = null;
+var simulationTimer = ref(null);
+var animLine = ref(null);
 const SHOW_PATH = true;
 const SHOW_PROJECTED_PATH = true;
-var destinationLive = null;
-var projectedPathInterval = null;
+var destinationLive = ref(null);
+var projectedPathInterval = ref(null);
 const refreshRateProjectedPath = 0.1 * 1000;
+
+
+const canvas_MapAIP = ref(null);
+
+const canvas_path = ref(null);
+const canvas_pathTemp = ref(null);
+
+const canvas_projectedPath = ref(null);
+const canvas_projectedPathTemp = ref(null);
+
+const canvas_grid = ref(null);
+
+
+
+
+
+
 
 ipcRenderer.on('updateData', (event, arg) => {
   data = arg;
 });
 
+
+const props = defineProps({
+  flagLive: {
+    type: Boolean,
+    required: true
+  }
+});
 
 
 function isDigit(charac) {
@@ -207,23 +231,17 @@ function getMin() {
 }
 
 onMounted(async () => {
-  // tell the backend that the vue has loaded
+	await nextTick();
 
-  const canvas_MapAIP = document.getElementById('canvas_MapAIP')
-  const ctx_MapAIP = canvas_MapAIP.getContext('2d')
+  const ctx_MapAIP = canvas_MapAIP.value.getContext('2d')
 
-  const canvas_path = document.getElementById("canvas_path");
-  const ctx_path = canvas_path.getContext('2d');
-	const canvas_pathTemp = document.getElementById("canvas_pathTemp");
-  const ctx_pathTemp = canvas_pathTemp.getContext('2d');
+  const ctx_path = canvas_path.value.getContext('2d');
+  const ctx_pathTemp = canvas_pathTemp.value.getContext('2d');
 
-  const canvas_projectedPath = document.getElementById("canvas_projectedPath");
-  const ctx_projectedPath = canvas_projectedPath.getContext('2d');
-	const canvas_projectedPathTemp = document.getElementById("canvas_projectedPathTemp");
-  const ctx_projectedPathTemp = canvas_projectedPathTemp.getContext('2d');
+  const ctx_projectedPath = canvas_projectedPath.value.getContext('2d');
+  const ctx_projectedPathTemp = canvas_projectedPathTemp.value.getContext('2d');
 
-  const canvas_grid = document.getElementById("canvas_grid");
-  const ctx_grid = canvas_grid.getContext('2d');
+  const ctx_grid = canvas_grid.value.getContext('2d');
 
 	const tailleCarré = 10;
 	const distanceWeight = 16;
@@ -283,30 +301,30 @@ onMounted(async () => {
 
     const container_map = document.getElementById('container_map')
 
-    canvas_MapAIP.width = 2560
-    canvas_MapAIP.height = (maxPos.x * canvas_MapAIP.width) / maxPos.y
+    canvas_MapAIP.value.width = 2560
+    canvas_MapAIP.value.height = (maxPos.x * canvas_MapAIP.value.width) / maxPos.y
 
-    canvas_path.width = canvas_MapAIP.width
-    canvas_path.height = canvas_MapAIP.height
-		canvas_pathTemp.width = canvas_MapAIP.width
-    canvas_pathTemp.height = canvas_MapAIP.height
+    canvas_path.value.width = canvas_MapAIP.value.width
+    canvas_path.value.height = canvas_MapAIP.value.height
+		canvas_pathTemp.value.width = canvas_MapAIP.value.width
+    canvas_pathTemp.value.height = canvas_MapAIP.value.height
 
-    canvas_projectedPath.width = canvas_MapAIP.width
-    canvas_projectedPath.height = canvas_MapAIP.height
-		canvas_projectedPathTemp.width = canvas_MapAIP.width
-    canvas_projectedPathTemp.height = canvas_MapAIP.height
+    canvas_projectedPath.value.width = canvas_MapAIP.value.width
+    canvas_projectedPath.value.height = canvas_MapAIP.value.height
+		canvas_projectedPathTemp.value.width = canvas_MapAIP.value.width
+    canvas_projectedPathTemp.value.height = canvas_MapAIP.value.height
 
-    canvas_grid.width = canvas_MapAIP.width
-    canvas_grid.height = canvas_MapAIP.height
+    canvas_grid.value.width = canvas_MapAIP.value.width
+    canvas_grid.value.height = canvas_MapAIP.value.height
 
 
-		widthGRID =  Math.ceil(canvas_grid.width/tailleCarré);
-		heightGRID = Math.ceil(canvas_grid.height/tailleCarré);
+		widthGRID =  Math.ceil(canvas_grid.value.width/tailleCarré);
+		heightGRID = Math.ceil(canvas_grid.value.height/tailleCarré);
 		GRID = Array.from({ length: heightGRID }, () => Array(widthGRID).fill(1));
 
 
     pointDetectedCoords.forEach((point) => {
-      const transformed = transformCoord(point[0], point[1], canvas_MapAIP.width)
+      const transformed = transformCoord(point[0], point[1], canvas_MapAIP.value.width)
       ctx_MapAIP.fillStyle = 'blue'
       ctx_MapAIP.beginPath()
       ctx_MapAIP.arc(transformed.x, transformed.y, 0.5, 0, 2 * Math.PI)
@@ -341,8 +359,8 @@ onMounted(async () => {
     })
 
     forbiddenLines.forEach((line) => {
-      const start = transformCoord(line[0][0], line[0][1], canvas_MapAIP.width)
-      const end = transformCoord(line[1][0], line[1][1], canvas_MapAIP.width)
+      const start = transformCoord(line[0][0], line[0][1], canvas_MapAIP.value.width)
+      const end = transformCoord(line[1][0], line[1][1], canvas_MapAIP.value.width)
       ctx_MapAIP.strokeStyle = 'red'
       ctx_MapAIP.lineWidth = 2
       ctx_MapAIP.beginPath()
@@ -354,8 +372,8 @@ onMounted(async () => {
     })
 
     forbiddenAreas.forEach((area) => {
-      const bottomRight = transformCoord(area[0][0], area[0][1], canvas_MapAIP.width)
-      const topLeft = transformCoord(area[1][0], area[1][1], canvas_MapAIP.width)
+      const bottomRight = transformCoord(area[0][0], area[0][1], canvas_MapAIP.value.width)
+      const topLeft = transformCoord(area[1][0], area[1][1], canvas_MapAIP.value.width)
       ctx_MapAIP.fillStyle = 'rgba(255, 0, 0, 0.5)'
       ctx_MapAIP.beginPath()
       ctx_MapAIP.rect(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y)
@@ -372,8 +390,8 @@ onMounted(async () => {
     })
 
     lineDetectedCoords.forEach((line) => {
-      const start = transformCoord(line[0][0], line[0][1], canvas_MapAIP.width)
-      const end = transformCoord(line[1][0], line[1][1], canvas_MapAIP.width)
+      const start = transformCoord(line[0][0], line[0][1], canvas_MapAIP.value.width)
+      const end = transformCoord(line[1][0], line[1][1], canvas_MapAIP.value.width)
       ctx_MapAIP.strokeStyle = 'purple'
       ctx_MapAIP.lineWidth = 1
       ctx_MapAIP.beginPath()
@@ -387,6 +405,7 @@ onMounted(async () => {
 		//drawGridWeight();
   }
 
+  // tell the backend that the vue has loaded
   ipcRenderer.send('MapAIP-vue-loaded');
 
   var map_fetched = false;
@@ -424,13 +443,13 @@ onMounted(async () => {
 		for (let row=0; row<heightGRID; row++) {
 			ctx_grid.beginPath();
 			ctx_grid.moveTo(0, row*tailleCarré);
-			ctx_grid.lineTo(canvas_grid.width-1, row*tailleCarré);
+			ctx_grid.lineTo(canvas_grid.value.width-1, row*tailleCarré);
 			ctx_grid.stroke();
 		}
 		for (let column=0; column<widthGRID; column++) {
 			ctx_grid.beginPath();
 			ctx_grid.moveTo(column*tailleCarré, 0);
-			ctx_grid.lineTo(column*tailleCarré, canvas_grid.height-1);
+			ctx_grid.lineTo(column*tailleCarré, canvas_grid.value.height-1);
 			ctx_grid.stroke();
 		}
 	}
@@ -541,6 +560,9 @@ onMounted(async () => {
 
 			[curRow, curCol, curDirection] = parent[curRow][curCol] || [null, null, null];
     }
+
+		path.push([start_x, start_y, 0])
+
     path.reverse();
 
     return path;
@@ -553,7 +575,7 @@ onMounted(async () => {
 
 		if (animRobot) {
 			const robot = document.getElementById('robot');
-			const diff = canvas_path.width / canvas_path.offsetWidth;
+			const diff = canvas_path.value.width / canvas_path.value.offsetWidth;
 			robot.style.top = `${end_y / diff / container_map.offsetHeight * 100}%`;
 			robot.style.left = `${end_x / diff / container_map.offsetWidth * 100}%`;
 			robot.style.transition = `left linear ${duration}ms, top linear ${duration}ms, transform linear 500ms`;
@@ -597,7 +619,7 @@ onMounted(async () => {
       const newX = start_x + dx * progress;
       const newY = start_y + dy * progress;
 
-      ctx_temp.clearRect(0, 0, canvas_path.width, canvas_path.height);
+      ctx_temp.clearRect(0, 0, canvas_path.value.width, canvas_path.value.height);
       ctx_temp.beginPath();
 			if (reverse) {
 				ctx_temp.moveTo(newX, newY);
@@ -610,7 +632,7 @@ onMounted(async () => {
       ctx_temp.stroke();
 
       if (progress < 1) {
-        animLine = requestAnimationFrame(animate);
+        animLine.value = requestAnimationFrame(animate);
       } else {
 				if (!reverse) {
 					ctx.beginPath();
@@ -619,28 +641,30 @@ onMounted(async () => {
         	ctx.stroke();
 				}
         //add_infos(src, dest)
-				ctx_temp.clearRect(0, 0, canvas_path.width, canvas_path.height);
-				animLine=null;
+				ctx_temp.clearRect(0, 0, canvas_path.value.width, canvas_path.value.height);
+				animLine.value=null;
       }
     }
-    animLine = requestAnimationFrame(animate);
+    animLine.value = requestAnimationFrame(animate);
   }
 
-	function animatePath(path, index, prev_x, prev_y, duration, animRobot, showPath, showProjectedPath, ctx, ctx_temp) {
+	async function animatePath(path, index, prev_x, prev_y, duration, animRobot, showPath, showProjectedPath, ctx, ctx_temp) {
 		const cur_x=path[index][0];
 		const cur_y=path[index][1];
 		const total_dist=path[path.length-1][2];
 		const delta_dist=path[index][2]-path[index-1][2];
-		const curDuration = duration*1/path.length //delta_dist/total_dist;
+		const curDuration = duration*delta_dist/total_dist;
+		console.log(delta_dist, curDuration);
 
 
 		var rotationDeg = 0;
-		const diff = canvas_path.width / canvas_path.offsetWidth;
+		const diff = canvas_path.value.width / canvas_path.value.offsetWidth;
 		if (animRobot) {
 			const robot = document.getElementById('robot');
+			robot.style.transition = `left linear ${curDuration}ms, top linear ${curDuration}ms, transform linear ${0}ms`;
+			await nextTick();
 			robot.style.top = `${cur_y / diff / container_map.offsetHeight * 100}%`;
 			robot.style.left = `${cur_x / diff / container_map.offsetWidth * 100}%`;
-			robot.style.transition = `left linear ${curDuration}ms, top linear ${curDuration}ms, transform linear ${0}ms`;
 
 
 			const dx = cur_x - prev_x;
@@ -653,7 +677,7 @@ onMounted(async () => {
 		}
 
 		if (showProjectedPath) {
-			ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.width, canvas_projectedPath.height);
+			ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.value.width, canvas_projectedPath.value.height);
 		}
 
 		if (index+1>=path.length) return;
@@ -661,7 +685,7 @@ onMounted(async () => {
 		if (curDuration===0) {
 			animatePath(path, index+1, cur_x, cur_y, duration, animRobot, showPath, showProjectedPath, ctx, ctx_temp);
 		} else {
-			simulationTimer = setTimeout(() => {
+			simulationTimer.value = setTimeout(() => {
 				animatePath(path, index+1, cur_x, cur_y, duration, animRobot, showPath, showProjectedPath, ctx, ctx_temp);
 			}, curDuration);
 		}
@@ -674,7 +698,9 @@ onMounted(async () => {
 
 
 
-  ipcRenderer.on('updatePathSimulation', (event, src, dest) => {
+  ipcRenderer.on('updatePathSimulation', async (event, src, dest, flagLiveResponse) => {
+		if (flagLiveResponse) return;
+
     if (!data.id.has(src)||!data.id.has(dest)) return;
 
 
@@ -683,30 +709,42 @@ onMounted(async () => {
 		const button_start = document.getElementById(src);
 		const button_end = document.getElementById(dest);
 
-		const diff = canvas_path.width / canvas_path.offsetWidth;
+		const diff = canvas_path.value.width / canvas_path.value.offsetWidth;
 
 		var start_x = button_start.offsetLeft * diff;
 		var start_y = button_start.offsetTop * diff;
 		const end_x = button_end.offsetLeft * diff;
 		const end_y = button_end.offsetTop * diff;
 
-		if (simulationTimer) {
-			clearTimeout(simulationTimer);
-			ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.width, canvas_projectedPath.height);
-			ctx_projectedPathTemp.clearRect(0, 0, canvas_projectedPath.width, canvas_projectedPath.height);
-			const robot = document.getElementById('robot');
-			start_x = robot.offsetLeft * diff;
-			start_y = robot.offsetTop * diff;
+		const robot = document.getElementById('robot');
+		// actual coordinates of the robot
+		const robot_x = robot.offsetLeft * diff;
+		const robot_y = robot.offsetTop * diff;
+		if (simulationTimer.value) {
+			clearTimeout(simulationTimer.value);
+			ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.value.width, canvas_projectedPath.value.height);
+			ctx_projectedPathTemp.clearRect(0, 0, canvas_projectedPath.value.width, canvas_projectedPath.value.height);
 
-			if (animLine) {
+			start_x = robot_x;
+			start_y = robot_y;
+
+			if (animLine.value) {
+				// robot.style.top and robot.style.left are not in sync with the actual coordinates
+				// because the robot is moving toward the position at robot.style.top and robot.style.left
+				// so we need to update them to stop the robot
 				robot.style.top = `${start_y / diff / container_map.offsetHeight * 100}%`;
 				robot.style.left = `${start_x / diff / container_map.offsetWidth * 100}%`;
-				cancelAnimationFrame(animLine);
-				animLine=null;
-				ctx_path.drawImage(canvas_pathTemp, 0, 0); // line not finished
+				cancelAnimationFrame(animLine.value);
+				animLine.value=null;
+				ctx_path.drawImage(canvas_pathTemp.value, 0, 0); // line not finished
 			}
 		} else {
-			ctx_path.clearRect(0, 0, canvas_path.width, canvas_path.height)
+			ctx_path.clearRect(0, 0, canvas_path.value.width, canvas_path.value.height);
+			if (start_x!==robot_x || start_y!==robot_y) {
+				robot.style.top = `${start_y / diff / container_map.offsetHeight * 100}%`;
+				robot.style.left = `${start_x / diff / container_map.offsetWidth * 100}%`;
+				await nextTick();
+			}
 		}
 
 		const liste = [
@@ -738,11 +776,19 @@ onMounted(async () => {
 		const path = dijkstra(start_x, start_y, end_x, end_y);
 		if (!path) return;
 
+		var totalDist=0;
+		path[0][2] = totalDist;
+		for (let i=1; i<path.length; i++) {
+			totalDist+=Math.abs(path[i][0]-path[i-1][0])+Math.abs(path[i][1]-path[i-1][1]);
+			path[i][2] = totalDist;
+		}
+
+
 		animatePath(path, 1, start_x, start_y, duration, true, SHOW_PATH, SHOW_PROJECTED_PATH, ctx_path, ctx_pathTemp);
-		simulationTimer=null;
+		simulationTimer.value=null;
   });
 
-  ipcRenderer.on('updatePathLive', (event, src, dest, duration) => {
+  ipcRenderer.on('updatePathLive', async (event, src, dest, duration) => {
 		const src_arr = src.split(' ');
 		const dest_arr = dest.split(' ');
 		var start_x = parseFloat(src_arr[0]);
@@ -751,8 +797,21 @@ onMounted(async () => {
 		var end_y = parseFloat(dest_arr[1]);
 
 
-		const transformedSrc = transformCoord(start_x, start_y, canvas_MapAIP.width);
-		const transformedDest = transformCoord(end_x, end_y, canvas_MapAIP.width);
+		const robot = document.getElementById('robot');
+		const diff = canvas_path.value.width / canvas_path.value.offsetWidth;
+
+		// actual coordinates of the robot
+		const robot_x = robot.offsetLeft * diff;
+		const robot_y = robot.offsetTop * diff;
+
+		if (start_x!==robot_x || start_y!==robot_y) {
+			robot.style.top = `${start_y / diff / container_map.offsetHeight * 100}%`;
+			robot.style.left = `${start_x / diff / container_map.offsetWidth * 100}%`;
+			await nextTick();
+		}
+
+		const transformedSrc = transformCoord(start_x, start_y, canvas_MapAIP.value.width);
+		const transformedDest = transformCoord(end_x, end_y, canvas_MapAIP.value.width);
 
 		start_x=transformedSrc.x; start_y=transformedSrc.y;
 		end_x=transformedDest.x; end_y=transformedDest.y;
@@ -774,47 +833,52 @@ onMounted(async () => {
 		ctx_projectedPathTemp.lineWidth = 2.5;
 		ctx_projectedPathTemp.strokeStyle = 'lightblue';
 
-		clearInterval(projectedPathInterval);
-		projectedPathInterval = setInterval(() => {
-			if (data.id.has(destinationLive)) {
-				ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.width, canvas_projectedPath.height);
+		clearInterval(projectedPathInterval.value);
+		projectedPathInterval.value = setInterval(() => {
+			if (data.id.has(destinationLive.value)) {
+				ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.value.width, canvas_projectedPath.value.height);
 
-				const diff = canvas_path.width / canvas_path.offsetWidth;
+				const diff = canvas_path.value.width / canvas_path.value.offsetWidth;
 
 				const robot = document.getElementById('robot');
 				const start_x = robot.offsetLeft * diff;
 				const start_y = robot.offsetTop * diff;
 
-				const button_dest = document.getElementById(destinationLive);
+				const button_dest = document.getElementById(destinationLive.value);
 				const dest_x = button_dest.offsetLeft * diff;
 				const dest_y = button_dest.offsetTop * diff;
 
 				const path = dijkstra(start_x, start_y, dest_x, dest_y);
 				if (path) {
 					animatePath(path, 1, start_x, start_y, 0, false, true, false, ctx_projectedPath, ctx_projectedPathTemp);
-					ctx_projectedPathTemp.drawImage(canvas_projectedPath, 0, 0);
-					simulationTimer=null;
+					ctx_projectedPathTemp.drawImage(canvas_projectedPath.value, 0, 0);
+					simulationTimer.value=null;
 				}
 			}
 		}, refreshRateProjectedPath)
 	}
 
-	ipcRenderer.on('updateDestinationLive', (event, arg) => {
-		destinationLive = arg;
+	ipcRenderer.on('updateDestinationLive', (event, arg, flagLiveResponse) => {
+		if (!flagLiveResponse) {
+			console.log("not update")
+			return;
+		}
+		console.log('update')
+		destinationLive.value = arg;
 		startIntervalProjectedPath();
 	});
 
 	ipcRenderer.on('removeIntervalLive', (event, arg) => {
-		clearInterval(projectedPathInterval);
-		ctx_projectedPathTemp.clearRect(0, 0, canvas_projectedPathTemp.width, canvas_projectedPathTemp.height);
-		ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.width, canvas_projectedPath.height);
+		clearInterval(projectedPathInterval.value);
+		ctx_projectedPathTemp.clearRect(0, 0, canvas_projectedPathTemp.value.width, canvas_projectedPathTemp.value.height);
+		ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.value.width, canvas_projectedPath.value.height);
 	});
 
 
   document.addEventListener('keydown', function (event) {
     if (event.key === 'c') {
-      ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.width, canvas_projectedPath.height);
-			ctx_path.clearRect(0, 0, canvas_path.width, canvas_path.height);
+      ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.value.width, canvas_projectedPath.value.height);
+			ctx_path.clearRect(0, 0, canvas_path.value.width, canvas_path.value.height);
     }
   });
 })
@@ -832,12 +896,12 @@ onMounted(async () => {
 			<div></div>
 		</div>
 	</div>
-  <canvas id="canvas_MapAIP"></canvas>
-  <canvas id="canvas_path" class="drawingCanvas"></canvas>
-  <canvas id="canvas_pathTemp" class="drawingCanvas"></canvas>
-  <canvas id="canvas_projectedPath" class="drawingCanvas"></canvas>
-  <canvas id="canvas_projectedPathTemp" class="drawingCanvas"></canvas>
-  <canvas id="canvas_grid" class="drawingCanvas"></canvas>
+  <canvas id="canvas_MapAIP" ref="canvas_MapAIP"></canvas>
+  <canvas id="canvas_path" ref="canvas_path" class="drawingCanvas"></canvas>
+  <canvas id="canvas_pathTemp" ref="canvas_pathTemp" class="drawingCanvas"></canvas>
+  <canvas id="canvas_projectedPath" ref="canvas_projectedPath" class="drawingCanvas"></canvas>
+  <canvas id="canvas_projectedPathTemp" ref="canvas_projectedPathTemp" class="drawingCanvas"></canvas>
+  <canvas id="canvas_grid" ref="canvas_grid" class="drawingCanvas"></canvas>
 </template>
 
 <style scoped src="../styles/mapAIP.css"></style>
