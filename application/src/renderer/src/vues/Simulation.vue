@@ -16,7 +16,7 @@ import { ref, onMounted } from 'vue'
     <div id="container">
       <Sidebar id="sidebar"></Sidebar>
       <div id="wrapper_map">
-        <MapAIP :flagLive="true"></MapAIP>
+        <MapAIP :flagLive="false"></MapAIP>
       </div>
 			<Bottombar :flagLive="false">
 			</Bottombar>

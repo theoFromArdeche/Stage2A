@@ -216,10 +216,10 @@ function receivedResponse(response, flagSimulationResponse) {
 	}
 
   if (flagSimulationResponse) {
-    mainWindow.webContents.send('updatePathSimulation', curPosRobot, destination, false);
+    mainWindow.webContents.send('updatePathSimulation', curPosRobot, destination);
   } else {
     timeStatus=Date.now();
-    mainWindow.webContents.send('updateDestinationLive', destination, true);
+    mainWindow.webContents.send('updateDestinationLive', destination);
   }
 }
 
@@ -357,21 +357,19 @@ function receiveResponseServer(response) { // from the server
     // update of sidebar and MapAIP
     mainWindow.webContents.send('updatePosition', location);
 
-    // if in 'Live' draw the segment oldLocation -> curLocation
-    if (!flagSimulation) {
-      if (timeEndAnim-Date.now()<100) { // 100 ms
-        mainWindow.webContents.send('updatePathLive', curLocationRobot, location, Date.now()-timeStatus);
+    // draw the segment oldLocation -> curLocation in 'Live'
+		if (timeEndAnim-Date.now()<100) { // 100 ms
+			mainWindow.webContents.send('updatePathLive', curLocationRobot, location, Date.now()-timeStatus);
 
-      } else {
-        const temp_time=timeEndAnim-Date.now();
-        const temp_curLocationRobot=curLocationRobot;
-        const temp_location = location;
-        const temp_duration = Date.now()-timeStatus
-        setTimeout(()=> {
-          mainWindow.webContents.send('updatePathLive', temp_curLocationRobot, temp_location, temp_duration);
-        }, temp_time)
-      }
-    }
+		} else {
+			const temp_time=timeEndAnim-Date.now();
+			const temp_curLocationRobot=curLocationRobot;
+			const temp_location = location;
+			const temp_duration = Date.now()-timeStatus
+			setTimeout(()=> {
+				mainWindow.webContents.send('updatePathLive', temp_curLocationRobot, temp_location, temp_duration);
+			}, temp_time)
+		}
 
     curLocationRobot = location
     timeEndAnim = 2*Date.now()-timeStatus
