@@ -8,6 +8,11 @@
   src: url('../assets/fonts/Rubik/static/Rubik-Medium.ttf');
 }
 
+@font-face {
+  font-family: 'gfont_rubik_bold';
+  src: url('../assets/fonts/Rubik/static/Rubik-ExtraBold.ttf');
+}
+
 :root {
   font-family: 'gfont_rubik_regular', sans-serif;
   font-weight: 300;
@@ -52,8 +57,8 @@ button {
   font-family: 'gfont_rubik_medium', sans-serif;
   font-size: 24px;
   line-height: 24px;
-	color: whitesmoke;
-	background-color: #409342;
+	color: rgba(0, 0, 0, 0.683);
+	background-color: whitesmoke;
 	box-shadow: rgba(0, 0, 0, 0.07) 0px 1px 2px, rgba(0, 0, 0, 0.07) 0px 2px 4px, rgba(0, 0, 0, 0.07) 0px 4px 8px, rgba(0, 0, 0, 0.07) 0px 8px 16px, rgba(0, 0, 0, 0.07) 0px 16px 32px, rgba(0, 0, 0, 0.07) 0px 32px 64px;
 }
 

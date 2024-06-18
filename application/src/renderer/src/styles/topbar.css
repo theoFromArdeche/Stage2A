@@ -36,6 +36,10 @@ button {
     border-style: none;
     box-sizing: content-box;
     transition: 0.25s ease-in-out;
+		font-family: 'gfont_rubik_bold', sans-serif;
+		font-size: 30px;
+		line-height: 24px;
+		color: #000000af;
 }
 
 button:hover {

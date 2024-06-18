@@ -132,13 +132,13 @@ input:checked+.slider:before {
   position: relative;
 }
 
+
 .box_wrapper {
   position: absolute;
   top: 80%;
 }
 
 .elt_admin {
-  margin: 0 10px 30px 0;
   font-size: 2rem;
 }
 
@@ -148,16 +148,14 @@ input:checked+.slider:before {
 }
 
 #button_admin {
-  height: 34px;
-  width : 130px;
   border-radius: 10px;
   font-size: 1.2rem;
   border-style: none;
   box-shadow: 0px 5px 10px #8b8b8b;
   box-sizing: border-box;
-  padding: 5px 0px 5px 0px;
+  padding: 1rem 1rem 1rem 1rem;
   transition: 0.5s ease-in-out;
-  background-color: lightgray;
+  background-color: #409342;
 }
 
 #button_admin:hover {
@@ -182,6 +180,8 @@ input:checked+.slider:before {
   flex-direction: row;
   align-items: center;
   justify-content: center;
+	gap: 5%;
+	margin: 0 10px 30px 0;
 }
 
 #titre_stats{

@@ -14,7 +14,7 @@ function change_view(view, new_button_id) {
 	cur_button.style.marginTop = ""
 
 	var new_button = container_elements[new_button_id].children[0]
-	new_button.style.padding = "0.8rem 8rem 0.8rem 8rem"
+	new_button.style.padding = "0.8rem 4rem 0.8rem 4rem"
 	new_button.style.marginTop = "3.2rem"
 
 	cur_button_id=new_button_id
