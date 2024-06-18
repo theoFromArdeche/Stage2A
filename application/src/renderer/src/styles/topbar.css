@@ -35,15 +35,15 @@ button {
     border-radius: 10px;
     border-style: none;
     box-sizing: content-box;
-    transition: 0.1s ease-in-out;
+    transition: 0.25s ease-in-out;
 }
 
 button:hover {
-    transform: scale(1.05);
+    transform: scale(1.15);
     transition: 0.2s;
 }
 
 button:active {
-    transform: scale(0.95);
-    transition: 0.05s;
+    transform: scale(1);
+    transition: 0.2s;
 }
