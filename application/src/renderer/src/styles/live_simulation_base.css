@@ -9,20 +9,28 @@
 }
 
 #container_map {
-    flex-grow: 1;
-    margin: 0 3% 0 3%;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: auto;
+    height: 100%;
+		width: 100%;
     position: relative;
 }
 
 
-
-#map {
-    mix-blend-mode: multiply;
-    height: auto;
+#wrapper_map {
+	flex-grow: 1;
+	margin: 0 3% 0 3%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: auto;
+	position: relative;
+	background-color: whitesmoke;
+	padding: 4% 1% 4% 1%;
+	border-radius: 20px;
+	box-shadow: rgba(0, 0, 0, 0.19) 0px 10px 20px, rgba(0, 0, 0, 0.23) 0px 6px 6px;
+	box-sizing: content-box;
 }
 
 
@@ -40,7 +48,7 @@
 
 
 
-#container_map > button {
+#containerButtons > button {
   cursor: pointer;
   border: none;
   border-radius: 100%;
@@ -51,11 +59,10 @@
   transform: translate(-50%, -50%);
 }
 
-#container_map > button:hover {
+#containerButtons > button:hover {
   transform: scale(2) translate(-25%, -25%);
 }
 
-#container_map > button:active {
-    transform: scale(1) translate(-50%, -50%);
-  }
-
+#containerButtons > button:active {
+  transform: scale(1) translate(-50%, -50%);
+}

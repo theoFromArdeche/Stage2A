@@ -299,7 +299,7 @@ onMounted(async () => {
   function tailleEtTracer() {
     //ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    const container_map = document.getElementById('container_map')
+    const containerButtons = document.getElementById('containerButtons')
 
     canvas_MapAIP.value.width = 2560
     canvas_MapAIP.value.height = (maxPos.x * canvas_MapAIP.value.width) / maxPos.y
@@ -337,7 +337,7 @@ onMounted(async () => {
 
     //interestPoints = [[-291, 1132, 142, "test"]]
     interestPoints.forEach((point) => {
-      const transformed = transformCoord(point[0], point[1], container_map.offsetWidth)
+      const transformed = transformCoord(point[0], point[1], containerButtons.offsetWidth)
       const button = document.createElement('button')
       const text_bouton = document.createElement('p')
       text_bouton.innerText = point[3]
@@ -345,17 +345,17 @@ onMounted(async () => {
       button.style.position = 'absolute'
       text_bouton.style.position = 'absolute'
       button.style.width = '1%'
-      button.style.left = `${Math.round((transformed.x / container_map.offsetWidth) * 100)}%`
-      text_bouton.style.left = `${Math.round((transformed.x / container_map.offsetWidth) * 100)}%`
-      const container_height = (maxPos.x * container_map.offsetWidth) / maxPos.y
+      button.style.left = `${Math.round((transformed.x / containerButtons.offsetWidth) * 100)}%`
+      text_bouton.style.left = `${Math.round((transformed.x / containerButtons.offsetWidth) * 100)}%`
+      const container_height = (maxPos.x * containerButtons.offsetWidth) / maxPos.y
       button.style.top = `${Math.round((transformed.y / container_height) * 100)}%`
       text_bouton.style.top = `${Math.round((transformed.y / container_height) * 100)}%`
       text_bouton.style.pointerEvents="none"
       button.id = point[3].toLowerCase()
       button.onclick = function(){text_bouton.style.opacity = 1 - text_bouton.style.opacity}
       buttons.push(button)
-      container_map.appendChild(text_bouton)
-      container_map.appendChild(button)
+      containerButtons.appendChild(text_bouton)
+      containerButtons.appendChild(button)
     })
 
     forbiddenLines.forEach((line) => {
@@ -576,8 +576,8 @@ onMounted(async () => {
 		if (animRobot) {
 			const robot = document.getElementById('robot');
 			const diff = canvas_path.value.width / canvas_path.value.offsetWidth;
-			robot.style.top = `${end_y / diff / container_map.offsetHeight * 100}%`;
-			robot.style.left = `${end_x / diff / container_map.offsetWidth * 100}%`;
+			robot.style.top = `${end_y / diff / containerButtons.offsetHeight * 100}%`;
+			robot.style.left = `${end_x / diff / containerButtons.offsetWidth * 100}%`;
 			robot.style.transition = `left linear ${duration}ms, top linear ${duration}ms, transform linear 500ms`;
 
 			var curDeg = 0;
@@ -663,8 +663,8 @@ onMounted(async () => {
 			const robot = document.getElementById('robot');
 			robot.style.transition = `left linear ${curDuration}ms, top linear ${curDuration}ms, transform linear ${0}ms`;
 			await nextTick();
-			robot.style.top = `${cur_y / diff / container_map.offsetHeight * 100}%`;
-			robot.style.left = `${cur_x / diff / container_map.offsetWidth * 100}%`;
+			robot.style.top = `${cur_y / diff / containerButtons.offsetHeight * 100}%`;
+			robot.style.left = `${cur_x / diff / containerButtons.offsetWidth * 100}%`;
 
 
 			const dx = cur_x - prev_x;
@@ -703,7 +703,6 @@ onMounted(async () => {
 
     if (!data.id.has(src)||!data.id.has(dest)) return;
 
-
     const duration = data.times[data.id.get(src)][data.id.get(dest)]*1000;
 
 		const button_start = document.getElementById(src);
@@ -732,8 +731,8 @@ onMounted(async () => {
 				// robot.style.top and robot.style.left are not in sync with the actual coordinates
 				// because the robot is moving toward the position at robot.style.top and robot.style.left
 				// so we need to update them to stop the robot
-				robot.style.top = `${start_y / diff / container_map.offsetHeight * 100}%`;
-				robot.style.left = `${start_x / diff / container_map.offsetWidth * 100}%`;
+				robot.style.top = `${start_y / diff / containerButtons.offsetHeight * 100}%`;
+				robot.style.left = `${start_x / diff / containerButtons.offsetWidth * 100}%`;
 				cancelAnimationFrame(animLine.value);
 				animLine.value=null;
 				ctx_path.drawImage(canvas_pathTemp.value, 0, 0); // line not finished
@@ -741,8 +740,8 @@ onMounted(async () => {
 		} else {
 			ctx_path.clearRect(0, 0, canvas_path.value.width, canvas_path.value.height);
 			if (start_x!==robot_x || start_y!==robot_y) {
-				robot.style.top = `${start_y / diff / container_map.offsetHeight * 100}%`;
-				robot.style.left = `${start_x / diff / container_map.offsetWidth * 100}%`;
+				robot.style.top = `${start_y / diff / containerButtons.offsetHeight * 100}%`;
+				robot.style.left = `${start_x / diff / containerButtons.offsetWidth * 100}%`;
 				await nextTick();
 			}
 		}
@@ -783,7 +782,6 @@ onMounted(async () => {
 			path[i][2] = totalDist;
 		}
 
-
 		animatePath(path, 1, start_x, start_y, duration, true, SHOW_PATH, SHOW_PROJECTED_PATH, ctx_path, ctx_pathTemp);
 		simulationTimer.value=null;
   });
@@ -805,8 +803,8 @@ onMounted(async () => {
 		const robot_y = robot.offsetTop * diff;
 
 		if (start_x!==robot_x || start_y!==robot_y) {
-			robot.style.top = `${start_y / diff / container_map.offsetHeight * 100}%`;
-			robot.style.left = `${start_x / diff / container_map.offsetWidth * 100}%`;
+			robot.style.top = `${start_y / diff / containerButtons.offsetHeight * 100}%`;
+			robot.style.left = `${start_x / diff / containerButtons.offsetWidth * 100}%`;
 			await nextTick();
 		}
 
@@ -886,22 +884,25 @@ onMounted(async () => {
 
 
 <template>
-	<div id="robot">
-		<div id="triangleRobot">
-			<div></div>
+	<div id="container_map">
+		<div id="robot">
+			<div id="triangleRobot">
+				<div></div>
+			</div>
+			<div id="triangleCutter">
+			</div>
+			<div id="borderRobot">
+				<div></div>
+			</div>
 		</div>
-		<div id="triangleCutter">
-		</div>
-		<div id="borderRobot">
-			<div></div>
-		</div>
+		<canvas id="canvas_MapAIP" ref="canvas_MapAIP"></canvas>
+		<canvas id="canvas_path" ref="canvas_path" class="drawingCanvas"></canvas>
+		<canvas id="canvas_pathTemp" ref="canvas_pathTemp" class="drawingCanvas"></canvas>
+		<canvas id="canvas_projectedPath" ref="canvas_projectedPath" class="drawingCanvas"></canvas>
+		<canvas id="canvas_projectedPathTemp" ref="canvas_projectedPathTemp" class="drawingCanvas"></canvas>
+		<canvas id="canvas_grid" ref="canvas_grid" class="drawingCanvas"></canvas>
+		<div id="containerButtons"></div>
 	</div>
-  <canvas id="canvas_MapAIP" ref="canvas_MapAIP"></canvas>
-  <canvas id="canvas_path" ref="canvas_path" class="drawingCanvas"></canvas>
-  <canvas id="canvas_pathTemp" ref="canvas_pathTemp" class="drawingCanvas"></canvas>
-  <canvas id="canvas_projectedPath" ref="canvas_projectedPath" class="drawingCanvas"></canvas>
-  <canvas id="canvas_projectedPathTemp" ref="canvas_projectedPathTemp" class="drawingCanvas"></canvas>
-  <canvas id="canvas_grid" ref="canvas_grid" class="drawingCanvas"></canvas>
 </template>
 
 <style scoped src="../styles/mapAIP.css"></style>
