@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick} from 'vue'
 
-const emit = defineEmits(['requestHand'])
 const props = defineProps({
   flagLive: {
     type: Boolean,
@@ -10,6 +9,9 @@ const props = defineProps({
 });
 
 
+const button_bottombar = ref(null);
+
+const posRobotSynced = ref(true);
 
 const statusMessage = ref([])
 const container_statusMessages = ref(null)
@@ -24,6 +26,30 @@ ipcRenderer.on('updateStatus', (event, arg, flagLiveResponse) => {
   updateScrollbar(flagScroll, oldScrollTop);
   //console.log(statusMessage)
 })
+
+
+ipcRenderer.on('updateSyncRobot', (event, arg) => {
+		if (props.flagLive) return;
+	posRobotSynced.value=arg;
+});
+
+
+function clickButton() {
+	if (props.flagLive) {
+  	ipcRenderer.send('requestHand');
+	} else {
+		ipcRenderer.send('syncPosRobot')
+	}
+}
+
+
+
+ipcRenderer.on('receiveQueue', (event, arg) => {
+	if (!props.flagLive) return;
+  button_bottombar.value.innerText = arg.trim();
+});
+
+
 
 
 async function updateScrollbar(flagScroll, oldScrollTop) {
@@ -77,8 +103,10 @@ onBeforeUnmount(() => {
 
 <template>
   <div id="container_bottombar">
-    <div v-if="props.flagLive" id="container_buttons">
-      <button id="button_demander_main" @click="emit('requestHand')">Demander la main</button>
+    <div id="container_buttons">
+      <button v-if="props.flagLive||!posRobotSynced" id="button_bottombar" ref="button_bottombar" @click="clickButton()">
+				{{ props.flagLive?'Demander la main':'Synchroniser le jumeau' }}
+			</button>
     </div>
     <div id="resize_handle" @mousedown="startResizing"></div>
     <div :style="{ height: containerHeight }" id="container_bar">

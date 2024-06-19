@@ -566,15 +566,17 @@ onMounted(async () => {
 	}
 
 
-  function createAnimation(start_x, start_y, end_x, end_y, rotationDeg, duration, animRobot, showPath, ctx, ctx_temp, reverse) {
+  async function createAnimation(start_x, start_y, end_x, end_y, rotationDeg, duration, animRobot, showPath, ctx, ctx_temp, reverse) {
     const dx = end_x - start_x;
     const dy = end_y - start_y;
 
 		if (animRobot) {
-			const diff = canvas_path.value.width / canvas_path.value.offsetWidth;
-			robot.value.style.top = `${end_y / diff / containerButtons.value.offsetHeight * 100}%`;
-			robot.value.style.left = `${end_x / diff / containerButtons.value.offsetWidth * 100}%`;
+			const canvas_path = document.getElementById('canvas_path'); // offsets are set to 0 when the component is cached
+			const diff = canvas_path.width / canvas_path.offsetWidth;
 			robot.value.style.transition = `left linear ${duration}ms, top linear ${duration}ms, transform linear 500ms`;
+			await nextTick();
+			robot.value.style.top = `${end_y / diff / canvas_path.offsetHeight * 100}%`;
+			robot.value.style.left = `${end_x / diff / canvas_path.offsetWidth * 100}%`;
 
 			var curDeg = 0;
 			if (robot.value.style.transform) {
@@ -601,8 +603,7 @@ onMounted(async () => {
 				newDeg = curDeg - counterClockwiseDiff;
 			}
 			robot.value.style.transform = `translate(-50%, -50%) rotate(${newDeg}deg)`;
-
-			console.log('anim robot : ', props.flagLive, end_y / diff / containerButtons.value.offsetHeight * 100, end_x / diff / containerButtons.value.offsetWidth * 100, newDeg)
+			//console.log('animation robot : ', props.flagLive, end_y / diff / containerButtons.value.offsetHeight * 100, end_x / diff / containerButtons.value.offsetWidth * 100, newDeg)
 		}
 
 		if (!showPath) return;
@@ -656,21 +657,14 @@ onMounted(async () => {
 
 
 		var rotationDeg = 0;
-		const diff = canvas_path.value.width / canvas_path.value.offsetWidth;
 		if (animRobot) {
-			robot.value.style.transition = `left linear ${curDuration}ms, top linear ${curDuration}ms, transform linear ${0}ms`;
-			await nextTick();
-			robot.value.style.top = `${cur_y / diff / containerButtons.value.offsetHeight * 100}%`;
-			robot.value.style.left = `${cur_x / diff / containerButtons.value.offsetWidth * 100}%`;
-
-
 			const dx = cur_x - prev_x;
 			const dy = cur_y - prev_y;
 			rotationDeg = Math.atan2(dy, dx)*180/Math.PI;
 		}
 
 		if (animRobot||showPath) {
-			createAnimation(prev_x, prev_y, cur_x, cur_y, rotationDeg, curDuration, animRobot, showPath, ctx, ctx_temp, false);
+			await createAnimation(prev_x, prev_y, cur_x, cur_y, rotationDeg, curDuration, animRobot, showPath, ctx, ctx_temp, false);
 		}
 
 		if (showProjectedPath) {
@@ -680,7 +674,7 @@ onMounted(async () => {
 		if (index+1>=path.length) return;
 
 		if (curDuration===0) {
-			animatePath(path, index+1, cur_x, cur_y, duration, animRobot, showPath, showProjectedPath, ctx, ctx_temp);
+			await animatePath(path, index+1, cur_x, cur_y, duration, animRobot, showPath, showProjectedPath, ctx, ctx_temp);
 		} else {
 			simulationTimer.value = setTimeout(() => {
 				animatePath(path, index+1, cur_x, cur_y, duration, animRobot, showPath, showProjectedPath, ctx, ctx_temp);
@@ -688,14 +682,14 @@ onMounted(async () => {
 		}
 
 		if (showProjectedPath) {
-			animatePath(path, index+1, cur_x, cur_y, 0, false, true, false, ctx_projectedPath, ctx_projectedPathTemp);
-			createAnimation(prev_x, prev_y, cur_x, cur_y, rotationDeg, curDuration, false, true, ctx_projectedPath, ctx_projectedPathTemp, true);
+			await animatePath(path, index+1, cur_x, cur_y, 0, false, true, false, ctx_projectedPath, ctx_projectedPathTemp);
+			await createAnimation(prev_x, prev_y, cur_x, cur_y, rotationDeg, curDuration, false, true, ctx_projectedPath, ctx_projectedPathTemp, true);
 		}
 	}
 
 
 
-  ipcRenderer.on('updatePathSimulation', async (event, src, dest) => {
+  ipcRenderer.on('updatePathSimulation', async (event, src, dest, clearCanva) => {
 		if (props.flagLive) return;
 
     if (!data.id.has(src)||!data.id.has(dest)) return;
@@ -704,6 +698,8 @@ onMounted(async () => {
 
 		const button_start = document.getElementById(src);
 		const button_end = document.getElementById(dest);
+
+		console.log(src, dest);
 
 		const diff = canvas_path.value.width / canvas_path.value.offsetWidth;
 
@@ -717,21 +713,38 @@ onMounted(async () => {
 		const robot_y = robot.value.offsetTop * diff;
 		if (simulationTimer.value) {
 			clearTimeout(simulationTimer.value);
+			await nextTick();
 			ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.value.width, canvas_projectedPath.value.height);
 			ctx_projectedPathTemp.clearRect(0, 0, canvas_projectedPath.value.width, canvas_projectedPath.value.height);
 
-			start_x = robot_x;
-			start_y = robot_y;
+			if (!clearCanva) {
+				start_x = robot_x;
+				start_y = robot_y;
+			}
 
 			if (animLine.value) {
 				// robot.value.style.top and robot.value.style.left are not in sync with the actual coordinates
 				// because the robot is moving toward the position at robot.value.style.top and robot.value.style.left
 				// so we need to update them to stop the robot
+				if (clearCanva) {
+					robot.value.style.transition = '0s';
+					await nextTick();
+				}
+				console.log(animLine.value);
 				robot.value.style.top = `${start_y / diff / containerButtons.value.offsetHeight * 100}%`;
 				robot.value.style.left = `${start_x / diff / containerButtons.value.offsetWidth * 100}%`;
+				await nextTick();
 				cancelAnimationFrame(animLine.value);
 				animLine.value=null;
 				ctx_path.drawImage(canvas_pathTemp.value, 0, 0); // line not finished
+			}
+
+			if (clearCanva) {
+				ctx_path.clearRect(0, 0, canvas_path.value.width, canvas_path.value.height);
+				ctx_pathTemp.clearRect(0, 0, canvas_pathTemp.value.width, canvas_pathTemp.value.height);
+				ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.value.width, canvas_projectedPath.value.height);
+				ctx_projectedPathTemp.clearRect(0, 0, canvas_projectedPathTemp.value.width, canvas_projectedPathTemp.value.height);
+				return;
 			}
 		} else {
 			ctx_path.clearRect(0, 0, canvas_path.value.width, canvas_path.value.height);
@@ -780,8 +793,9 @@ onMounted(async () => {
 			path[i][2] = totalDist;
 		}
 
-		animatePath(path, 1, start_x, start_y, duration, true, SHOW_PATH, SHOW_PROJECTED_PATH, ctx_path, ctx_pathTemp);
+		await animatePath(path, 1, start_x, start_y, duration, true, SHOW_PATH, SHOW_PROJECTED_PATH, ctx_path, ctx_pathTemp);
 		simulationTimer.value=null;
+
   });
 
   ipcRenderer.on('updatePathLive', async (event, src, dest, duration) => {
@@ -838,7 +852,7 @@ onMounted(async () => {
 
 		clearInterval(projectedPathInterval.value);
 		projectedPathInterval.value = setInterval(() => {
-			if (data.id.has(destinationLive.value)) {
+			if (props.flagLive &&  data.id.has(destinationLive.value)) {
 				ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.value.width, canvas_projectedPath.value.height);
 
 				const diff = canvas_path.value.width / canvas_path.value.offsetWidth;

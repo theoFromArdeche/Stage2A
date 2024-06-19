@@ -75,11 +75,21 @@ app.whenReady().then(() => {
 
   ipcMain.on('onSimulation', (event, arg) => {
     flagSimulation=true;
+		if (hasHand) {
+			sendRequestServer('HAND BACK');
+		}
   });
 
   ipcMain.on('onLive', (event, arg) => {
     flagSimulation=false;
-    curPosRobot=newPosRobot;
+  });
+
+	ipcMain.on('syncPosRobot', (event, arg) => {
+    curPosRobotSimulation=curPosRobotLive;
+		mainWindow.webContents.send('updateSyncRobot', true);
+		mainWindow.webContents.send('updatePathSimulation', curPosRobotSimulation, curPosRobotSimulation, true);
+		clearTimeout(parkingTimer);
+		clearTimeout(dockingTimer);
   });
 
 
@@ -113,8 +123,8 @@ var parkingTimer = null;
 const parkingTimeout = 7 * 1000;
 var dockingTimer = null;
 const dockingTimeout = 15 * 60 * 1000;
-var curPosRobot;
-var newPosRobot;
+var curPosRobotSimulation;
+var curPosRobotLive;
 var curLocationRobot = ''; // coords x, y, z example : '-384 1125 0.00'
 var timeStatus = -1;
 var timeEndAnim = -1;
@@ -195,9 +205,10 @@ function receiveRequest(request) {
 
 function receivedResponse(response, flagSimulationResponse) {
 	mainWindow.webContents.send('updateStatus', response, !flagSimulationResponse);
-	if (flagSimulationResponse === flagSimulation) {
+	if (hasHand !== flagSimulationResponse) {
 		sendResponse(response)
 	}
+
 
 	if (response.indexOf('Arrived at ') === 0 || response.indexOf('Parked') === 0 || response.indexOf('DockingState: Docked') === 0){
 		mainWindow.webContents.send('removeIntervalLive', destination);
@@ -215,8 +226,10 @@ function receivedResponse(response, flagSimulationResponse) {
 		destination = response.substring('Going to '.length).trim().toLowerCase();
 	}
 
+	//console.log(response, flagSimulationResponse, curPosRobotSimulation, destination);
+
   if (flagSimulationResponse) {
-    mainWindow.webContents.send('updatePathSimulation', curPosRobot, destination);
+    mainWindow.webContents.send('updatePathSimulation', curPosRobotSimulation, destination, false);
   } else {
     timeStatus=Date.now();
     mainWindow.webContents.send('updateDestinationLive', destination);
@@ -333,8 +346,8 @@ function receiveResponseServer(response) { // from the server
     } else { // success
       data.successes[id_src][id_dest]+=1;
       data.times[id_src][id_dest]=update.time;
-      newPosRobot = Array.from(data.id.keys())[id_dest];
-			if (!flagSimulation) curPosRobot=newPosRobot
+      curPosRobotLive = Array.from(data.id.keys())[id_dest];
+			mainWindow.webContents.send('updateSyncRobot', curPosRobotSimulation===curPosRobotLive);
     }
 
     //console.log('UPDATED DATA : ', data);
@@ -406,8 +419,8 @@ function receiveResponseServer(response) { // from the server
       console.log('Error parsing JSON:', err);
     }
 
-    curPosRobot = response_array[1];
-    newPosRobot = curPosRobot;
+    curPosRobotSimulation = response_array[1];
+    curPosRobotLive = curPosRobotSimulation;
   }
 }
 
@@ -429,9 +442,10 @@ function responseSimulation(request) {
     }
     const msg1 = `Going to ${whereto}\n`
     const msg2 = `Arrived at ${whereto}\n`
-    const delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
+    const delta_time = data.times[data.id.get(curPosRobotSimulation)][data.id.get(whereto)]
     receivedResponse(msg1, true);
-    curPosRobot=whereto
+    curPosRobotSimulation=whereto
+		mainWindow.webContents.send('updateSyncRobot', curPosRobotSimulation===curPosRobotLive);
 
 		clearTimeout(parkingTimer);
 		clearTimeout(dockingTimer);
@@ -455,9 +469,11 @@ function responseSimulation(request) {
     const msg1 = 'Going to dockingstation2\n'
     const msg2 = 'Docking\n'
     const msg3 = 'Docked\n'
-    const delta_time = data.times[data.id.get(curPosRobot)][data.id.get(whereto)]
+    const delta_time = data.times[data.id.get(curPosRobotSimulation)][data.id.get(whereto)]
     receivedResponse(msg1, true);
-    curPosRobot=whereto
+    curPosRobotSimulation=whereto
+		mainWindow.webContents.send('updateSyncRobot', curPosRobotSimulation===curPosRobotLive);
+
     setTimeout(() => {
       receivedResponse(msg2, true);
       setTimeout(() => {

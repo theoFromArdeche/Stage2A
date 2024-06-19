@@ -22,7 +22,10 @@ function connectToRobot() {
 
 		// Handle incoming data from the robot
 		handler.accessState('robotSocket').on('data', (data) => {
-			receiveResponseRobot(data.toString());
+			for (let e of data.toString().split('\n')) {
+				if (!e) continue;
+				receiveResponseRobot(`${e}\n`);
+			}
 		});
 
 		// Handle the end of the robot connection
@@ -61,15 +64,13 @@ function connectToRobot() {
 async function receiveResponseRobot(response) { // from the robot
 	console.log(`Received from robot : ${response}`);
 
-	if (response.startsWith('ExtendedStatusForHumans: ')||response.startsWith('Status: ')) {
+	if (response.startsWith('ExtendedStatusForHumans: ') || response.startsWith('Status: ') || response.startsWith('Location: ') ||
+			response.startsWith('StateOfCharge: ') || response.startsWith('LocalizationScore: ') || response.startsWith('Temperature: ')) {
 		handler.sendToAllClients(response);
 
 		// update the current location of the robot
-		const response_arr = response.split('\n');
-		for (let i=0; i<response_arr.length; i++) {
-			if (!response_arr[i].startsWith('Location: ')) continue;
-			handler.accessState('curLocationRobot', response_arr[i]);
-			break;
+		if (response.startsWith('Location: ')) {
+			handler.accessState('curLocationRobot', response);
 		}
 		return;
 	}
@@ -81,20 +82,14 @@ async function receiveResponseRobot(response) { // from the robot
 	}
 
 	// send the response
-	const response_arr = response.split('\n');
-	for (let i=0; i<response_arr.length; i++) {
-		if (!response_arr[i]) continue;
-		handler.sendToAllClients(`RESPONSE: ${response_arr[i]}\n`);
-		//handler.sendToClient(handler.accessState('handHolder'), `RESPONSE: ${response_arr[i]}\n`);
-	}
+	handler.sendToAllClients(`RESPONSE: ${response}`);
 
-
-	if (response.startsWith('Interrupted')) { // interrupted by an other request or by an EStop
+	if (response.startsWith('Interrupted: ') || response.startsWith('Error: Failed going to goal')) { // request failed or interrupted by an other request or by an EStop
 		handler.accessState('interruptedRequest', handler.accessState('requestDict'));
 		handler.accessState('requestDict', null);
 	}
 
-	if (response.startsWith('EStop')) { // fail
+	if (response.startsWith('EStop')||response.startsWith('Error: Failed going to goal')) { // fail
 		if (!handler.accessState('interruptedRequest')) {
 			console.log('Error: EStop without interrrupt');
 			return;
@@ -107,9 +102,10 @@ async function receiveResponseRobot(response) { // from the robot
 			);
 		});
 
-		response_update = JSON.stringify({src: src, dest: dest, time: -1});
+		response_update = JSON.stringify({src: handler.accessState('interruptedRequest').src, dest: handler.accessState('interruptedRequest').dest, time: -1});
 		handler.sendToAllClients(`UPDATE VARIABLES: ${response_update}\n`);
 	}
+
 
 
 	// if the robot is not moving anymore, stop the status requests

@@ -7,7 +7,7 @@ module.exports = { connectToClients }
 const net = require('net');
 
 const port_server = 2345;
-const pingTiming = 60 * 1000;
+const pingTiming = 5 * 60 * 1000;
 
 
 
@@ -152,7 +152,21 @@ function receiveRequest(clientId, msg) {
 			}
 			handler.sendToClient(clientId, `HAND QUEUE POSITION: ${position}\n`);
 		}
-	} else if (msg === 'DATA') {
+	} else if (msg === 'HAND BACK') {
+		if (handler.accessState('handHolder')!==clientId) return;
+		clearTimeout(handler.accessState('handTimer'));
+		if (handler.accessState('handQueue').length===0) {
+			handler.accessState('handHolder',null);
+		} else {
+			handler.accessState('handHolder', handler.accessState('handQueue')[0]);
+			handler.accessState('handQueue').shift();
+			handler.sendToClient(handler.accessState('handHolder'), 'HAND REQUEST ACCEPTED\n');
+			handler.setHandTimeout(handler.accessState('handHolder'));
+			handler.updatePositions();
+		}
+		handler.sendToClient(clientId, 'HAND TIMEOUT\n');
+
+ 	} else if (msg === 'DATA') {
 		sendData(clientId);
 	}
 }

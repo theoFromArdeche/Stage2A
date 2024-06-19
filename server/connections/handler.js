@@ -10,7 +10,7 @@ var state = {
 	interruptedRequest: null,
 	handQueue: [],
 	handTimer: null,
-	handTimeout: 60 * 1000,
+	handTimeout: 5 * 60 * 1000,
 	database: null
 };
 
