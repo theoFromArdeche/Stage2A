@@ -116,15 +116,6 @@ function receiveRequest(clientId, msg) {
 			dest = request.substring('goto '.length);
 		}
 
-		/*
-		if (!data.id.has(dest)) {
-			//console.log('invalid destination\n');
-			handler.sendToClient(clientId, `RESPONSE: Unknown destination ${dest}\n`); // TEMPORAIRE
-			return;
-		}*/
-		if (!handler.accessState('interruptedRequest')) {
-			handler.accessState('requestDict', {time: Date.now(), dest: dest});
-		}
 
 		// send the request to the robot
 		handler.sendToRobot(request)

@@ -73,16 +73,24 @@ app.whenReady().then(() => {
     mainWindow.webContents.send('updatePosition', curLocationRobot);
   });
 
-  ipcMain.on('onSimulation', (event, arg) => {
+  ipcMain.on('onSimulation', (event, arg) => { // from router
+		mainWindow.webContents.send('onSimulation');
     flagSimulation=true;
 		if (hasHand) {
 			sendRequestServer('HAND BACK');
 		}
   });
 
-  ipcMain.on('onLive', (event, arg) => {
+  ipcMain.on('onLive', (event, arg) => { // from router
+		mainWindow.webContents.send('onLive');
     flagSimulation=false;
   });
+
+
+	ipcMain.on('onParametres', (event, arg) => { // from router
+		mainWindow.webContents.send('onParametres');
+  });
+
 
 	ipcMain.on('syncPosRobot', (event, arg) => {
     curPosRobotSimulation=curPosRobotLive;
@@ -156,7 +164,11 @@ const instanceSocket = net.createServer((socket) => {
   console.log('Client socket info:', socket.address());
   // received data from the client
   socket.on('data', (data) => {
-    receiveRequest(data.toString().trim())
+		const responses = data.toString().split('\n');
+      for (let response of responses) {
+        if (!response) continue
+        receiveRequest(`${response.trim()}`);
+      }
   });
 
   socket.on('end', () => {
@@ -225,6 +237,8 @@ function receivedResponse(response, flagSimulationResponse) {
 	} else { // Going to
 		destination = response.substring('Going to '.length).trim().toLowerCase();
 	}
+
+	//console.log(response, flagSimulationResponse, curPosRobotSimulation, destination);
 
 	//console.log(response, flagSimulationResponse, curPosRobotSimulation, destination);
 
@@ -419,8 +433,17 @@ function receiveResponseServer(response) { // from the server
       console.log('Error parsing JSON:', err);
     }
 
-    curPosRobotSimulation = response_array[1];
-    curPosRobotLive = curPosRobotSimulation;
+    curPosRobotLive = response_array[1];;
+		if (curPosRobotSimulation) {
+			mainWindow.webContents.send('updateSyncRobot', curPosRobotSimulation===curPosRobotLive);
+		} else {
+			curPosRobotSimulation = curPosRobotLive;
+		}
+		mainWindow.webContents.send('updateData', data);
+    mainWindow.webContents.send('updateWaitings', queueSize);
+		mainWindow.webContents.send('updatePosition', curLocationRobot);
+
+		fetchMap();
   }
 }
 

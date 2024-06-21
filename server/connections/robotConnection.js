@@ -19,6 +19,7 @@ function connectToRobot() {
 		console.log(`Connected to the robot on port ${port_robot}`);
 		handler.accessState('robotConnected', true);
 		handler.sendToRobot(robotPassword);
+		handler.sendToRobot('status');
 
 		// Handle incoming data from the robot
 		handler.accessState('robotSocket').on('data', (data) => {
@@ -84,40 +85,56 @@ async function receiveResponseRobot(response) { // from the robot
 	// send the response
 	handler.sendToAllClients(`RESPONSE: ${response}`);
 
-	if (response.startsWith('Interrupted: ') || response.startsWith('Error: Failed going to goal')) { // request failed or interrupted by an other request or by an EStop
+	if (handler.accessState('requestDict') && (response.startsWith('Interrupted: ') || response.startsWith('Error: Failed going to goal'))) {
+		// request failed or interrupted by an other request or by an EStop
 		handler.accessState('interruptedRequest', handler.accessState('requestDict'));
 		handler.accessState('requestDict', null);
 	}
 
 	if (response.startsWith('EStop')||response.startsWith('Error: Failed going to goal')) { // fail
+		clearInterval(statusTimer);
+		handler.sendToRobot('status');
+
 		if (!handler.accessState('interruptedRequest')) {
-			console.log('Error: EStop without interrrupt');
-			return;
+			if (!handler.accessState('requestDict')) {
+				console.log('Error: no request to be classify as a fail')
+				return;
+			}
+			handler.accessState('interruptedRequest', handler.accessState('requestDict'));
+			handler.accessState('requestDict', null);
 		}
-		handler.accessState('database').collection('fails').findOne({label: handler.accessState('interruptedRequest').src}).then(doc => {
-			doc.fails[handler.accessState('interruptedRequest').dest]++;
+		const src = handler.accessState('curPosRobot');
+		const dest = handler.accessState('interruptedRequest').dest;
+
+		handler.accessState('database').collection('fails').findOne({label: src}).then(doc => {
+			doc.fails[dest]++;
 			handler.accessState('database').collection('fails').updateOne(
 				{_id: doc._id},
 				{$set: {fails: doc.fails}}
 			);
 		});
 
-		response_update = JSON.stringify({src: handler.accessState('interruptedRequest').src, dest: handler.accessState('interruptedRequest').dest, time: -1});
+		response_update = JSON.stringify({src: src, dest:dest, time: -1});
 		handler.sendToAllClients(`UPDATE VARIABLES: ${response_update}\n`);
 	}
 
 
 
-	// if the robot is not moving anymore, stop the status requests
-	if (response.startsWith('Arrived at ')||response.startsWith('Parked')||response.startsWith('DockingState: Docked')) {
+
+  if (response.startsWith('Arrived at ')||response.startsWith('Parked')||response.startsWith('DockingState: Docked')) {
 		clearInterval(statusTimer);
 		handler.sendToRobot('status');
 		handler.accessState('interruptedRequest', null);
-	}
 
 
-  if (response.startsWith('Arrived at ')) {
-		const response_dest = response.substring('Arrived at '.length).toLowerCase().trim();
+		var response_dest = response.substring('Arrived at '.length).toLowerCase().trim();
+
+		if (response.startsWith('Parked')) {
+			response_dest = 'standby1';
+		} else if (response.startsWith('DockingState: Docked')) {
+			response_dest = 'dockingstation2';
+		}
+
 		if (!handler.accessState('requestDict')||response_dest!==handler.accessState('requestDict').dest) {
 			handler.accessState('curPosRobot', response_dest);
 			// update the requestDict
@@ -198,8 +215,9 @@ async function receiveResponseRobot(response) { // from the robot
 		}, statusInterval);
 
 		var dest;
+		// TODO : donner les bonnes valeurs de dest pour park et dock
 		if (response.startsWith('Going to ')) {
-			dest=response.substring('Going to '.length).trim();
+			dest=response.substring('Going to '.length).trim().toLowerCase();
 		} else if (response.startsWith('Parking')) {
 			dest='standby1';
 		} else if (response.startsWith('DockingState: Docking')) {

@@ -6,12 +6,12 @@ import { Heap } from 'heap-js'
 const ipcRenderer = window.electron.ipcRenderer;
 
 var data = null;
-var simulationTimer = ref(null);
-var animLine = ref(null);
+const simulationTimer = ref(null);
+const animLine = ref(new Set());
 const SHOW_PATH = true;
 const SHOW_PROJECTED_PATH = true;
-var destinationLive = ref(null);
-var projectedPathInterval = ref(null);
+const destinationLive = ref(null);
+const projectedPathInterval = ref(null);
 const refreshRateProjectedPath = 0.1 * 1000;
 
 
@@ -29,10 +29,58 @@ const robot = ref(null);
 
 const containerButtons = ref(null)
 
+const onScreen = ref(false);
+
+const curLineStart = ref([]);
+const curLineEnd = ref([]);
+const curLineProgress = ref(null);
+const curLineDuration = ref(null);
+
+ipcRenderer.on('onSimulation', (event) => {
+	onScreen.value=!props.flagLive;
+	if (onScreen.value) updateRobotPos();
+})
+
+
+ipcRenderer.on('onLive', (event) => {
+	onScreen.value=props.flagLive;
+	if (onScreen.value) updateRobotPos();
+})
+
+
+ipcRenderer.on('onParametres', (event) => {
+	onScreen.value=false;
+})
+
 
 ipcRenderer.on('updateData', (event, arg) => {
   data = arg;
 });
+
+
+async function updateRobotPos() {
+	if (!animLine.value.size) return;
+	robot.value.style.transition = '0s';
+	await nextTick();
+	const dx = curLineEnd.value[0] - curLineStart.value[0];
+	const dy = curLineEnd.value[1] - curLineStart.value[1];
+	const curX = curLineStart.value[0] + dx * curLineProgress.value;
+	const curY = curLineStart.value[1] + dy * curLineProgress.value;
+
+	const diff = canvas_path.value.width / canvas_path.value.offsetWidth;
+
+	robot.value.style.left = `${curX / diff / containerButtons.value.offsetWidth * 100}%`;
+	robot.value.style.top = `${curY / diff / containerButtons.value.offsetHeight * 100}%`;
+	robot.value.style.left = `${curX / diff / containerButtons.value.offsetWidth * 100}%`; // because javascript
+	await nextTick();
+
+	const remainingDuration = curLineDuration.value * (1 - curLineProgress.value);
+	robot.value.style.transition = `left linear ${remainingDuration}ms, top linear ${remainingDuration}ms, transform linear 500ms`;
+	await nextTick();
+
+	robot.value.style.top = `${curLineEnd.value[1] / diff / containerButtons.value.offsetHeight * 100}%`;
+	robot.value.style.left = `${curLineEnd.value[0] / diff / containerButtons.value.offsetWidth * 100}%`;
+}
 
 
 const props = defineProps({
@@ -609,11 +657,15 @@ onMounted(async () => {
 		if (!showPath) return;
 
     const startTime = performance.now();
+		curLineStart.value = [start_x, start_y];
+		curLineEnd.value = [end_x, end_y];
+		curLineDuration.value = duration;
+
     function animate(currentTime) {
-      const speedup = 1;
-      const animationTime = duration/speedup;
+      const animationTime = duration;
       const elapsedTime = currentTime - startTime;
       const progress = Math.min(elapsedTime / animationTime, 1);
+			curLineProgress.value = progress;
 
       const newX = start_x + dx * progress;
       const newY = start_y + dy * progress;
@@ -631,7 +683,9 @@ onMounted(async () => {
       ctx_temp.stroke();
 
       if (progress < 1) {
-        animLine.value = requestAnimationFrame(animate);
+				if (duration) animLine.value.delete(anim);
+        anim = requestAnimationFrame(animate);
+				if (duration) animLine.value.add(anim)
       } else {
 				if (!reverse) {
 					ctx.beginPath();
@@ -641,11 +695,13 @@ onMounted(async () => {
 				}
         //add_infos(src, dest)
 				ctx_temp.clearRect(0, 0, canvas_path.value.width, canvas_path.value.height);
-				animLine.value=null;
+				if (duration) animLine.value.delete(anim);
       }
     }
-    animLine.value = requestAnimationFrame(animate);
+    var anim = requestAnimationFrame(animate);
+		if (duration) animLine.value.add(anim);
   }
+
 
 	async function animatePath(path, index, prev_x, prev_y, duration, animRobot, showPath, showProjectedPath, ctx, ctx_temp) {
 		const cur_x=path[index][0];
@@ -730,12 +786,13 @@ onMounted(async () => {
 					robot.value.style.transition = '0s';
 					await nextTick();
 				}
-				console.log(animLine.value);
 				robot.value.style.top = `${start_y / diff / containerButtons.value.offsetHeight * 100}%`;
 				robot.value.style.left = `${start_x / diff / containerButtons.value.offsetWidth * 100}%`;
 				await nextTick();
-				cancelAnimationFrame(animLine.value);
-				animLine.value=null;
+				for (let item of animLine.value) {
+					cancelAnimationFrame(item);
+					animLine.value.delete(item);
+				}
 				ctx_path.drawImage(canvas_pathTemp.value, 0, 0); // line not finished
 			}
 
