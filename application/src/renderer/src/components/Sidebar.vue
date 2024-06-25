@@ -22,7 +22,7 @@ ipcRenderer.on('Sidebar-updateStatus', (event, arg) => {
 })
 
 ipcRenderer.on('updateWaitings', (event, arg) => {
-  nbr_attente.value = arg.trim()
+  nbr_attente.value = arg.trim();
 })
 
 

@@ -9,7 +9,7 @@ import Bottombar from '../components/Bottombar.vue'
 
 <template>
   <div>
-    <div id="container">
+    <div id="containerMainBody">
       <Sidebar id="sidebar"></Sidebar>
       <div id="wrapper_map">
         <MapAIP :flagLive="false"></MapAIP>

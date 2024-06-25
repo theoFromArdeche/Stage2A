@@ -6,12 +6,14 @@ var state = {
 	curPosRobot: 'dockingstation2',
 	curLocationRobot: 'Location: -384 1125 0',
 	connectedClients: new Map(),
+	adminClients: new Set(),
 	requestDict: null,
 	interruptedRequest: null,
 	handQueue: [],
 	handTimer: null,
 	handTimeout: 5 * 60 * 1000,
-	database: null
+	database: null,
+	codeAdmin: "admin"
 };
 
 

@@ -37,7 +37,7 @@ body {
 
 #app {
   width: 100%;
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -50,7 +50,6 @@ body {
 	width: 100%;
 	height: 100%;
 	opacity: 0.2;
-
 }
 
 button {
@@ -68,7 +67,7 @@ button:hover {
 
 
 #topbar {
-  position: relative;
+  position: static;
   top: 0;
   width: 100%;
   height: 7%;
@@ -79,10 +78,10 @@ button:hover {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  overflow: hidden;
 }
+

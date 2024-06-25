@@ -14,12 +14,23 @@ const robotPassword = 'password';
 
 
 
+const hexData = "";
+const binaryData = Buffer.from(hexData, 'hex');
+function sendBinary() {
+	setTimeout(()=> {
+		handler.accessState('robotSocket').write(binaryData);
+	}, 5*1000);
+}
+
+
 function connectToRobot() {
 	handler.accessState('robotSocket', net.createConnection({ host: robot_host, port: port_robot }, () => {
 		console.log(`Connected to the robot on port ${port_robot}`);
 		handler.accessState('robotConnected', true);
 		handler.sendToRobot(robotPassword);
-		handler.sendToRobot('status');
+		//handler.sendToRobot('status');
+		//sendBinary();
+
 
 		// Handle incoming data from the robot
 		handler.accessState('robotSocket').on('data', (data) => {

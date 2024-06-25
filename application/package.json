@@ -19,6 +19,7 @@
     "@electron-toolkit/preload": "^3.0.0",
     "@electron-toolkit/utils": "^3.0.0",
     "heap-js": "^2.5.0",
+    "tls": "^0.0.1",
     "vue-router": "^4.3.0"
   },
   "devDependencies": {

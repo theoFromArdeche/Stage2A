@@ -1,6 +1,8 @@
 #container_topbar {
     width: 100%;
-    height: 100%;
+		height: 100%;
+    max-height: 100%;
+		position: relative;
     display: flex;
     flex-direction: row;
 }
@@ -13,21 +15,9 @@
     justify-content: center;
 }
 
-#live {
-    position: relative;
-}
-
-#simulation {
-    position: relative;
-}
 
 
-#parametres {
-    position: relative;
-}
-
-
-button {
+.wrapperButtonTopbar > button {
     height: 70%;
     width: fit-content;
 		margin-top: 0.5rem;
@@ -42,12 +32,30 @@ button {
 		color: #000000af;
 }
 
-button:hover {
+.wrapperButtonTopbar > button:hover {
     transform: scale(1.15);
     transition: 0.2s;
 }
 
-button:active {
-    transform: scale(1);
+.wrapperButtonTopbar > button:active {
+    transform: scale(0.95);
     transition: 0.2s;
+}
+
+.buttonTopbarSelected {
+	padding: 0.8rem 4rem 0.8rem 4rem !important;
+	margin-top: 3.2rem !important;
+}
+
+
+@media (max-width: 950px) {
+	.wrapperButtonTopbar > button {
+		font-size: 20px;
+		padding: 0.1rem 1rem 0.1rem 1rem;
+	}
+
+	.buttonTopbarSelected {
+		padding: 0.4rem 2rem 0.4rem 2rem !important;
+		margin-top: 1.6rem !important;
+	}
 }

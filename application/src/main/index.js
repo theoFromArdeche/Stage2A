@@ -55,21 +55,18 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
-
-  ipcMain.on('requestHand', (event, arg) => {
+  ipcMain.on('requestHand', (event, arg) => { // from live
     // send a hand request to the server
     requestHand();
   });
 
-  ipcMain.on('MapAIP-vue-loaded', (event, arg) => {
+  ipcMain.on('MapAIP-vue-loaded', (event, arg) => { // from MapAIP
     mainWindow.webContents.send('updateData', data);
     mainWindow.webContents.send('updateWaitings', queueSize);
     fetchMap();
   });
 
-  ipcMain.on('Sidebar-vue-loaded', (event, arg) => {
+  ipcMain.on('Sidebar-vue-loaded', (event, arg) => { // from sidebar
     mainWindow.webContents.send('updatePosition', curLocationRobot);
   });
 
@@ -91,8 +88,12 @@ app.whenReady().then(() => {
 		mainWindow.webContents.send('onParametres');
   });
 
+	ipcMain.on('codeAdmin', (event, arg) => { // from parametres
+		sendRequestServer(`CODE ADMIN: ${arg}`);
+  });
 
-	ipcMain.on('syncPosRobot', (event, arg) => {
+
+	ipcMain.on('syncPosRobot', (event, arg) => { // from simulation
     curPosRobotSimulation=curPosRobotLive;
 		mainWindow.webContents.send('updateSyncRobot', true);
 		mainWindow.webContents.send('updatePathSimulation', curPosRobotSimulation, curPosRobotSimulation, true);
@@ -137,8 +138,6 @@ var curLocationRobot = ''; // coords x, y, z example : '-384 1125 0.00'
 var timeStatus = -1;
 var timeEndAnim = -1;
 
-const net = require('net');
-
 const port_instance = 1234;
 const port_server = 2345;
 const port_map = 3001;
@@ -150,8 +149,11 @@ var hasHand = false;
 const server_host = 'localhost';
 var serverSocket = null;
 var serverConnected = false;
-var queueSize = 0;
+var queueSize = '0';
 
+
+const tls = require('tls');
+const net = require('net');
 
 
 
@@ -265,7 +267,7 @@ function requestHand() {
 // CONNECT TO THE SERVER
 
 function connectToServer() {
-  serverSocket = net.createConnection({ host: server_host, port: port_server }, () => {
+  serverSocket = net.connect({ host: server_host, port: port_server }, () => {
     console.log(`Connected to the server on port ${port_server}`);
     serverConnected = true;
     serverSocket.write('DATA') // fetch the data
@@ -497,6 +499,8 @@ function responseSimulation(request) {
     curPosRobotSimulation=whereto
 		mainWindow.webContents.send('updateSyncRobot', curPosRobotSimulation===curPosRobotLive);
 
+		clearTimeout(parkingTimer);
+		clearTimeout(dockingTimer);
     setTimeout(() => {
       receivedResponse(msg2, true);
       setTimeout(() => {

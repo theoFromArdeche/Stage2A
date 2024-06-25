@@ -1,35 +1,49 @@
 <script setup>
 import '../styles/parametres.css'
+import { ref } from 'vue';
+
+const ipcRenderer = window.electron.ipcRenderer;
+
+const codeAdmin = ref('');
+
+function handleSubmit(event) {
+	ipcRenderer.send('codeAdmin', codeAdmin.value);
+}
+
 </script>
 
 <template>
   <div>
-    <div id="container_params">
-      <div id="box_stats" class="box">
-        <span id="titre_stats" class="elt_stats"> Statistiques avancées</span>
-        <div class="box_wrapper">
-          <label class="elt_stats " id="switch">
-            <input type="checkbox">
-            <span class="slider round"></span>
-          </label>
-          <span class="expl"> Les statistiques avancées vous permettent de connaître la position et la vitesse des
-            robots </span>
-        </div>
-      </div>
-
-      <div id="box_admin" class="box">
-        <label for="name" class="elt_admin" id="titre_admin">Vous avez un code administrateur?</label>
-        <div class="box_wrapper">
-          <div id="form">
-            <div class="elt_admin">
-              <input type="text" class="form__input" id="name" placeholder="Code Administrateur" required="" />
-            </div>
-            <button id="button_admin" class="elt_admin">Valider</button>
-          </div>
-          <span class="expl"> Le code administrateur vous permet d'être prioritaire pour la file d'attente, et la capacité
-            d'arrêter en urgence l'utilisation des robots par d'autres utilisateurs </span>
-        </div>
-      </div>
-    </div>
+		<div id="container_params">
+			<div id="explications">
+				<span>
+					Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut molestie, libero ac tincidunt varius, sapien augue gravida tortor, id vestibulum leo massa a libero. Nulla non risus iaculis, consequat arcu sed, finibus neque. Maecenas maximus eu est sed semper. Fusce nec cursus lectus. Donec eleifend dolor at magna hendrerit sodales. Suspendisse mattis ultricies consectetur. Mauris magna metus, placerat vitae est eget, placerat congue lectus. Cras eget sollicitudin libero, quis congue enim. Curabitur eget facilisis tellus. Nam orci sapien, faucibus sit amet porttitor et, eleifend at diam. Mauris molestie aliquam risus et ultrices. Nam cursus commodo aliquam.
+					<br>
+					Curabitur posuere leo quis orci interdum, nec maximus risus facilisis. Sed sed facilisis augue. Nullam scelerisque ullamcorper erat quis bibendum. Pellentesque consequat malesuada nisl, id semper ex facilisis vel. Donec ultricies quis nulla quis fermentum. Donec pellentesque porttitor lorem, at mattis enim mattis nec. Maecenas vulputate sapien sed metus tempor, in commodo dolor maximus. Praesent sed gravida massa.
+					<br>
+					<br>
+				</span>
+				<img src="@src/assets/omronRobot.png">
+				<span>
+					<br>
+					<br>
+					Suspendisse pharetra, dolor quis vehicula consequat, leo massa consequat nisl, vitae tincidunt nulla augue vitae velit. Sed ac euismod diam. Nunc vel ligula pharetra, suscipit justo eget, maximus libero. Nunc tellus ex, tristique vel mauris in, dapibus pharetra lacus. Quisque in risus sem. Cras sagittis ligula nunc, quis sollicitudin felis viverra in. Nullam vestibulum nibh a rutrum blandit. Nulla efficitur velit scelerisque tellus euismod tincidunt. Quisque vulputate tortor et sagittis rhoncus. Donec porta luctus tortor sit amet ornare. Integer id tincidunt massa. Nulla blandit odio ut dolor ornare hendrerit at nec justo.
+					<br>
+					<br>
+				</span>
+			</div>
+			<form id="form_admin" @submit.prevent="handleSubmit">
+				<input type="password" id="code_admin" placeholder="Code Administrateur" v-model="codeAdmin"/>
+				<button>Envoyer</button>
+			</form>
+			<div id="credit">
+				<span>
+					<br>
+					<br>
+					Cette application a été réalisée par Théo Deygas en collaboration avec Pascale Marangé et Lemia Louail. <br>
+					Ce projet fait suite au travail réalisé par Gabin Granjon, Nicolas Fernandez et Théo Deygas dans le cadre d'un projet de recherche organisé par Telecom Nancy.
+				</span>
+			</div>
+		</div>
   </div>
 </template>

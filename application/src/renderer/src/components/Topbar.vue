@@ -1,27 +1,25 @@
 <script setup>
 import router from '../router/router.js'
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 
-var cur_button_id = 0
+const cur_button_id = ref(0);
 
 function change_view(view, new_button_id) {
-	if (new_button_id==cur_button_id) return
+	if (new_button_id==cur_button_id.value) return;
   router.push(view)
-  var container_elements = document.getElementById("container_topbar").children
+  var container_elements = document.getElementById("container_topbar").children;
 
-	var cur_button = container_elements[cur_button_id].children[0]
-	cur_button.style.padding="";
-	cur_button.style.marginTop = ""
+	var cur_button = container_elements[cur_button_id.value].children[0]
+	cur_button.className="";
 
 	var new_button = container_elements[new_button_id].children[0]
-	new_button.style.padding = "0.8rem 4rem 0.8rem 4rem"
-	new_button.style.marginTop = "3.2rem"
+	new_button.className="buttonTopbarSelected";
 
-	cur_button_id=new_button_id
+	cur_button_id.value=new_button_id;
 }
 
 onMounted(() => {
-	change_view('/simulation', 1)
+	change_view('/simulation', 1);
 })
 
 
@@ -30,13 +28,13 @@ onMounted(() => {
 <template>
   <div>
     <div id="container_topbar">
-      <div>
+      <div class="wrapperButtonTopbar">
         <button id="live" @click="change_view('/live', 0)">Live</button>
       </div>
-      <div>
+      <div class="wrapperButtonTopbar">
         <button id="simulation" @click="change_view('/simulation', 1)">Simulation</button>
       </div>
-      <div>
+      <div class="wrapperButtonTopbar">
         <button id="parametres" @click="change_view('/parametres', 2)">Parametres</button>
       </div>
     </div>

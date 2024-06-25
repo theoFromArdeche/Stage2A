@@ -1,195 +1,82 @@
+
 #container_params {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: start;
-  width: 75%;
-  gap: 120px;
-  box-sizing: border-box;
-  user-select: text;
-  font-family: 'gfont_rubik_regular', sans-serif;
-
+	position: relative;
+	width: 60%;
+	height: fit-content;
+	margin-top: min(250px, 20%);
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	font-family: 'gfont_rubik_regular', sans-serif;
+	color: #333;
+	font-size: 1.2rem;
+	text-align: center;
 }
 
 
-#container_params>span {
-  max-width: 80%;
-}
 
-/*FOR THE TOGGLE*/
-
-/* The switch - the box around the slider */
-#switch {
-  position: relative;
-  display: inline-block;
-  width: 60px;
-  height: 34px;
-}
-
-/* Hide default HTML checkbox */
-#switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-/* The slider */
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  -webkit-transition: .4s;
-  transition: .4s;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 26px;
-  width: 26px;
-  left: 4px;
-  bottom: 4px;
-  background-color: white;
-  -webkit-transition: .4s;
-  transition: .4s;
-}
-
-input:checked+.slider {
-  background-color: #2196F3;
-}
-
-input:focus+.slider {
-  box-shadow: 0 0 1px #2196F3;
-}
-
-input:checked+.slider:before {
-  -webkit-transform: translateX(26px);
-  -ms-transform: translateX(26px);
-  transform: translateX(26px);
-}
-
-/* Rounded sliders */
-.slider.round {
-  border-radius: 34px;
-}
-
-.slider.round:before {
-  border-radius: 50%;
-}
-
-/*FOR THE ADMIN CODE*/
-
-.form__input {
-  font-family: 'gfont_rubik_regular', sans-serif;
-  color: #333;
-  font-size: 1.2rem;
-  padding: 0.7rem 2rem;
-  background-color: rgb(241, 240, 240);
-  border: none;
-  width: 250px;
-  display: block;
-  border-radius: 10px;
-  border-style: none;
-  transition: all 0.4s;
-}
-
-#box_stats, .box_wrapper {
-  display: flex;
-  width: fit-content;
-  min-width: 200px;
-  flex-direction: column;
-  /*border: solid;
-  border-color: rgb(148, 86, 10);
-  */
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  font-size: 1.2rem;
-}
-
-#box_admin, .box_wrapper {
-  font-family: 'gfont_rubik_regular', sans-serif;
-  font-size: 1.2rem;
-  align-items: center;
-  justify-content: center;
-  display: flex;
-  width: fit-content;
-  flex-direction: column;
-  text-align: center;
-  /*border: solid;
-  border-color: rgb(61, 146, 40);*/
-}
-
-#box_admin, #box_wrapper {
-  position: relative;
+#explications > img {
+	min-width: 300px;
+	width: 30%;
+	aspect-ratio: 0.8;
+	border-radius: 50px;
+	object-fit: cover;
 }
 
 
-.box_wrapper {
-  position: absolute;
-  top: 80%;
-}
-
-.elt_admin {
-  font-size: 2rem;
-}
-
-.elt_stats {
-  margin: 0 10px 34px 0;
-  font-size: 2rem;
-}
-
-#button_admin {
-  border-radius: 10px;
-  font-size: 1.2rem;
-  border-style: none;
-  box-shadow: 0px 5px 10px #8b8b8b;
-  box-sizing: border-box;
-  padding: 1rem 1rem 1rem 1rem;
-  transition: 0.5s ease-in-out;
-  background-color: #409342;
-}
-
-#button_admin:hover {
-  transform: scale(1.05);
-  transition: 0.2s;
-}
-
-#button_admin:active {
-  transform: scale(0.95);
-  transition: 0.05s;
+#credit {
+	text-align: center;
+	margin-bottom: 20px;
 }
 
 
-.expl{
-  max-width: 400px;
-  justify-content: center;
-  text-align: center;
+
+#form_admin {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin-top: 50px;
+	gap: 20px;
 }
 
-#form{
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-	gap: 5%;
-	margin: 0 10px 30px 0;
-}
 
-#titre_stats{
-  padding-bottom:50px;
-  font-family: 'gfont_rubik_medium', sans-serif;
-}
+#form_admin > input {
+	font-family: 'gfont_rubik_regular', sans-serif;
+	color: #333;
+	font-size: 1.2rem;
+	padding: 0.7rem 2rem;
+	background-color: rgb(241, 240, 240);
+	border: none;
+	width: 250px;
+	display: block;
+	border-radius: 10px;
+	border-style: none;
+	transition: all 0.4s;
+ }
 
-#titre_admin{
-  padding-bottom:50px;
-  font-family: 'gfont_rubik_medium', sans-serif;
-}
+
+
+
+ #form_admin > button {
+	border-radius: 10px;
+	font-size: 1.2rem;
+	border-style: none;
+	box-shadow: 0px 5px 10px #8b8b8b;
+	box-sizing: border-box;
+	padding: 1rem 1rem 1rem 1rem;
+	transition: 0.2s ease-in-out;
+	background-color: #409342;
+ }
+
+
+ #form_admin > button:hover {
+	transform: scale(1.1);
+ }
+
+
+ #form_admin > button:active {
+	transform: scale(0.90);
+	transition: 0.1s;
+ }
+

@@ -134,14 +134,33 @@ function receiveRequest(clientId, msg) {
 				handler.sendToClient(clientId, 'YOU ALREADY HAVE THE HAND\n');
 				return;
 			}
+
 			// the hand is not available
-			position = handler.accessState('handQueue').indexOf(clientId) + 1;
-			if (position==0) { // clientId not in the queue
-				handler.accessState('handQueue').push(clientId);
-				position=handler.accessState('handQueue').length
-				handler.sendToAllClients(`HAND QUEUE UPDATE: ${position}\n`);
-			}
-			handler.sendToClient(clientId, `HAND QUEUE POSITION: ${position}\n`);
+
+			var position = handler.accessState('handQueue').indexOf(clientId) + 1;
+			if (position===0) { // clientId not in the queue
+				if (handler.accessState('adminClients').has(clientId)) {
+					// admin
+					for (let i=0; i<handler.accessState('handQueue').length; i++) {
+						const id = handler.accessState('handQueue')[i];
+						if (!handler.accessState('adminClients').has(id)) {
+							handler.accessState('handQueue').splice(i, 0, clientId);
+							handler.updatePositions();
+							break;
+						}
+					}
+					position = handler.accessState('handQueue').indexOf(clientId) + 1;
+				}
+
+				if (position===0) {
+					handler.accessState('handQueue').push(clientId);
+					handler.sendToClient(clientId, `HAND QUEUE POSITION: ${handler.accessState('handQueue').length}\n`);
+				}
+
+				const sizeOfQueue = handler.accessState('handQueue').length;
+				handler.sendToAllClients(`HAND QUEUE UPDATE: ${sizeOfQueue}\n`);
+
+			} else handler.sendToClient(clientId, `HAND QUEUE POSITION: ${position}\n`);
 		}
 	} else if (msg === 'HAND BACK') {
 		if (handler.accessState('handHolder')!==clientId) return;
@@ -159,6 +178,15 @@ function receiveRequest(clientId, msg) {
 
  	} else if (msg === 'DATA') {
 		sendData(clientId);
+
+	} else if (msg.startsWith('CODE ADMIN: ')) {
+		const code = msg.substring('CODE ADMIN: '.length);
+		if (code===handler.accessState('codeAdmin')) {
+			handler.accessState('adminClients').add(clientId);
+			handler.sendToClient(clientId, "ADMIN REQUEST ACCEPTED");
+		} else {
+			handler.sendToClient(clientId, "ADMIN REQUEST REJECTED");
+		}
 	}
 }
 
