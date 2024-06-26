@@ -36,7 +36,7 @@ ipcRenderer.on('updateSyncRobot', (event, arg) => {
 
 function clickButton() {
 	if (props.flagLive) {
-  	ipcRenderer.send('requestHand');
+  	ipcRenderer.send('handButtonTrigered');
 	} else {
 		ipcRenderer.send('syncPosRobot')
 	}

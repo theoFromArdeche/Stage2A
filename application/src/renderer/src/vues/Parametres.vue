@@ -1,14 +1,49 @@
 <script setup>
-import '../styles/parametres.css'
+import '../styles/parametres.css';
 import { ref } from 'vue';
 
 const ipcRenderer = window.electron.ipcRenderer;
 
 const codeAdmin = ref('');
 
+const inputAdmin = ref(null);
+const buttonAdmin = ref(null);
+
+const isAdmin = ref(false);
+
 function handleSubmit(event) {
+	if (isAdmin.value) {
+		ipcRenderer.send('quitAdmin');
+		return;
+	}
+
 	ipcRenderer.send('codeAdmin', codeAdmin.value);
+	codeAdmin.value="";
+	inputAdmin.value.disabled=true;
+	inputAdmin.value.placeholder="En attente de traitement";
+	buttonAdmin.value.disabled=true;
+	buttonAdmin.value.className="";
+	buttonAdmin.value.innerText="En attente";
 }
+
+
+ipcRenderer.on('adminRequestAccepted', () => {
+	inputAdmin.value.placeholder="Vous êtes un Admin !";
+	buttonAdmin.value.disabled=false;
+	buttonAdmin.value.className="buttonAccessible";
+	buttonAdmin.value.innerText="Quitter";
+	isAdmin.value=true;
+});
+
+
+ipcRenderer.on('adminRequestRejected', () => {
+	inputAdmin.value.disabled=false;
+	inputAdmin.value.placeholder="Code Administrateur";
+	buttonAdmin.value.disabled=false;
+	buttonAdmin.value.className="buttonAccessible";
+	buttonAdmin.value.innerText="Envoyer";
+	isAdmin.value=false;
+});
 
 </script>
 
@@ -33,8 +68,8 @@ function handleSubmit(event) {
 				</span>
 			</div>
 			<form id="form_admin" @submit.prevent="handleSubmit">
-				<input type="password" id="code_admin" placeholder="Code Administrateur" v-model="codeAdmin"/>
-				<button>Envoyer</button>
+				<input type="password" id="code_admin" placeholder="Code Administrateur" ref="inputAdmin" v-model="codeAdmin"/>
+				<button ref="buttonAdmin" class="buttonAccessible">Envoyer</button>
 			</form>
 			<div id="credit">
 				<span>

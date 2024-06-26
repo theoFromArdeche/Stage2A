@@ -55,9 +55,9 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  ipcMain.on('requestHand', (event, arg) => { // from live
-    // send a hand request to the server
-    requestHand();
+  ipcMain.on('handButtonTrigered', (event, arg) => { // from live
+		if (!hasHand) sendRequestServer('HAND');
+		else sendRequestServer('HAND BACK');
   });
 
   ipcMain.on('MapAIP-vue-loaded', (event, arg) => { // from MapAIP
@@ -90,6 +90,10 @@ app.whenReady().then(() => {
 
 	ipcMain.on('codeAdmin', (event, arg) => { // from parametres
 		sendRequestServer(`CODE ADMIN: ${arg}`);
+  });
+
+	ipcMain.on('quitAdmin', (event) => { // from parametres
+		sendRequestServer('QUIT ADMIN');
   });
 
 
@@ -253,12 +257,6 @@ function receivedResponse(response, flagSimulationResponse) {
 }
 
 
-function requestHand() {
-  sendRequestServer('HAND')
-}
-
-
-
 
 
 
@@ -406,7 +404,7 @@ function receiveResponseServer(response) { // from the server
 
   } else if (response === 'HAND REQUEST ACCEPTED\n') {
     hasHand = true;
-    mainWindow.webContents.send('receiveQueue', 'Vous avez la main');
+    mainWindow.webContents.send('receiveQueue', 'Rendre la main');
 
   } else if (response.indexOf('HAND QUEUE POSITION: ') === 0) {
     const pos = response.substring('HAND QUEUE POSITION: '.length).trim();
@@ -446,7 +444,13 @@ function receiveResponseServer(response) { // from the server
 		mainWindow.webContents.send('updatePosition', curLocationRobot);
 
 		fetchMap();
-  }
+
+  } else if (response.indexOf('ADMIN REQUEST ACCEPTED') === 0) {
+		mainWindow.webContents.send('adminRequestAccepted');
+
+  } else if (response.indexOf('ADMIN REQUEST REJECTED') === 0) {
+		mainWindow.webContents.send('adminRequestRejected');
+	}
 }
 
 

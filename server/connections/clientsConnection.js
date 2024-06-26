@@ -63,6 +63,7 @@ function connectToClients() {
 function socketDisconnect(clientId, pingInterval) {
 	// remove the socket from the connected clients map
 	handler.accessState('connectedClients').delete(clientId);
+	handler.accessState('adminClients').delete(clientId)
 	// stop the ping interval
 	clearInterval(pingInterval);
 	// remove the client from the request queue
@@ -183,10 +184,13 @@ function receiveRequest(clientId, msg) {
 		const code = msg.substring('CODE ADMIN: '.length);
 		if (code===handler.accessState('codeAdmin')) {
 			handler.accessState('adminClients').add(clientId);
-			handler.sendToClient(clientId, "ADMIN REQUEST ACCEPTED");
+			handler.sendToClient(clientId, 'ADMIN REQUEST ACCEPTED');
 		} else {
-			handler.sendToClient(clientId, "ADMIN REQUEST REJECTED");
+			handler.sendToClient(clientId, 'ADMIN REQUEST REJECTED');
 		}
+	} else if (msg === 'QUIT ADMIN') {
+		handler.accessState('adminClients').delete(clientId);
+		handler.sendToClient(clientId, 'ADMIN REQUEST REJECTED');
 	}
 }
 
