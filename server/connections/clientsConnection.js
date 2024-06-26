@@ -184,13 +184,35 @@ function receiveRequest(clientId, msg) {
 		const code = msg.substring('CODE ADMIN: '.length);
 		if (code===handler.accessState('codeAdmin')) {
 			handler.accessState('adminClients').add(clientId);
-			handler.sendToClient(clientId, 'ADMIN REQUEST ACCEPTED');
+			handler.sendToClient(clientId, 'ADMIN REQUEST ACCEPTED\n');
+			if (handler.accessState('handQueue').indexOf(clientId)!==-1) {
+				handler.accessState('handQueue', handler.accessState('handQueue').filter((id) => id !== clientId));
+				receiveRequest(clientId, 'HAND');
+			}
 		} else {
-			handler.sendToClient(clientId, 'ADMIN REQUEST REJECTED');
+			handler.sendToClient(clientId, 'ADMIN REQUEST REJECTED\n');
 		}
+
 	} else if (msg === 'QUIT ADMIN') {
+		if (!handler.accessState('adminClients').has(clientId)) return;
+
+		if (handler.accessState('handQueue').indexOf(clientId)!==-1) {
+			handler.accessState('handQueue', handler.accessState('handQueue').filter((id) => id !== clientId));
+			receiveRequest(clientId, 'HAND');
+		}
+
 		handler.accessState('adminClients').delete(clientId);
-		handler.sendToClient(clientId, 'ADMIN REQUEST REJECTED');
+		handler.sendToClient(clientId, 'ADMIN REQUEST REJECTED\n');
+
+	} else if (msg === 'GET HAND LIST') {
+		const handList = handler.accessState('handQueue');
+		var resultStr = '';
+		for (let i=0; i<handList.length; i++) {
+			if (handler.accessState('adminClients').has(handList[i])) {
+				resultStr += `${i+1}: ${handList[i]} (admin),`
+			} else resultStr += `${i+1}: ${handList[i]},`;
+		}
+		handler.sendToClient(clientId, `HAND LIST: ${resultStr}\n`);
 	}
 }
 

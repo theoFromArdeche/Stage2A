@@ -149,6 +149,7 @@ const port_map = 3001;
 var clientSocket = null;
 var clientConnected = false;
 var hasHand = false;
+var isAdmin = false;
 
 const server_host = 'localhost';
 var serverSocket = null;
@@ -205,6 +206,15 @@ function sendResponse(request) {
 
 function receiveRequest(request) {
   console.log('Received from client : ', request);
+	if (request.toLowerCase() === 'gethandlist' || request.toLowerCase() === 'get hand list' || request.toLowerCase() === 'ghl') {
+		if (!isAdmin) {
+			sendResponse("Vous n'êtes pas admin\n");
+		} else {
+			sendRequestServer('GET HAND LIST');
+		}
+		return;
+	}
+
   if (flagSimulation) {
     responseSimulation(request);
   } else { // live
@@ -316,6 +326,7 @@ connectToServer();
 function serverDisconnected() {
   serverConnected = false;
   hasHand = false;
+	isAdmin = false;
   mainWindow.webContents.send('receiveQueue', 'Demander la main');
   dialog.showMessageBox({
     type: 'warning',
@@ -447,9 +458,15 @@ function receiveResponseServer(response) { // from the server
 
   } else if (response.indexOf('ADMIN REQUEST ACCEPTED') === 0) {
 		mainWindow.webContents.send('adminRequestAccepted');
+		isAdmin=true;
 
   } else if (response.indexOf('ADMIN REQUEST REJECTED') === 0) {
 		mainWindow.webContents.send('adminRequestRejected');
+		isAdmin=false;
+
+	} else if (response.indexOf('HAND LIST: ') === 0) {
+		const result = response.substring('HAND LIST: '.length).trim().replace(/,/g, '\n');
+		sendResponse(result);
 	}
 }
 
