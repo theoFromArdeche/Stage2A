@@ -11,6 +11,7 @@ var state = {
 	interruptedRequest: null,
 	handQueue: [],
 	handTimer: null,
+	handTimerStartTime: null,
 	handTimeout: 5 * 60 * 1000,
 	database: null,
 	codeAdmin: "admin"
@@ -76,6 +77,7 @@ function sendToAllClients(msg) {
 
 function setHandTimeout(clientId) {
 	clearTimeout(accessState('handTimer'));
+	accessState('handTimerStartTime', Date.now());
 	accessState('handTimer', setTimeout(() => {
 		if (accessState('handQueue').length===0) { // queue is empty
 			accessState('handHolder', null);

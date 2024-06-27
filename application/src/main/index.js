@@ -150,6 +150,7 @@ var clientSocket = null;
 var clientConnected = false;
 var hasHand = false;
 var isAdmin = false;
+const adminCommandsRegex = ['^\\s*gethandlist\\s*$', '^\\s*get\\s+hand\\s+list\\s*$', '^\\s*ghl\\s*$', '^\\s*removefromhandlist\\s+\\d+\\s*$', '^\\s*remove\\s+from\\s+hand\\s+list\\s+\\d+\\s*$', '^\\s*rfhl\\s+\\d+\\s*$'];
 
 const server_host = 'localhost';
 var serverSocket = null;
@@ -206,11 +207,22 @@ function sendResponse(request) {
 
 function receiveRequest(request) {
   console.log('Received from client : ', request);
-	if (request.toLowerCase() === 'gethandlist' || request.toLowerCase() === 'get hand list' || request.toLowerCase() === 'ghl') {
+	var indexCommand=-1;
+	for (let i=0; i<adminCommandsRegex.length; i++) {
+		if (new RegExp(adminCommandsRegex[i]).test(request.toLowerCase())) {
+			indexCommand=i;
+			break;
+		}
+	}
+	if (indexCommand>=0) {
 		if (!isAdmin) {
 			sendResponse("Vous n'êtes pas admin\n");
-		} else {
+		} else if (indexCommand<=2) {
 			sendRequestServer('GET HAND LIST');
+		} else {
+			const requestSplit = request.split(' ');
+			console.log(requestSplit);
+			sendRequestServer(`REMOVE FROM HAND LIST: ${parseInt(requestSplit[requestSplit.length-1])}`);
 		}
 		return;
 	}
@@ -326,8 +338,9 @@ connectToServer();
 function serverDisconnected() {
   serverConnected = false;
   hasHand = false;
-	isAdmin = false;
   mainWindow.webContents.send('receiveQueue', 'Demander la main');
+	isAdmin = false;
+	mainWindow.webContents.send('adminRequestRejected');
   dialog.showMessageBox({
     type: 'warning',
     title: 'Warning',
@@ -465,6 +478,10 @@ function receiveResponseServer(response) { // from the server
 		isAdmin=false;
 
 	} else if (response.indexOf('HAND LIST: ') === 0) {
+		if (response === 'HAND LIST: \n') {
+			sendResponse('Hand list empty\n');
+			return;
+		}
 		const result = response.substring('HAND LIST: '.length).trim().replace(/,/g, '\n');
 		sendResponse(result);
 	}

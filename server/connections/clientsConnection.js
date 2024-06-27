@@ -163,6 +163,7 @@ function receiveRequest(clientId, msg) {
 
 			} else handler.sendToClient(clientId, `HAND QUEUE POSITION: ${position}\n`);
 		}
+
 	} else if (msg === 'HAND BACK') {
 		if (handler.accessState('handHolder')!==clientId) return;
 		clearTimeout(handler.accessState('handTimer'));
@@ -207,12 +208,38 @@ function receiveRequest(clientId, msg) {
 	} else if (msg === 'GET HAND LIST') {
 		const handList = handler.accessState('handQueue');
 		var resultStr = '';
+		if (handler.accessState('handHolder')) {
+			resultStr += `0: ${handler.accessState('handHolder')} `;
+			if (handler.accessState('adminClients').has(handler.accessState('handHolder'))) {
+				resultStr += `(admin) `;
+			}
+			const rawTime = Math.floor((handler.accessState('handTimeout') - Date.now() + handler.accessState('handTimerStartTime'))/1000);
+			const minutes = Math.floor(rawTime/60);
+			var seconds = rawTime%60;
+			if (seconds<10) {
+				seconds = '0'+seconds;
+			}
+
+			resultStr += `(Hand holder) time remaining : ${minutes}:${seconds},`;
+		}
 		for (let i=0; i<handList.length; i++) {
 			if (handler.accessState('adminClients').has(handList[i])) {
-				resultStr += `${i+1}: ${handList[i]} (admin),`
+				resultStr += `${i+1}: ${handList[i]} (admin),`;
 			} else resultStr += `${i+1}: ${handList[i]},`;
 		}
 		handler.sendToClient(clientId, `HAND LIST: ${resultStr}\n`);
+
+	} else if (msg.startsWith('REMOVE FROM HAND LIST: ')) {
+		const index = parseInt(msg.substring('REMOVE FROM HAND LIST: '.length));
+		if (index<0 || index>handler.accessState('handQueue').length) return;
+
+		if (index===0) {
+			receiveRequest(handler.accessState('handHolder'), 'HAND BACK');
+		} else {
+			handler.sendToClient(handler.accessState('handQueue')[index-1], 'HAND TIMEOUT\n');
+			handler.accessState('handQueue').splice(index-1, 1);
+			handler.updatePositions();
+		}
 	}
 }
 

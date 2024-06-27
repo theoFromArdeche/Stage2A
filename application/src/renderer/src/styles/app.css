@@ -67,7 +67,7 @@ button:hover {
 
 
 #topbar {
-  position: static;
+  position: absolute;
   top: 0;
   width: 100%;
   height: 7%;
