@@ -11,7 +11,8 @@ const statusInterval = 1 * 1000;
 const port_robot = 3456;
 const robot_host = 'localhost';
 const robotPassword = 'password';
-
+var destDockPark = null;
+var flagDockPark = false;
 
 
 const hexData = "";
@@ -51,22 +52,19 @@ function connectToRobot() {
 
 		// Handle errors in the robot connection
 		handler.accessState('robotSocket').on('error', (err) => {
-			console.error('Socket error:', err);
+			console.error('Could not connect to the robot');
 			handler.accessState('robotConnected', false);
 
 			// Attempt to reconnect to the robot after a delay
 			setTimeout(connectToRobot, 5000); // 5 seconds
 		});
 	}));
-
-	// If the connection to the robot fails, retry after a delay
 	handler.accessState('robotSocket').on('error', (err) => {
-	  if (err.code === 'ECONNREFUSED') {
-		console.log('WARNING : Robot is not available, retrying in 5 seconds...');
+		console.error('Could not connect to the robot');
+		handler.accessState('robotConnected', false);
+
+		// Attempt to reconnect to the robot after a delay
 		setTimeout(connectToRobot, 5000); // 5 seconds
-	  } else {
-		console.error('Socket error:', err);
-	  }
 	});
 }
 
@@ -80,9 +78,27 @@ async function receiveResponseRobot(response) { // from the robot
 			response.startsWith('StateOfCharge: ') || response.startsWith('LocalizationScore: ') || response.startsWith('Temperature: ')) {
 		handler.sendToAllClients(response);
 
-		// update the current location of the robot
 		if (response.startsWith('Location: ')) {
 			handler.accessState('curLocationRobot', response);
+		} else if (flagDockPark && response.startsWith('ExtendedStatusForHumans: ')) {
+			const status = response.substring('ExtendedStatusForHumans: '.length);
+			for (let s of status.split('|')) {
+				if (s.startsWith('Going to dock at ')) {
+					destDockPark=s.substring('Going to dock at '.length).trim().toLowerCase();
+				} else if (s.startsWith('Driving into dock')) {
+					if (handler.accessState('requestDict')) {
+						handler.accessState('requestDict').dest = destDockPark;
+						await updateDB(destDockPark);
+					}
+					const dockNumber = destDockPark.substring('Station LD/Lynx'.length);
+					handler.accessState('requestDict', {time: Date.now(), dest:  `dockingstation${dockNumber}`});
+					destDockPark = `dockingstation${dockNumber}`;
+					flagDockPark = false;
+
+				} else if (s.startsWith('Going to ')) {
+					destDockPark=s.substring('Going to '.length).trim().toLowerCase();
+				}
+			}
 		}
 		return;
 	}
@@ -108,7 +124,7 @@ async function receiveResponseRobot(response) { // from the robot
 
 		if (!handler.accessState('interruptedRequest')) {
 			if (!handler.accessState('requestDict')) {
-				console.log('Error: no request to be classify as a fail')
+				console.log('Error: no request to be classify as a fail');
 				return;
 			}
 			handler.accessState('interruptedRequest', handler.accessState('requestDict'));
@@ -136,87 +152,21 @@ async function receiveResponseRobot(response) { // from the robot
 		clearInterval(statusTimer);
 		handler.sendToRobot('status');
 		handler.accessState('interruptedRequest', null);
+		flagDockPark=false;
 
 
 		var response_dest = response.substring('Arrived at '.length).toLowerCase().trim();
 
-		if (response.startsWith('Parked')) {
-			response_dest = 'standby1';
-		} else if (response.startsWith('DockingState: Docked')) {
-			response_dest = 'dockingstation2';
+		if (response.startsWith('Parked') || response.startsWith('DockingState: Docked')) {
+			if (!destDockPark) return;
+			response_dest = destDockPark;
+			if (handler.accessState('requestDict')) {
+				handler.accessState('requestDict').dest = destDockPark;
+			}
+			destDockPark = null;
 		}
 
-		if (!handler.accessState('requestDict')||response_dest!==handler.accessState('requestDict').dest) {
-			handler.accessState('curPosRobot', response_dest);
-			// update the requestDict
-			handler.accessState('requestDict', null);
-			return
-		}
-
-		var response_update;
-		const src=handler.accessState('curPosRobot');
-		const dest=handler.accessState('requestDict').dest;
-		// update the current position of the robot
-		handler.accessState('curPosRobot', dest);
-
-		const new_time = (Date.now()-handler.accessState('requestDict').time)/1000;
-		console.log('NEW TIME: ', new_time);
-
-
-		var flagError=false;
-		for (let label of [src, dest]) {
-			await handler.accessState('database').collection('labels').findOne({label: label}).then(doc => {
-				if (!doc) {
-					flagError=true;
-					console.log(`Could not find ${label} in the database`);
-				}
-			})
-			.catch(error => {
-				console.log(error);
-				flagError=true;
-				console.log(`Could not find ${label} in the database`);
-			});
-		}
-
-		if  (flagError) return;
-
-
-
-		handler.accessState('database').collection('times').findOne({label: src}).then(doc => {
-			doc.times[dest]=new_time;
-			handler.accessState('database').collection('times').updateOne(
-				{_id: doc._id},
-				{$set: {times: doc.times}}
-			);
-		});
-
-		handler.accessState('database').collection('successes').findOne({label: src}).then(doc => {
-			doc.successes[dest]++;
-			handler.accessState('database').collection('successes').updateOne(
-				{_id: doc._id},
-				{$set: {successes: doc.successes}}
-			);
-		});
-
-		response_update = JSON.stringify({src: src, dest: dest, time: new_time});
-
-		/*
-		// update the data (matrix of times and successes)
-		data.times[cur_id][next_id] = (data.times[cur_id][next_id]*data.successes[cur_id][next_id] + new_time) / (data.successes[cur_id][next_id] + 1);
-		data.successes[cur_id][next_id] +=1;
-
-		// round to 2 decimals
-		data.times[cur_id][next_id] = Math.round(data.times[cur_id][next_id]*100)/100;
-
-		response_update = JSON.stringify({src: cur_id, dest: next_id, time: data.times[cur_id][next_id]});
-
-		*/
-
-		// remove the request
-		handler.accessState('requestDict', null);
-
-		// send the updates to everyone (time + success)
-		handler.sendToAllClients(`UPDATE VARIABLES: ${response_update}\n`)
+		updateDB(response_dest);
 
   } else if ((response.startsWith('Going to ')||response.startsWith('Parking')||response.startsWith('DockingState: Docking'))) {
 		clearInterval(statusTimer);
@@ -225,18 +175,109 @@ async function receiveResponseRobot(response) { // from the robot
 			handler.sendToRobot('status');
 		}, statusInterval);
 
+		if (handler.accessState('interruptedRequest')||handler.accessState('requestDict')) return;
+
 		var dest;
-		// TODO : donner les bonnes valeurs de dest pour park et dock
 		if (response.startsWith('Going to ')) {
 			dest=response.substring('Going to '.length).trim().toLowerCase();
 		} else if (response.startsWith('Parking')) {
-			dest='standby1';
+			dest='parking';
+			flagDockPark=true;
 		} else if (response.startsWith('DockingState: Docking')) {
-			dest='dockingstation2';
+			dest='docking';
+			flagDockPark=true;
 		}
 
-		if (!handler.accessState('interruptedRequest')) {
-			handler.accessState('requestDict', {time: Date.now(), dest: dest});
+		handler.accessState('requestDict', {time: Date.now(), dest: dest});
+
+	} else if (response.startsWith('DockingState: Undocking')) {
+		// when the docking did not work
+		if (handler.accessState('requestDict')) {
+			handler.accessState('requestDict').time = Date.now();
+			if (destDockPark) {
+				handler.accessState('curPosRobot', destDockPark);
+			} else {
+				handler.accessState('curPosRobot', 'dockingstation1');
+				console.log('Error: did not find a destination, defaulting to dockingstation1');
+			}
+			flagDockPark = true;
 		}
 	}
+}
+
+
+async function updateDB(response_dest) {
+	if (!handler.accessState('requestDict')||response_dest!==handler.accessState('requestDict').dest) {
+		handler.accessState('curPosRobot', response_dest);
+		// update the requestDict
+		handler.accessState('requestDict', null);
+		console.log('Error: mauvaise destination\n');
+		return
+	}
+
+	var response_update;
+	const src=handler.accessState('curPosRobot');
+	const dest=handler.accessState('requestDict').dest;
+	// update the current position of the robot
+	handler.accessState('curPosRobot', dest);
+
+	const new_time = (Date.now()-handler.accessState('requestDict').time)/1000;
+	console.log('NEW TIME: ', new_time);
+
+
+	var flagError=false;
+	for (let label of [src, dest]) {
+		await handler.accessState('database').collection('labels').findOne({label: label}).then(doc => {
+			if (!doc) {
+				flagError=true;
+				console.log(`Could not find ${label} in the database`);
+			}
+		})
+		.catch(error => {
+			console.log(error);
+			flagError=true;
+			console.log(`Could not find ${label} in the database`);
+		});
+	}
+
+	if  (flagError) return;
+
+
+
+	handler.accessState('database').collection('times').findOne({label: src}).then(doc => {
+		doc.times[dest]=new_time;
+		handler.accessState('database').collection('times').updateOne(
+			{_id: doc._id},
+			{$set: {times: doc.times}}
+		);
+	});
+
+	handler.accessState('database').collection('successes').findOne({label: src}).then(doc => {
+		doc.successes[dest]++;
+		handler.accessState('database').collection('successes').updateOne(
+			{_id: doc._id},
+			{$set: {successes: doc.successes}}
+		);
+	});
+
+	response_update = JSON.stringify({src: src, dest: dest, time: new_time});
+
+	/*
+	// update the data (matrix of times and successes)
+	data.times[cur_id][next_id] = (data.times[cur_id][next_id]*data.successes[cur_id][next_id] + new_time) / (data.successes[cur_id][next_id] + 1);
+	data.successes[cur_id][next_id] +=1;
+
+	// round to 2 decimals
+	data.times[cur_id][next_id] = Math.round(data.times[cur_id][next_id]*100)/100;
+
+	response_update = JSON.stringify({src: cur_id, dest: next_id, time: data.times[cur_id][next_id]});
+
+	*/
+
+	// remove the request
+	handler.accessState('requestDict', null);
+
+	// send the updates to everyone (time + success)
+	handler.sendToAllClients(`UPDATE VARIABLES: ${response_update}\n`)
+
 }

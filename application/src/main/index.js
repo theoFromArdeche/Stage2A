@@ -132,10 +132,15 @@ app.on('window-all-closed', () => {
 
 var data;
 var flagSimulation = true;
+var gotoTimer = null;
 var parkingTimer = null;
 const parkingTimeout = 7 * 1000;
 var dockingTimer = null;
 const dockingTimeout = 15 * 60 * 1000;
+const dockingFailProbRetry = 0.1;
+const dockingFailProbChangeDock = 0.5;
+var curDock = 'dockingstation2';
+var curStandby = 'standby1';
 var curPosRobotSimulation;
 var curPosRobotLive;
 var curLocationRobot = ''; // coords x, y, z example : '-384 1125 0.00'
@@ -243,30 +248,28 @@ function receiveRequest(request) {
   }
 }
 
-function receivedResponse(response, flagSimulationResponse) {
+function receivedResponse(response, flagSimulationResponse, onlyUpdate=false) {
 	mainWindow.webContents.send('updateStatus', response, !flagSimulationResponse);
 	if (hasHand !== flagSimulationResponse) {
 		sendResponse(response)
 	}
 
 
-	if (response.indexOf('Arrived at ') === 0 || response.indexOf('Parked') === 0 || response.indexOf('DockingState: Docked') === 0){
+	if (!flagSimulationResponse && (response.indexOf('Arrived at ') === 0 || response.indexOf('Parked') === 0 || response.indexOf('DockingState: Docked') === 0)){
 		mainWindow.webContents.send('removeIntervalLive', destination);
 		return;
 	}
 
 
-  if (response.indexOf('Going to ') !== 0 && response.indexOf('Parking') !== 0 && response.indexOf('DockingState: Docking') !== 0) return;
+  if (onlyUpdate || (response.indexOf('Going to ') !== 0 && response.indexOf('Parking') !== 0 && response.indexOf('DockingState: Docking') !== 0)) return;
 	var destination;
 	if (response.indexOf('Parking') === 0) {
-		destination = 'standby1';
+		destination = curStandby;
 	} else if (response.indexOf('DockingState: Docking') === 0) {
-		destination = 'dockingstation2';
+		destination = 'station ld/lynx'+curDock.substring('dockingstation'.length);
 	} else { // Going to
 		destination = response.substring('Going to '.length).trim().toLowerCase();
 	}
-
-	//console.log(response, flagSimulationResponse, curPosRobotSimulation, destination);
 
 	//console.log(response, flagSimulationResponse, curPosRobotSimulation, destination);
 
@@ -375,6 +378,7 @@ function receiveResponseServer(response) { // from the server
     receivedResponse(response_body, false);
 
   } else if (response.indexOf('UPDATE VARIABLES: ') === 0) {
+		sendResponse(response);
     const update_json = response.substring('UPDATE VARIABLES: '.length).trim();
     const update = JSON.parse(update_json);
 		const id_src = data.id.get(update.src)
@@ -503,17 +507,34 @@ function responseSimulation(request) {
       receivedResponse(`Unknown destination ${whereto}\n`, true);
       return
     }
-    const msg1 = `Going to ${whereto}\n`
-    const msg2 = `Arrived at ${whereto}\n`
-    const delta_time = data.times[data.id.get(curPosRobotSimulation)][data.id.get(whereto)]
-    receivedResponse(msg1, true);
-    curPosRobotSimulation=whereto
+
+    const msgDock = [
+      'DockingState: Undocking ForcedState: Unforced ChargeState: Not\n',
+      'DockingState: Undocking ForcedState: Unforced ChargeState: Bulk\n',
+      'DockingState: Undocking ForcedState: Unforced ChargeState: Not\n',
+      'DockingState: Undocked ForcedState: Unforced ChargeState: Not\n'
+    ];
+
+    const msgStart = `Going to ${whereto}\n`;
+    const msgEnd = `Arrived at ${whereto}\n`;
+
+    const regexDock = new RegExp('^dockingstation\\d+$')
+    if (regexDock.test(curPosRobotSimulation)) {
+      for (let msg of msgDock) {
+        receivedResponse(msg, true);
+      }
+    }
+    receivedResponse(msgStart, true);
+
+    const delta_time = 1000*data.times[data.id.get(curPosRobotSimulation)][data.id.get(whereto)];
+    curPosRobotSimulation=whereto;
 		mainWindow.webContents.send('updateSyncRobot', curPosRobotSimulation===curPosRobotLive);
 
 		clearTimeout(parkingTimer);
 		clearTimeout(dockingTimer);
-    setTimeout(() => {
-      receivedResponse(msg2, true);
+		clearTimeout(gotoTimer);
+    gotoTimer = setTimeout(() => {
+      receivedResponse(msgEnd, true);
 			if (whereto!=='standby1') {
 				parkingTimer = setTimeout(() => {
 					responseSimulation('goto standby1');
@@ -523,28 +544,53 @@ function responseSimulation(request) {
 					responseSimulation('dock');
 				}, dockingTimeout);
 			}
-    }, delta_time*1000);
+    }, delta_time);
 
 
   } else if (request.toLowerCase() === 'dock') {
-    console.log('dock')
-    const whereto = 'dockingstation2';
-    const msg1 = 'Going to dockingstation2\n'
-    const msg2 = 'Docking\n'
-    const msg3 = 'Docked\n'
-    const delta_time = data.times[data.id.get(curPosRobotSimulation)][data.id.get(whereto)]
-    receivedResponse(msg1, true);
-    curPosRobotSimulation=whereto
+    const msgDockStart = [
+      'DockingState: Undocked ForcedState: Unforced ChargeState: Not\n',
+      'DockingState: Docking ForcedState: Unforced ChargeState: Not\n'
+    ];
+
+    const msgDockEnd = [
+      'DockingState: Docking ForcedState: Unforced ChargeState: Bulk\n',
+      'DockingState: Docked ForcedState: Unforced ChargeState: Bulk\n'
+    ];
+
+    const whereto = 'station ld/lynx'+curDock.substring('dockingstation'.length);
+		const dock = curDock;
+
+    for (let msg of msgDockStart) {
+      receivedResponse(msg, true);
+    }
+
+		const delta_time = 1000*data.times[data.id.get(curPosRobotSimulation)][data.id.get(whereto)];
+    const delta_time_dock = 1000*data.times[data.id.get(whereto)][data.id.get(dock)];
+    curPosRobotSimulation=whereto;
 		mainWindow.webContents.send('updateSyncRobot', curPosRobotSimulation===curPosRobotLive);
 
 		clearTimeout(parkingTimer);
 		clearTimeout(dockingTimer);
-    setTimeout(() => {
-      receivedResponse(msg2, true);
-      setTimeout(() => {
-        receivedResponse(msg3, true);
-      }, 1000);
-    }, delta_time*1000);
+		clearTimeout(gotoTimer);
+    gotoTimer = setTimeout(() => {
+			mainWindow.webContents.send('updatePathSimulation', whereto, dock, false);
+      curPosRobotSimulation=dock;
+			dockingTimer = setTimeout(() => {
+				for (let msg of msgDockEnd) {
+          receivedResponse(msg, true, true);
+        }
+        if (false&&Math.random()<dockingFailProbRetry) { // dock failed
+					if (Math.random()<dockingFailProbChangeDock) { // retry with a different dock
+						curDock = 'dockingstation' + (1 + parseInt(curDock.substring('dockingstation'.length)));
+						if (!data.id.has(curDock)) {
+							curDock = 'dockingstation1';
+						}
+					}
+          responseSimulation('dock');
+        }
+			}, delta_time_dock);
+    }, delta_time);
 
   } else {
     receivedResponse(`CommandError: ${request}\n`, true);

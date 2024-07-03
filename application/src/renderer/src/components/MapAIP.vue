@@ -747,6 +747,10 @@ onMounted(async () => {
 
   ipcRenderer.on('updatePathSimulation', async (event, src, dest, clearCanva) => {
 		if (props.flagLive) return;
+		ctx_path.clearRect(0, 0, canvas_path.value.width, canvas_path.value.height);
+		ctx_pathTemp.clearRect(0, 0, canvas_pathTemp.value.width, canvas_pathTemp.value.height);
+		ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.value.width, canvas_projectedPath.value.height);
+		ctx_projectedPathTemp.clearRect(0, 0, canvas_projectedPathTemp.value.width, canvas_projectedPathTemp.value.height);
 
     if (!data.id.has(src)||!data.id.has(dest)) return;
 
