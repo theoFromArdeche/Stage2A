@@ -148,6 +148,7 @@ const DATA = new Map();
 const robotsCurStatus = new Map();
 const robotsCurPos = new Map();
 var flagSimulation = true;
+var updatePathLiveTimer;
 var gotoTimer;
 var parkingTimer;
 const parkingTimeout = 7 * 1000;
@@ -184,9 +185,10 @@ const net = require('net');
 
 
 function resetVariables() {
-	gotoTimer = null;
-	parkingTimer = null;
-	dockingTimer = null;
+  clearTimeout(updatePathLiveTimer);
+	clearTimeout(gotoTimer);
+	clearTimeout(parkingTimer);
+	clearTimeout(dockingTimer);
 	curDock = 'dockingstation2';
 	curStandby = 'standby1';
 	robotCurPosSimulation = null;
@@ -462,7 +464,7 @@ function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the serv
 			const temp_robotCurLocation=robotCurLocation;
 			const temp_location = location;
 			const temp_duration = Date.now()-timeStatus
-			setTimeout(()=> {
+			updatePathLiveTimer = setTimeout(()=> {
 				mainWindow.webContents.send('updatePathLive', temp_robotCurLocation, temp_location, temp_duration);
 			}, temp_time)
 		}
