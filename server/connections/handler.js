@@ -10,7 +10,6 @@ const defaultState = {
 	handTimer: null,
 	handTimerStartTime: null,
 	handTimeout: 5 * 60 * 1000,
-	codeAdmin: 'admin',
 	destDockPark: null,
 	flagDockPark: false,
 	statusTimer: null,
@@ -32,11 +31,12 @@ const curStatus = new Map();
 const connectedClients = new Map();
 const adminClients = new Set();
 var database = null;
+var codeAdmin;
 
 
 module.exports = {
 	sendToRobot, sendToClient, sendToAllClients, setHandTimeout, updatePositions, sendStatus, deleteRobot, initializeClients,
-	accessState, createRobot, accessDB, initializeRobotId, getRobotIds, accessStatus, getRobotId, getClientId,
+	accessState, createRobot, accessDB, initializeRobotId, getRobotIds, accessStatus, getRobotId, getClientId, accessCodeAdmin,
 	connectedClients, adminClients
 }
 
@@ -66,6 +66,11 @@ function accessStatus(robotId, key, value) {
 	return curStatus.get(robotId).get(key);  // getter
 }
 
+
+function accessCodeAdmin(value) {
+	if (value) codeAdmin=value;
+	return codeAdmin;
+}
 
 function sendStatus(robotId, clientId) {
 	for (let status of curStatus.get(robotId).values()) {

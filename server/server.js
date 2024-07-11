@@ -15,7 +15,7 @@ const robotPort = [3456, 3457, 3458];
 const robotHost = ['127.0.0.1', '127.0.0.1', '127.0.0.1'];
 const robotPassword = ['password', 'password', 'password'];
 const serverPort = 2345;
-
+const codeAdmin = 'admin';
 
 if (robotHost.length !== robotPort.length || robotPort.length !== robotPassword.length) {
 	console.log('Error: robotHost, robotPort and robotPassword have different length');
@@ -162,6 +162,7 @@ function getName(line) {
 // CONNECT TO THE ROBOT AND THE CLIENTS
 
 function startServer() {
+	handler.accessCodeAdmin(codeAdmin);
 	for (let i=0; i<robotHost.length; i++) {
 		connectToRobot(robotHost[i], robotPort[i], robotPassword[i]);
 	}

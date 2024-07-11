@@ -396,7 +396,13 @@ function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the serv
   if (!onlyUpdate) console.log(`Received from server : ${responseRaw}`);
 	const receivedRobotId = responseRaw.split(': ')[0];
 	const response = responseRaw.substring(receivedRobotId.length + ': '.length);
-	if (!robotIds.has(receivedRobotId) && response.indexOf('ADD ROBOTID') !== 0 && response.indexOf('DATA: ') !== 0) return;
+	if (!robotIds.has(receivedRobotId)
+		&& response.indexOf('ADD ROBOTID') !== 0
+		&& response.indexOf('DATA: ') !== 0
+		&& response.indexOf('ADMIN REQUEST ACCEPTED') !==0
+	  && response.indexOf('ADMIN REQUEST REJECTED') !==0) {
+		return;
+	}
 
 
   if (response.indexOf('RESPONSE: ') === 0) {

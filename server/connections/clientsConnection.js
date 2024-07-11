@@ -101,7 +101,7 @@ function receiveRequest(clientId, msg) {
 	const robotId = handler.connectedClients.get(clientId).get('robotId');
 
 	console.log(`(${robotId}) Received from client ${clientId}: ${msg}`);
-	if (!handler.accessState(robotId)) {
+	if (!handler.accessState(robotId) && !msg.startsWith('CODE ADMIN: ') && !msg.startsWith('QUIT ADMIN')) {
 		console.log(`(${robotId}) Unknown robot id`);
 		return;
 	}
@@ -191,10 +191,10 @@ function receiveRequest(clientId, msg) {
 
 	} else if (msg.startsWith('CODE ADMIN: ')) {
 		const code = msg.substring('CODE ADMIN: '.length);
-		if (code===handler.accessState(robotId, 'codeAdmin')) {
+		if (code===handler.accessCodeAdmin()) {
 			handler.adminClients.add(clientId);
 			handler.sendToClient(clientId, 'ADMIN REQUEST ACCEPTED\n');
-			if (handler.accessState(robotId, 'handQueue').indexOf(clientId)!==-1) {
+			if (handler.accessState(robotId) && handler.accessState(robotId, 'handQueue').indexOf(clientId)!==-1) {
 				handler.accessState(robotId, 'handQueue', handler.accessState(robotId, 'handQueue').filter((id) => id !== clientId));
 				receiveRequest(clientId, 'HAND');
 			}
@@ -205,7 +205,7 @@ function receiveRequest(clientId, msg) {
 	} else if (msg === 'QUIT ADMIN') {
 		if (!handler.adminClients.has(clientId)) return;
 
-		if (handler.accessState(robotId, 'handQueue').indexOf(clientId)!==-1) {
+		if (handler.accessState(robotId) && handler.accessState(robotId, 'handQueue').indexOf(clientId)!==-1) {
 			handler.accessState(robotId, 'handQueue', handler.accessState(robotId, 'handQueue').filter((id) => id !== clientId));
 			receiveRequest(clientId, 'HAND');
 		}
