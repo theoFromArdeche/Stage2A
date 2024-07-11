@@ -739,7 +739,10 @@ function tailleEtTracer() {
 
 	forbiddenAreas.forEach((area) => {
 		const { originalCoords, heading } = area;
-		const rotationDeg = 270 - heading;
+
+		var rotationDeg;
+		if (heading===0) rotationDeg = 0;
+		else rotationDeg = 270 - heading;
 
 		const bottomRight = transformCoord(originalCoords[0][0], originalCoords[0][1], canvas_MapAIP.value.width)
 		const topLeft = transformCoord(originalCoords[1][0], originalCoords[1][1], canvas_MapAIP.value.width)
