@@ -85,10 +85,16 @@ async function resetVariables() {
 	minPos = { x: 0, y: 0 };
 	maxPos = { x: 0, y: 0 };
 
-	simulationTimer.value = null;
-	animLine.value = new Set();
+	clearTimeout(simulationTimer.value);
+	clearInterval(projectedPathInterval.value);
+
+	await nextTick();
+	for (let item of animLine.value) {
+		cancelAnimationFrame(item);
+		animLine.value.delete(item);
+	}
+
 	destinationLive.value = null;
-	projectedPathInterval.value = null;
 
 	curLineStart.value = [];
 	curLineEnd.value = [];
@@ -435,41 +441,57 @@ function getRoomName(line) {
 
 
 
+function inverseRotate(x, y, angleDegrees) {
+  const angleRadians = angleDegrees * Math.PI / 180;
+  const cosTheta = Math.cos(angleRadians);
+  const sinTheta = Math.sin(angleRadians);
+
+  const xPrime = x * cosTheta + y * sinTheta;
+  const yPrime = -x * sinTheta + y * cosTheta;
+
+  return [xPrime, yPrime];
+}
+
+
+
 function getCoordsFa(line) {
-  const coords = [[0, 0], [0, 0], 0]
-  let compteur = 0
-  let i = 0
-  let temp = ''
+  const coords = [[0, 0], [0, 0], 0];
+  let compteur = 0;
+  let i = 0;
+  let temp = '';
 
   while (compteur <= 6 && i < line.length) {
     if (line[i] === '-' || (line[i] === '.' && isDigit(line[i + 1])) || isDigit(line[i])) {
-      temp += line[i]
+      temp += line[i];
     }
     if ((temp !== '' && line[i] === ' ') || i === line.length - 1) {
       switch (compteur) {
         case 2:
-          coords[2] = parseFloat(temp)
-          break
+          coords[2] = parseFloat(temp);
+          break;
         case 3:
-          coords[0][0] = parseFloat(temp)
-          break
+          coords[0][0] = parseFloat(temp);
+          break;
         case 4:
-          coords[0][1] = parseFloat(temp)
-          break
+          coords[0][1] = parseFloat(temp);
+          break;
         case 5:
-          coords[1][0] = parseFloat(temp)
-          break
+          coords[1][0] = parseFloat(temp);
+          break;
         case 6:
-          coords[1][1] = parseFloat(temp)
-          break
+          coords[1][1] = parseFloat(temp);
+          break;
       }
-      temp = ''
-      compteur += 1
+      temp = '';
+      compteur += 1;
     }
-    i += 1
+    i += 1;
   }
 
-  return coords
+  const heading = coords[2];
+  const originalCoords = coords.slice(0, 2).map(([x, y]) => inverseRotate(x, y, -heading));
+
+  return { originalCoords, heading };
 }
 
 
@@ -716,14 +738,28 @@ function tailleEtTracer() {
 	})
 
 	forbiddenAreas.forEach((area) => {
-		const bottomRight = transformCoord(area[0][0], area[0][1], canvas_MapAIP.value.width)
-		const topLeft = transformCoord(area[1][0], area[1][1], canvas_MapAIP.value.width)
+		const { originalCoords, heading } = area;
+		const rotationDeg = 270 - heading;
+
+		const bottomRight = transformCoord(originalCoords[0][0], originalCoords[0][1], canvas_MapAIP.value.width)
+		const topLeft = transformCoord(originalCoords[1][0], originalCoords[1][1], canvas_MapAIP.value.width)
+
+		const centerX = (bottomRight.x + topLeft.x) / 2;
+  	const centerY = (bottomRight.y + topLeft.y) / 2;
+
+		const width = Math.abs(bottomRight.x - topLeft.x);
+  	const height = Math.abs(bottomRight.y - topLeft.y);
+
+		ctx_MapAIP.save();
+		ctx_MapAIP.translate(centerX, centerY);
+		ctx_MapAIP.rotate(rotationDeg * Math.PI / 180);
 		ctx_MapAIP.fillStyle = 'rgba(255, 0, 0, 0.5)'
 		ctx_MapAIP.beginPath()
-		ctx_MapAIP.rect(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y)
+		ctx_MapAIP.rect(-width / 2, -height / 2, width, height);
 		ctx_MapAIP.fill()
 		ctx_MapAIP.strokeStyle = 'red'
 		ctx_MapAIP.stroke()
+		ctx_MapAIP.restore();
 
 		for (let row=Math.floor(topLeft.y/tailleCarré); row<=Math.floor(bottomRight.y/tailleCarré); row++) {
 			for (let column=Math.floor(topLeft.x/tailleCarré); column<=Math.floor(bottomRight.x/tailleCarré); column++) {
