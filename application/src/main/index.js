@@ -347,12 +347,8 @@ function connectToServer() {
 
   // If the connection to the server fails, retry after a delay
   serverSocket.on('error', (err) => {
-    if (err.code === 'ECONNREFUSED') {
-      console.log('WARNING: Server is not available, retrying in 5 seconds...');
-      setTimeout(connectToServer, 5000); // 5 seconds
-    } else {
-      console.error('Socket error:', err);
-    }
+    console.log('WARNING: Server is not available, retrying in 5 seconds...');
+    setTimeout(connectToServer, 5000); // 5 seconds
   });
 }
 
