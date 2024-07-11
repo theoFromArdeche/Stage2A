@@ -1,49 +1,71 @@
 const net = require('net');
 
-const port_server = 3456; // choose an open port
-var startTime = Date.now();
+const port_robot = [3456, 3457, 3458];
 const duration = 60*1000;
+const password = 'password\n';
 
-const server = net.createServer((socket) => {
-  console.log('Server connected');
+for (let port of port_robot) {
+	const server = net.createServer((socket) => {
+		console.log(`(${port}) Server connected`);
+		var startTime = Date.now();
+		var flagPassword = false;
+		var flagGoto = false;
 
-  socket.on('data', (data) => {
-    console.log('Received from server : ', data.toString());
-    // Send a response back to the first server
-    var request = data.toString();
-    if (request.startsWith('goto ')) {
-      request = request.substring('goto '.length);
-      startTime = Date.now();
+		function receivedData(data) {
+			console.log(`(${port}) Received from server : ${data.toString()}`);
+			if (!flagPassword) {
+				flagPassword = (data === password);
+				return;
+			}
 
-		} else if (request === 'dock\n') {
-      request = 'dockingstation2';
+			// Send a response back to the first server
+			var request = data.toString();
+			if (request.startsWith('goto ')) {
+				request = request.substring('goto '.length);
+				startTime = Date.now();
+				flagGoto = true;
 
-    } else if (request === 'status\n') {
-      const response = status();
-      socket.write(response);
-      return;
-    } else {
-      socket.write(`CommandError: ${request}\n`)
-      return;
-    }
+			} else if (request === 'dock\n') {
+				request = 'dockingstation2';
 
-    socket.write(`Going to ${request}\n`)
-    setTimeout(() => {
-      socket.write(`Arrived at ${request}\n`);
-    }, duration);
-  });
+			} else if (request === 'status\n') {
+				var response;
+				if (flagGoto) response = status(startTime);
+				else response = status(Date.now());
+				socket.write(response);
+				return;
 
-  socket.on('end', () => {
-    console.log('Server disconnected');
-  });
-});
+			} else {
+				socket.write(`CommandError: ${request}\n`)
+				return;
+			}
 
-server.listen(port_server, () => {
-  console.log(`Telnet server listening on port ${port_server}`);
-});
+			socket.write(`Going to ${request}\n`)
+			setTimeout(() => {
+				socket.write(`Arrived at ${request}\n`);
+				flagGoto = false;
+			}, duration);
+		}
+
+		socket.on('data', (data) => {
+			for (let d of data.toString().split('\n')) {
+				if (!d) continue;
+				receivedData(`${d}\n`);
+			}
+		});
+
+		socket.on('end', () => {
+			console.log('Server disconnected');
+		});
+	});
+
+	server.listen(port, () => {
+		console.log(`Telnet server listening on port ${port}`);
+	});
+}
 
 
-function status() {
+function status(startTime) {
   const currentTime = Date.now();
   const elapsedTime = currentTime - startTime;
 
@@ -63,7 +85,7 @@ function status() {
 
 	const rotateDeg = Math.atan2(dy, dx)*180/Math.PI;
 
-  return `ExtendedStatusForHumans: docked\nStatus: docked\nStateOfCharge: ${Math.round((1-elapsedTime/duration)*100*100)/100}\nLocation: ${x} ${y} ${rotateDeg}\n`
+  return `ExtendedStatusForHumans: docked\nStatus: docked\nStateOfCharge: ${Math.round((1-elapsedTime/duration)*100*100)/100}\nLocation: ${x} ${y} ${rotateDeg}\nLocalizationScore: 63.5\nTemperature: 26.3\n`;
 }
 
 

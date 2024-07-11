@@ -10,28 +10,41 @@ const { connectToClients } = require('./connections/clientsConnection');
 var handler = require('./connections/handler')
 
 const app = express();
-const port_map = 3001;
+const mapPort = 3001;
+const robotPort = [3456, 3457, 3458];
+const robotHost = ['127.0.0.1', '127.0.0.1', '127.0.0.1'];
+const robotPassword = ['password', 'password', 'password'];
+const serverPort = 2345;
+
+
+if (robotHost.length !== robotPort.length || robotPort.length !== robotPassword.length) {
+	console.log('Error: robotHost, robotPort and robotPassword have different length');
+	return;
+}
 
 
 
-// FETCH THE MAP
-
-const mapData = fs.readFileSync('./data/map_loria.txt', 'utf8');
-
-
-
-// MAKE THE MAP AVAILABLE FOR THE CLIENTS
+// MAKE THE MAPS AVAILABLE FOR THE CLIENTS
 
 app.use(cors());
 app.use(compression());
 
+for (let i=0; i<robotHost.length; i++) {
+	const robotId = handler.getRobotId(robotHost[i], robotPort[i]);
+	const mapData = fs.readFileSync(`./data/map_${robotId}.txt`, 'utf8');
+	if (!mapData) {
+		console.log('Map could not be loaded');
+		return;
+	}
+	app.get(`/map_${robotId}`, (request, client) => {
+		client.send(mapData);
+	});
+}
 
-app.get('/map', (request, client) => {
-  client.send(mapData);
-});
 
-app.listen(port_map, () => {
-  console.log(`File server is running on http://localhost:${port_map}`);
+
+app.listen(mapPort, () => {
+  console.log(`File server is running on http://localhost:${mapPort}`);
 });
 
 
@@ -45,12 +58,10 @@ function connectDB() {
 			setTimeout(connectDB, 5000); // 5 seconds
 		} else {
 			console.log('Connected to the database');
-			if (!mapData) {
-				console.log('Map could not be loaded');
-				return;
+			handler.accessDB(getDatabase());
+			for (let i=0; i<robotHost.length; i++) {
+				await updateDatabase(handler.getRobotId(robotHost[i], robotPort[i]));
 			}
-			handler.accessState('database', getDatabase());
-			await updateDatabase();
 			startServer();
 		}
 	})
@@ -60,7 +71,9 @@ connectDB();
 
 
 
-async function updateDatabase() {
+async function updateDatabase(robotId) {
+	const mapData = fs.readFileSync(`./data/map_${robotId}.txt`, 'utf8');
+
 	const interestPoints = [];
 	const lines = mapData.split('\n');
   for (const line of lines) {
@@ -71,9 +84,9 @@ async function updateDatabase() {
 
 
 	// look for new interrestPoints
-	const newInterrestPoints = []
+	const newInterrestPoints = [];
 	for (let point of interestPoints) {
-		await handler.accessState('database').collection('labels')
+		await handler.accessDB().collection(`labels_${robotId}`)
 		.findOne({label: point})
 		.then(doc => {
 			if (!doc) {
@@ -85,28 +98,28 @@ async function updateDatabase() {
 
 	// delete the useless interestPoints
 	for (let collection of ['labels', 'fails', 'successes', 'times']) {
-		await handler.accessState('database').collection(collection).deleteMany({label: {$nin: interestPoints}})
+		await handler.accessDB().collection(`${collection}_${robotId}`).deleteMany({label: {$nin: interestPoints}});
 	}
 
 
 	// update the old interestPoints
 	for (let collection of ['fails', 'successes', 'times']) {
-		await handler.accessState('database').collection(collection).find().forEach(doc => {
+		await handler.accessDB().collection(`${collection}_${robotId}`).find().forEach(doc => {
 			const fails = new Map(Object.entries(doc[collection]));
 
 			// delete useless points
 			for (let point of fails.keys()) {
 				if (!interestPoints.includes(point)) {
-					fails.delete(point)
+					fails.delete(point);
 				}
 			}
 
 			// add new points
 			newInterrestPoints.forEach(point => {
-				fails.set(point.label, 0)
+				fails.set(point.label, 0);
 			})
 
-			handler.accessState('database').collection(collection).updateOne(
+			handler.accessDB().collection(`${collection}_${robotId}`).updateOne(
 				{_id: doc._id},
 				{$set: {[collection]: fails}}
 			)
@@ -117,11 +130,11 @@ async function updateDatabase() {
 	if (newInterrestPoints.length===0) return;
 
 	// add the new interestPoints
-	handler.accessState('database').collection('labels').insertMany(newInterrestPoints);
+	handler.accessDB().collection(`labels_${robotId}`).insertMany(newInterrestPoints);
 
 	const allPoints = new Map();
 	interestPoints.forEach(point => {
-		allPoints.set(point, 0)
+		allPoints.set(point, 0);
 	})
 
 	for (let collection of ['fails', 'successes', 'times']) {
@@ -132,16 +145,16 @@ async function updateDatabase() {
 				[collection]: allPoints
 			})
 		})
-		handler.accessState('database').collection(collection).insertMany(insert)
+		handler.accessDB().collection(`${collection}_${robotId}`).insertMany(insert);
 	}
 }
 
 
 
 function getName(line) {
-  const regex = /ICON\s+"([^"]+)"/
-  const match = line.match(regex)
-  return match[1].toLowerCase()
+  const regex = /ICON\s+"([^"]+)"/;
+  const match = line.match(regex);
+  return match[1].toLowerCase();
 }
 
 
@@ -149,8 +162,10 @@ function getName(line) {
 // CONNECT TO THE ROBOT AND THE CLIENTS
 
 function startServer() {
-	connectToRobot();
-	connectToClients();
+	for (let i=0; i<robotHost.length; i++) {
+		connectToRobot(robotHost[i], robotPort[i], robotPassword[i]);
+	}
+	connectToClients(serverPort);
 }
 
 

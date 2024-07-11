@@ -56,25 +56,34 @@ app.whenReady().then(() => {
   })
 
   ipcMain.on('handButtonTrigered', (event, arg) => { // from live
-		if (!hasHand) sendRequestServer('HAND');
-		else sendRequestServer('HAND BACK');
+		if (!hasHand) sendToServer('HAND\n');
+		else sendToServer('HAND BACK\n');
   });
 
   ipcMain.on('MapAIP-vue-loaded', (event, arg) => { // from MapAIP
-    mainWindow.webContents.send('updateData', data);
-    mainWindow.webContents.send('updateWaitings', queueSize);
+    mainWindow.webContents.send('updateData', DATA.get(robotCurId));
     fetchMap();
   });
 
   ipcMain.on('Sidebar-vue-loaded', (event, arg) => { // from sidebar
-    mainWindow.webContents.send('updatePosition', curLocationRobot);
+    mainWindow.webContents.send('updatePosition', robotCurLocation);
+		for (let id of robotIds) {
+			mainWindow.webContents.send('addRobot', id);
+		}
+		if (!robotsCurStatus.size) return;
+
+		for (let robotId of robotsCurStatus.keys()) {
+			for (let status of robotsCurStatus.get(robotId).values()) {
+				receiveResponseServer(`${robotId}: ${status}`, true);
+			}
+		}
   });
 
   ipcMain.on('onSimulation', (event, arg) => { // from router
 		mainWindow.webContents.send('onSimulation');
     flagSimulation=true;
 		if (hasHand) {
-			sendRequestServer('HAND BACK');
+			sendToServer('HAND BACK\n');
 		}
   });
 
@@ -89,21 +98,26 @@ app.whenReady().then(() => {
   });
 
 	ipcMain.on('codeAdmin', (event, arg) => { // from parametres
-		sendRequestServer(`CODE ADMIN: ${arg}`);
+		sendToServer(`CODE ADMIN: ${arg}\n`);
   });
 
 	ipcMain.on('quitAdmin', (event) => { // from parametres
-		sendRequestServer('QUIT ADMIN');
+		sendToServer('QUIT ADMIN\n');
   });
 
 
 	ipcMain.on('syncPosRobot', (event, arg) => { // from simulation
-    curPosRobotSimulation=curPosRobotLive;
+    robotCurPosSimulation=robotCurPosLive;
 		mainWindow.webContents.send('updateSyncRobot', true);
-		mainWindow.webContents.send('updatePathSimulation', curPosRobotSimulation, curPosRobotSimulation, true);
+		mainWindow.webContents.send('updatePathSimulation', robotCurPosSimulation, robotCurPosSimulation, true);
 		clearTimeout(parkingTimer);
 		clearTimeout(dockingTimer);
   });
+
+	ipcMain.on('changeRobot', (event, newRobotId) => { // from simulation
+    sendToServer(`CHANGE ROBOTID: ${newRobotId}\n`);
+  });
+
 
 
   createWindow()
@@ -130,41 +144,58 @@ app.on('window-all-closed', () => {
 
 
 
-var data;
+const DATA = new Map();
+const robotsCurStatus = new Map();
+const robotsCurPos = new Map();
 var flagSimulation = true;
-var gotoTimer = null;
-var parkingTimer = null;
+var gotoTimer;
+var parkingTimer;
 const parkingTimeout = 7 * 1000;
-var dockingTimer = null;
+var dockingTimer;
 const dockingTimeout = 15 * 60 * 1000;
 const dockingFailProbRetry = 0.1;
 const dockingFailProbChangeDock = 0.5;
 var curDock = 'dockingstation2';
 var curStandby = 'standby1';
-var curPosRobotSimulation;
-var curPosRobotLive;
-var curLocationRobot = ''; // coords x, y, z example : '-384 1125 0.00'
+var robotCurPosSimulation;
+var robotCurPosLive;
+var robotCurId;
+const robotIds = new Set();
+var robotCurLocation = ''; // coords x, y, z example : '-384 1125 0.00'
 var timeStatus = -1;
 var timeEndAnim = -1;
 
-const port_instance = 1234;
-const port_server = 2345;
-const port_map = 3001;
+const instancePort = 1234;
+const serverPort = 2345;
+const mapPort = 3001;
 
-var clientSocket = null;
-var clientConnected = false;
+var clientSocket;
+var flagClientConnected = false;
 var hasHand = false;
 var isAdmin = false;
 const adminCommandsRegex = ['^\\s*gethandlist\\s*$', '^\\s*get\\s+hand\\s+list\\s*$', '^\\s*ghl\\s*$', '^\\s*removefromhandlist\\s+\\d+\\s*$', '^\\s*remove\\s+from\\s+hand\\s+list\\s+\\d+\\s*$', '^\\s*rfhl\\s+\\d+\\s*$'];
 
-const server_host = 'localhost';
-var serverSocket = null;
+const serverHost = 'localhost';
+var serverSocket;
 var serverConnected = false;
-var queueSize = '0';
-
 
 const tls = require('tls');
 const net = require('net');
+
+
+function resetVariables() {
+	gotoTimer = null;
+	parkingTimer = null;
+	dockingTimer = null;
+	curDock = 'dockingstation2';
+	curStandby = 'standby1';
+	robotCurPosSimulation = null;
+	robotCurPosLive = null;
+	timeStatus = -1;
+	timeEndAnim = -1;
+	hasHand = false;
+	mainWindow.webContents.send('receiveQueue', 'Demander la main');
+}
 
 
 
@@ -173,7 +204,7 @@ const net = require('net');
 const instanceSocket = net.createServer((socket) => {
   console.log('Client connected');
   clientSocket = socket;
-  clientConnected = true
+  flagClientConnected = true
   console.log('Client socket info:', socket.address());
   // received data from the client
   socket.on('data', (data) => {
@@ -186,26 +217,26 @@ const instanceSocket = net.createServer((socket) => {
 
   socket.on('end', () => {
     console.log('Client disconnected');
-    clientConnected = false
+    flagClientConnected = false
     console.log('Client socket info:', socket.address());
   });
 
   // Event handler for errors
   socket.on('error', (err) => {
     console.error('Socket error:', err);
-    clientConnected = false;
+    flagClientConnected = false;
   });
 
 });
 
-instanceSocket.listen(port_instance, () => {
-  console.log(`Telnet server listening on port ${port_instance}`);
+instanceSocket.listen(instancePort, () => {
+  console.log(`Telnet server listening on port ${instancePort}`);
 });
 
 
 
-function sendResponse(request) {
-  if (!clientConnected) return;
+function sendToClient(request) {
+  if (!flagClientConnected) return;
   console.log(`Send to client : ${request}`)
   clientSocket.write(request);
 }
@@ -221,13 +252,12 @@ function receiveRequest(request) {
 	}
 	if (indexCommand>=0) {
 		if (!isAdmin) {
-			sendResponse("Vous n'êtes pas admin\n");
+			sendToClient("Vous n'êtes pas admin\n");
 		} else if (indexCommand<=2) {
-			sendRequestServer('GET HAND LIST');
+			sendToServer('GET HAND LIST\n');
 		} else {
 			const requestSplit = request.split(' ');
-			console.log(requestSplit);
-			sendRequestServer(`REMOVE FROM HAND LIST: ${parseInt(requestSplit[requestSplit.length-1])}`);
+			sendToServer(`REMOVE FROM HAND LIST: ${parseInt(requestSplit[requestSplit.length-1])}\n`);
 		}
 		return;
 	}
@@ -236,7 +266,7 @@ function receiveRequest(request) {
     responseSimulation(request);
   } else { // live
     if (hasHand) {
-      sendRequestServer(`REQUEST: ${request}`);
+      sendToServer(`REQUEST: ${request}\n`);
     } else {
       dialog.showMessageBox({
         type: 'warning',
@@ -251,12 +281,13 @@ function receiveRequest(request) {
 function receivedResponse(response, flagSimulationResponse, onlyUpdate=false) {
 	mainWindow.webContents.send('updateStatus', response, !flagSimulationResponse);
 	if (hasHand !== flagSimulationResponse) {
-		sendResponse(response)
+		sendToClient(response)
 	}
 
 
 	if (!flagSimulationResponse && (response.indexOf('Arrived at ') === 0 || response.indexOf('Parked') === 0 || response.indexOf('DockingState: Docked') === 0)){
 		mainWindow.webContents.send('removeIntervalLive', destination);
+		timeStatus = -1;
 		return;
 	}
 
@@ -271,10 +302,10 @@ function receivedResponse(response, flagSimulationResponse, onlyUpdate=false) {
 		destination = response.substring('Going to '.length).trim().toLowerCase();
 	}
 
-	//console.log(response, flagSimulationResponse, curPosRobotSimulation, destination);
+	//console.log(response, flagSimulationResponse, robotCurPosSimulation, destination);
 
   if (flagSimulationResponse) {
-    mainWindow.webContents.send('updatePathSimulation', curPosRobotSimulation, destination, false);
+    mainWindow.webContents.send('updatePathSimulation', robotCurPosSimulation, destination, false);
   } else {
     timeStatus=Date.now();
     mainWindow.webContents.send('updateDestinationLive', destination);
@@ -290,39 +321,29 @@ function receivedResponse(response, flagSimulationResponse, onlyUpdate=false) {
 // CONNECT TO THE SERVER
 
 function connectToServer() {
-  serverSocket = net.connect({ host: server_host, port: port_server }, () => {
-    console.log(`Connected to the server on port ${port_server}`);
+  serverSocket = net.connect({ host: serverHost, port: serverPort }, () => {
+    console.log(`Connected to the server on port ${serverPort}`);
     serverConnected = true;
-    serverSocket.write('DATA') // fetch the data
-
-
-    // Handle incoming data from the server
-    serverSocket.on('data', (data) => {
-      const responses = data.toString().split('\n');
-      for (let response of responses) {
-        if (!response) continue
-        receiveResponseServer(`${response}\n`);
-      }
-    });
-
-    // Handle the end of the server connection
-    serverSocket.on('end', () => {
-      console.log('WARNING: Server disconnected');
-      serverDisconnected()
-
-      // Attempt to reconnect to the server after a delay
-      setTimeout(connectToServer, 5000); // 5 seconds
-    });
-
-    // Handle errors in the server connection
-    serverSocket.on('error', (err) => {
-      console.error('Socket error:', err);
-      serverDisconnected()
-
-      // Attempt to reconnect to the server after a delay
-      setTimeout(connectToServer, 5000); // 5 seconds
-    });
+    serverSocket.write('DATA\n') // fetch the data
   });
+
+	// Handle incoming data from the server
+	serverSocket.on('data', (data) => {
+		const responses = data.toString().split('\n');
+		for (let response of responses) {
+			if (!response) continue
+			receiveResponseServer(`${response}\n`);
+		}
+	});
+
+	// Handle the end of the server connection
+	serverSocket.on('end', () => {
+		console.log('WARNING: Server disconnected');
+		serverDisconnected()
+
+		// Attempt to reconnect to the server after a delay
+		setTimeout(connectToServer, 5000); // 5 seconds
+	});
 
   // If the connection to the server fails, retry after a delay
   serverSocket.on('error', (err) => {
@@ -353,13 +374,14 @@ function serverDisconnected() {
 }
 
 async function fetchMap() {
+	if (!robotCurId) return;
   try {
-    const response = await fetch(`http://${server_host}:${port_map}/map`);
+    const response = await fetch(`http://${serverHost}:${mapPort}/map_${robotCurId}`);
     if (!response.ok) {
       throw new Error('Network response was not ok');
     }
     const data = await response.text();
-    mainWindow.webContents.send('fetchMap', data);
+    mainWindow.webContents.send('fetchMap', data, robotCurLocation);
   } catch (error) {
     console.log(`Error: ${error.message}`);
   }
@@ -369,64 +391,81 @@ async function fetchMap() {
 
 
 
-function receiveResponseServer(response) { // from the server
-  if (!response) return;
-  console.log(`Received from server : ${response}`)
+function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the server
+  if (!responseRaw) return;
+  if (!onlyUpdate) console.log(`Received from server : ${responseRaw}`);
+	const receivedRobotId = responseRaw.split(': ')[0];
+	const response = responseRaw.substring(receivedRobotId.length + ': '.length);
+	if (!robotIds.has(receivedRobotId) && response.indexOf('ADD ROBOTID') !== 0 && response.indexOf('DATA: ') !== 0) return;
+
 
   if (response.indexOf('RESPONSE: ') === 0) {
     const response_body = response.substring('RESPONSE: '.length);
     receivedResponse(response_body, false);
 
   } else if (response.indexOf('UPDATE VARIABLES: ') === 0) {
-		sendResponse(response);
+		sendToClient(response);
     const update_json = response.substring('UPDATE VARIABLES: '.length).trim();
     const update = JSON.parse(update_json);
-		const id_src = data.id.get(update.src)
-		const id_dest = data.id.get(update.dest)
+		const id_src = DATA.get(receivedRobotId).get('id').get(update.src)
+		const id_dest = DATA.get(receivedRobotId).get('id').get(update.dest)
     if (update.time === -1) { // fail
-      data.fails[id_src][id_dest] += 1;
+      DATA.get(receivedRobotId).get('fails')[id_src][id_dest] += 1;
     } else { // success
-      data.successes[id_src][id_dest]+=1;
-      data.times[id_src][id_dest]=update.time;
-      curPosRobotLive = Array.from(data.id.keys())[id_dest];
-			mainWindow.webContents.send('updateSyncRobot', curPosRobotSimulation===curPosRobotLive);
+      DATA.get(receivedRobotId).get('successes')[id_src][id_dest]+=1;
+      DATA.get(receivedRobotId).get('times')[id_src][id_dest]=update.time;
+      robotCurPosLive = Array.from(DATA.get(receivedRobotId).get('id').keys())[id_dest];
+			mainWindow.webContents.send('updateSyncRobot', robotCurPosSimulation===robotCurPosLive);
     }
 
     //console.log('UPDATED DATA : ', data);
-    mainWindow.webContents.send('updateData', data);
+		if (receivedRobotId !== robotCurId) return;
+
+		// update the data of MapAIP
+    mainWindow.webContents.send('updateData', DATA.get(robotCurId));
 
 
   } else if (response.indexOf('ExtendedStatusForHumans: ') === 0) {
-
     const statusForHuman = response.trim().substring('ExtendedStatusForHumans: '.length);
+		robotsCurStatus.get(receivedRobotId).set('ExtendedStatusForHumans', response);
     // update of the sidebar
-    mainWindow.webContents.send('Sidebar-updateStatus', statusForHuman);
+    mainWindow.webContents.send('Sidebar-updateStatus', receivedRobotId, statusForHuman);
 
   } else if (response.indexOf('StateOfCharge: ') === 0) {
     const stateOfCharge = response.trim().substring('StateOfCharge: '.length);
+		robotsCurStatus.get(receivedRobotId).set('StateOfCharge', response);
     // update of the sidebar
-    mainWindow.webContents.send('updateBattery', stateOfCharge);
+    mainWindow.webContents.send('updateBattery', receivedRobotId, stateOfCharge);
 
   } else if (response.indexOf('Location: ') === 0) {
     const location = response.trim().substring('Location: '.length);
-    // update of sidebar and MapAIP
-    mainWindow.webContents.send('updatePosition', location);
+		robotsCurStatus.get(receivedRobotId).set('Location', response);
+    // update of the sidebar
+    mainWindow.webContents.send('updatePosition', receivedRobotId, location);
+		if (receivedRobotId !== robotCurId) return;
+
+		if (onlyUpdate) {
+			robotCurLocation=location;
+			return;
+		}
+
+		if (timeStatus === -1) return;
 
     // draw the segment oldLocation -> curLocation in 'Live'
 		if (timeEndAnim-Date.now()<100) { // 100 ms
-			mainWindow.webContents.send('updatePathLive', curLocationRobot, location, Date.now()-timeStatus);
+			mainWindow.webContents.send('updatePathLive', robotCurLocation, location, Date.now()-timeStatus);
 
 		} else {
 			const temp_time=timeEndAnim-Date.now();
-			const temp_curLocationRobot=curLocationRobot;
+			const temp_robotCurLocation=robotCurLocation;
 			const temp_location = location;
 			const temp_duration = Date.now()-timeStatus
 			setTimeout(()=> {
-				mainWindow.webContents.send('updatePathLive', temp_curLocationRobot, temp_location, temp_duration);
+				mainWindow.webContents.send('updatePathLive', temp_robotCurLocation, temp_location, temp_duration);
 			}, temp_time)
 		}
 
-    curLocationRobot = location
+    robotCurLocation = location
     timeEndAnim = 2*Date.now()-timeStatus
     timeStatus = Date.now();
 
@@ -444,8 +483,8 @@ function receiveResponseServer(response) { // from the server
     const update_nb = response.substring('HAND QUEUE UPDATE: '.length).trim();
 
     // update de la sidebar
-    mainWindow.webContents.send('updateWaitings', update_nb);
-    queueSize=update_nb
+    mainWindow.webContents.send('updateWaitings', receivedRobotId, update_nb);
+		robotsCurStatus.get(receivedRobotId).set('waitings', response);
 
   } else if (response === 'HAND TIMEOUT\n') {
     hasHand = false;
@@ -455,23 +494,26 @@ function receiveResponseServer(response) { // from the server
     const response_array = response.substring('DATA: '.length).trim().split('FLAG_SPLIT');
     const jsonString = response_array[0];
     try {
-      data = JSON.parse(jsonString);
-      data.id = new Map(Object.entries(data.id));
+      const receivedData = new Map(Object.entries(JSON.parse(jsonString)));
+			receivedData.set('id', new Map(Object.entries(receivedData.get('id'))));
+			DATA.set(receivedRobotId, receivedData);
     } catch (err) {
       console.log('Error parsing JSON:', err);
     }
 
-    curPosRobotLive = response_array[1];;
-		if (curPosRobotSimulation) {
-			mainWindow.webContents.send('updateSyncRobot', curPosRobotSimulation===curPosRobotLive);
-		} else {
-			curPosRobotSimulation = curPosRobotLive;
-		}
-		mainWindow.webContents.send('updateData', data);
-    mainWindow.webContents.send('updateWaitings', queueSize);
-		mainWindow.webContents.send('updatePosition', curLocationRobot);
+		if (robotCurId && robotCurId !== 'undefined' && robotCurId !== receivedRobotId) return;
 
-		fetchMap();
+		resetVariables();
+
+    robotCurPosLive = response_array[1];
+		robotCurPosSimulation = robotCurPosLive;
+
+		robotCurId = receivedRobotId;
+		robotCurLocation = response_array[2];
+		robotsCurPos.set(receivedRobotId, robotCurPosLive);
+
+		mainWindow.webContents.send('updateData', DATA.get(robotCurId));
+		mainWindow.webContents.send('reRender');
 
   } else if (response.indexOf('ADMIN REQUEST ACCEPTED') === 0) {
 		mainWindow.webContents.send('adminRequestAccepted');
@@ -483,16 +525,48 @@ function receiveResponseServer(response) { // from the server
 
 	} else if (response.indexOf('HAND LIST: ') === 0) {
 		if (response === 'HAND LIST: \n') {
-			sendResponse('Hand list empty\n');
+			sendToClient('Hand list empty\n');
 			return;
 		}
 		const result = response.substring('HAND LIST: '.length).trim().replace(/,/g, '\n');
-		sendResponse(result);
+		sendToClient(result);
+
+	} else if (response.indexOf('ADD ROBOTID') === 0) {
+		if (robotIds.has(receivedRobotId)) return;
+		robotIds.add(receivedRobotId);
+		robotsCurStatus.set(receivedRobotId, new Map());
+
+		mainWindow.webContents.send('addRobot', receivedRobotId);
+		sendToServer(`ROBOTID ADDED: ${receivedRobotId}\n`);
+
+	} else if (response.indexOf('REMOVE ROBOTID') === 0) {
+	if (!robotIds.has(receivedRobotId)) return;
+		robotIds.delete(receivedRobotId);
+		robotsCurStatus.delete(receivedRobotId);
+		robotsCurPos.delete(receivedRobotId);
+		mainWindow.webContents.send('removeRobot', receivedRobotId);
+
+	} else if (response.indexOf('SELECTED ROBOTID') === 0) {
+		robotCurId = receivedRobotId;
+
+		resetVariables();
+
+    robotCurPosLive = robotsCurPos.get(robotCurId);
+		robotCurPosSimulation = robotCurPosLive;
+
+		robotCurLocation = robotsCurStatus.get(robotCurId).get('Location').substring('Location: '.length).trim();
+
+		mainWindow.webContents.send('updateData', DATA.get(robotCurId));
+		mainWindow.webContents.send('reRender');
+
+	} else if (response.indexOf('UPDATE POS: ') === 0) {
+		const newPos = response.substring('UPDATE POS: '.length).trim();
+		robotsCurPos.set(receivedRobotId, newPos);
 	}
 }
 
 
-function sendRequestServer(request) {
+function sendToServer(request) {
   if (!serverConnected) return;
   console.log(`Send to server : ${request}`)
   serverSocket.write(request);
@@ -502,10 +576,10 @@ function sendRequestServer(request) {
 function responseSimulation(request) {
   if (request.toLowerCase().indexOf('goto ') == 0) {
     const whereto = request.toLowerCase().substring('goto '.length);
-    if (!data.id.has(whereto)){
+    if (!DATA.get(robotCurId).get('id').has(whereto)){
       //console.log('invalid destination')
       receivedResponse(`Unknown destination ${whereto}\n`, true);
-      return
+      return;
     }
 
     const msgDock = [
@@ -519,16 +593,16 @@ function responseSimulation(request) {
     const msgEnd = `Arrived at ${whereto}\n`;
 
     const regexDock = new RegExp('^dockingstation\\d+$')
-    if (regexDock.test(curPosRobotSimulation)) {
+    if (regexDock.test(robotCurPosSimulation)) {
       for (let msg of msgDock) {
         receivedResponse(msg, true);
       }
     }
     receivedResponse(msgStart, true);
 
-    const delta_time = 1000*data.times[data.id.get(curPosRobotSimulation)][data.id.get(whereto)];
-    curPosRobotSimulation=whereto;
-		mainWindow.webContents.send('updateSyncRobot', curPosRobotSimulation===curPosRobotLive);
+		const delta_time = 1000*DATA.get(robotCurId).get('times')[DATA.get(robotCurId).get('id').get(robotCurPosSimulation)][DATA.get(robotCurId).get('id').get(whereto)];
+    robotCurPosSimulation=whereto;
+		mainWindow.webContents.send('updateSyncRobot', robotCurPosSimulation===robotCurPosLive);
 
 		clearTimeout(parkingTimer);
 		clearTimeout(dockingTimer);
@@ -565,17 +639,17 @@ function responseSimulation(request) {
       receivedResponse(msg, true);
     }
 
-		const delta_time = 1000*data.times[data.id.get(curPosRobotSimulation)][data.id.get(whereto)];
-    const delta_time_dock = 1000*data.times[data.id.get(whereto)][data.id.get(dock)];
-    curPosRobotSimulation=whereto;
-		mainWindow.webContents.send('updateSyncRobot', curPosRobotSimulation===curPosRobotLive);
+		const delta_time = 1000*DATA.get(robotCurId).get('times')[DATA.get(robotCurId).get('id').get(robotCurPosSimulation)][DATA.get(robotCurId).get('id').get(whereto)];
+    const delta_time_dock = 1000*DATA.get(robotCurId).get('times')[DATA.get(robotCurId).get('id').get(whereto)][DATA.get(robotCurId).get('id').get(dock)];
+    robotCurPosSimulation=whereto;
+		mainWindow.webContents.send('updateSyncRobot', robotCurPosSimulation===robotCurPosLive);
 
 		clearTimeout(parkingTimer);
 		clearTimeout(dockingTimer);
 		clearTimeout(gotoTimer);
     gotoTimer = setTimeout(() => {
 			mainWindow.webContents.send('updatePathSimulation', whereto, dock, false);
-      curPosRobotSimulation=dock;
+      robotCurPosSimulation=dock;
 			dockingTimer = setTimeout(() => {
 				for (let msg of msgDockEnd) {
           receivedResponse(msg, true, true);
@@ -583,7 +657,7 @@ function responseSimulation(request) {
         if (false&&Math.random()<dockingFailProbRetry) { // dock failed
 					if (Math.random()<dockingFailProbChangeDock) { // retry with a different dock
 						curDock = 'dockingstation' + (1 + parseInt(curDock.substring('dockingstation'.length)));
-						if (!data.id.has(curDock)) {
+						if (!DATA.get(robotCurId).get('id').has(curDock)) {
 							curDock = 'dockingstation1';
 						}
 					}

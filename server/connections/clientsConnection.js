@@ -6,53 +6,46 @@ module.exports = { connectToClients }
 
 const net = require('net');
 
-const port_server = 2345;
-const pingTiming = 5 * 60 * 1000;
 
-
-
-function connectToClients() {
+function connectToClients(port) {
 	const server = net.createServer((socket) => {
 		console.log('Client connected');
 		console.log('Client socket info:', socket.address());
 
 		// create a unique identifier for the client
-		const clientId = `${socket.remoteAddress}:${socket.remotePort}`;
+		const clientId = handler.getClientId(socket.remoteAddress, socket.remotePort);
 		console.log(`Client connected with id: ${clientId}`);
 
 		// add the socket to the connected clients map
-		handler.accessState('connectedClients').set(clientId, socket);
+		const robotId = handler.initializeRobotId();
+		handler.connectedClients.set(clientId, new Map([['socket', socket], ['robotId', robotId]]));
 
-		// update the client
-		updateClientQueue(clientId);
-
-		// send a ping to the client every 5 seconds to check if it's still there
-		const pingInterval = setInterval(() => {
-			socket.write('PING\n');
-		}, pingTiming);
 
 		// received data from the client
 		socket.on('data', (data) => {
 			const msg = data.toString().trim();
-			receiveRequest(clientId, msg);
+			for (let m of msg.split('\n')) {
+				if (!m) continue;
+				receiveRequest(clientId, m);
+			}
 		});
 
 		// client disconnected
 		socket.on('end', () => {
 			console.log('Client disconnected');
 			console.log('Client socket info:', socket.address());
-			socketDisconnect(clientId, pingInterval)
+			socketDisconnect(clientId)
 		});
 
 		// Event handler for errors
 		socket.on('error', (err) => {
 			console.error('Socket error:', err);
-			socketDisconnect(clientId, pingInterval)
+			socketDisconnect(clientId)
 		});
 	});
 
-	server.listen(port_server, () => {
-		console.log(`Telnet server listening on port ${port_server}`);
+	server.listen(port, () => {
+		console.log(`Telnet server listening on port ${port}`);
 	});
 }
 
@@ -60,33 +53,44 @@ function connectToClients() {
 
 
 
-function socketDisconnect(clientId, pingInterval) {
+function socketDisconnect(clientId) {
+	const robotId = handler.connectedClients.get(clientId).get('robotId');
 	// remove the socket from the connected clients map
-	handler.accessState('connectedClients').delete(clientId);
-	handler.accessState('adminClients').delete(clientId)
-	// stop the ping interval
-	clearInterval(pingInterval);
+	handler.connectedClients.delete(clientId);
+	handler.adminClients.delete(clientId);
+
+	removeClientFromQueue(clientId, robotId);
+}
+
+
+function removeClientFromQueue(clientId, robotId) {
+	if (!handler.accessState(robotId)) return;
+
 	// remove the client from the request queue
-	handler.accessState('handQueue', handler.accessState('handQueue').filter((id) => id !== clientId));
+	handler.accessState(robotId, 'handQueue', handler.accessState(robotId, 'handQueue').filter((id) => id !== clientId));
 	// if the client was the hand holder, set a new owner
-	if (handler.accessState('handHolder') === clientId) {
-		clearTimeout(handler.accessState('handTimer'));
-		if (handler.accessState('handQueue').length===0) {
-			handler.accessState('handHolder',null);
+	if (handler.accessState(robotId, 'handHolder') === clientId) {
+		clearTimeout(handler.accessState(robotId, 'handTimer'));
+		if (handler.accessState(robotId, 'handQueue').length===0) {
+			handler.accessState(robotId, 'handHolder',null);
 		} else {
-			handler.accessState('handHolder', handler.accessState('handQueue')[0]);
-			handler.accessState('handQueue').shift();
-			handler.sendToClient(handler.accessState('handHolder'), 'HAND REQUEST ACCEPTED\n');
-			handler.setHandTimeout(handler.accessState('handHolder'));
+			handler.accessState(robotId, 'handHolder', handler.accessState(robotId, 'handQueue')[0]);
+			handler.accessState(robotId, 'handQueue').shift();
+			handler.sendToClient(handler.accessState(robotId, 'handHolder'), 'HAND REQUEST ACCEPTED\n');
+			handler.setHandTimeout(handler.accessState(robotId, 'handHolder'));
 		}
 	}
 
 	// update the clients
-	handler.updatePositions();
+	handler.updatePositions(robotId);
 }
 
-function updateClientQueue(clientId) {
-	handler.sendToClient(clientId, `HAND QUEUE UPDATE: ${handler.accessState('handQueue').length}\n`)
+
+function updateClientQueue(clientId, robotIdOverwrite) {
+	var robotId;
+	if (robotIdOverwrite) robotId=robotIdOverwrite;
+	else robotId = handler.connectedClients.get(clientId).get('robotId');
+	handler.sendToClient(clientId, `HAND QUEUE UPDATE: ${handler.accessState(robotId, 'handQueue').length}\n`, robotId);
 }
 
 
@@ -94,19 +98,23 @@ function updateClientQueue(clientId) {
 
 function receiveRequest(clientId, msg) {
 	// a request is received, the timer is reset
+	const robotId = handler.connectedClients.get(clientId).get('robotId');
 
-	console.log(`Received from client ${clientId}: ${msg}`);
-	if (msg === 'PING') {
+	console.log(`(${robotId}) Received from client ${clientId}: ${msg}`);
+	if (!handler.accessState(robotId)) {
+		console.log(`(${robotId}) Unknown robot id`);
 		return;
-	} else if (msg.startsWith('REQUEST: ')) {
+	}
 
-		if (handler.accessState('handHolder') != clientId) return;
-		handler.setHandTimeout(handler.accessState('handHolder'));
+	if (msg.startsWith('REQUEST: ')) {
+
+		if (handler.accessState(robotId, 'handHolder') != clientId) return;
+		handler.setHandTimeout(handler.accessState(robotId, 'handHolder'));
 
 		const request = msg.substring('REQUEST: '.length).toLowerCase();
 		if (!request.startsWith('goto ')&&request!=='dock') {
 			//console.log('invalid command\n');
-			handler.sendToRobot(request)
+			handler.sendToRobot(robotId, request)
 			return;
 		}
 
@@ -119,62 +127,62 @@ function receiveRequest(clientId, msg) {
 
 
 		// send the request to the robot
-		handler.sendToRobot(request)
+		handler.sendToRobot(robotId, request)
 
 		// the timeout will be rest when the response is received
-		clearTimeout(handler.accessState('handTimer'));
+		clearTimeout(handler.accessState(robotId, 'handTimer'));
 
 	} else if (msg === 'HAND') {
-		if (!handler.accessState('handHolder')) {
+		if (!handler.accessState(robotId, 'handHolder')) {
 			// the hand is available and given to the client
-			handler.accessState('handHolder',clientId);
+			handler.accessState(robotId, 'handHolder',clientId);
 			handler.sendToClient(clientId, 'HAND REQUEST ACCEPTED\n');
 			handler.setHandTimeout(clientId);
 		} else {
-			if (handler.accessState('handHolder')==clientId) {
+			if (handler.accessState(robotId, 'handHolder')===clientId) {
 				handler.sendToClient(clientId, 'YOU ALREADY HAVE THE HAND\n');
 				return;
 			}
 
 			// the hand is not available
 
-			var position = handler.accessState('handQueue').indexOf(clientId) + 1;
+			var position = handler.accessState(robotId, 'handQueue').indexOf(clientId) + 1;
 			if (position===0) { // clientId not in the queue
-				if (handler.accessState('adminClients').has(clientId)) {
+				if (handler.adminClients.has(clientId)) {
 					// admin
-					for (let i=0; i<handler.accessState('handQueue').length; i++) {
-						const id = handler.accessState('handQueue')[i];
-						if (!handler.accessState('adminClients').has(id)) {
-							handler.accessState('handQueue').splice(i, 0, clientId);
-							handler.updatePositions();
+					for (let i=0; i<handler.accessState(robotId, 'handQueue').length; i++) {
+						const id = handler.accessState(robotId, 'handQueue')[i];
+						if (!handler.adminClients.has(id)) {
+							handler.accessState(robotId, 'handQueue').splice(i, 0, clientId);
+							handler.updatePositions(robotId);
 							break;
 						}
 					}
-					position = handler.accessState('handQueue').indexOf(clientId) + 1;
+					position = handler.accessState(robotId, 'handQueue').indexOf(clientId) + 1;
 				}
 
 				if (position===0) {
-					handler.accessState('handQueue').push(clientId);
-					handler.sendToClient(clientId, `HAND QUEUE POSITION: ${handler.accessState('handQueue').length}\n`);
+					handler.accessState(robotId, 'handQueue').push(clientId);
+					handler.sendToClient(clientId, `HAND QUEUE POSITION: ${handler.accessState(robotId, 'handQueue').length}\n`);
 				}
 
-				const sizeOfQueue = handler.accessState('handQueue').length;
-				handler.sendToAllClients(`HAND QUEUE UPDATE: ${sizeOfQueue}\n`);
+				const sizeOfQueue = handler.accessState(robotId, 'handQueue').length;
+				handler.sendToAllClients(robotId, `HAND QUEUE UPDATE: ${sizeOfQueue}\n`, true);
 
 			} else handler.sendToClient(clientId, `HAND QUEUE POSITION: ${position}\n`);
 		}
 
 	} else if (msg === 'HAND BACK') {
-		if (handler.accessState('handHolder')!==clientId) return;
-		clearTimeout(handler.accessState('handTimer'));
-		if (handler.accessState('handQueue').length===0) {
-			handler.accessState('handHolder',null);
+		if (handler.accessState(robotId, 'handHolder')!==clientId) return;
+		clearTimeout(handler.accessState(robotId, 'handTimer'));
+		if (handler.accessState(robotId, 'handQueue').length===0) {
+			handler.accessState(robotId, 'handHolder', null);
 		} else {
-			handler.accessState('handHolder', handler.accessState('handQueue')[0]);
-			handler.accessState('handQueue').shift();
-			handler.sendToClient(handler.accessState('handHolder'), 'HAND REQUEST ACCEPTED\n');
-			handler.setHandTimeout(handler.accessState('handHolder'));
-			handler.updatePositions();
+			handler.accessState(robotId, 'handHolder', handler.accessState(robotId, 'handQueue')[0]);
+			handler.accessState(robotId, 'handQueue').shift();
+			handler.sendToClient(handler.accessState(robotId, 'handHolder'), 'HAND REQUEST ACCEPTED\n');
+			handler.setHandTimeout(handler.accessState(robotId, 'handHolder'));
+			handler.updatePositions(robotId);
 		}
 		handler.sendToClient(clientId, 'HAND TIMEOUT\n');
 
@@ -183,11 +191,11 @@ function receiveRequest(clientId, msg) {
 
 	} else if (msg.startsWith('CODE ADMIN: ')) {
 		const code = msg.substring('CODE ADMIN: '.length);
-		if (code===handler.accessState('codeAdmin')) {
-			handler.accessState('adminClients').add(clientId);
+		if (code===handler.accessState(robotId, 'codeAdmin')) {
+			handler.adminClients.add(clientId);
 			handler.sendToClient(clientId, 'ADMIN REQUEST ACCEPTED\n');
-			if (handler.accessState('handQueue').indexOf(clientId)!==-1) {
-				handler.accessState('handQueue', handler.accessState('handQueue').filter((id) => id !== clientId));
+			if (handler.accessState(robotId, 'handQueue').indexOf(clientId)!==-1) {
+				handler.accessState(robotId, 'handQueue', handler.accessState(robotId, 'handQueue').filter((id) => id !== clientId));
 				receiveRequest(clientId, 'HAND');
 			}
 		} else {
@@ -195,25 +203,25 @@ function receiveRequest(clientId, msg) {
 		}
 
 	} else if (msg === 'QUIT ADMIN') {
-		if (!handler.accessState('adminClients').has(clientId)) return;
+		if (!handler.adminClients.has(clientId)) return;
 
-		if (handler.accessState('handQueue').indexOf(clientId)!==-1) {
-			handler.accessState('handQueue', handler.accessState('handQueue').filter((id) => id !== clientId));
+		if (handler.accessState(robotId, 'handQueue').indexOf(clientId)!==-1) {
+			handler.accessState(robotId, 'handQueue', handler.accessState(robotId, 'handQueue').filter((id) => id !== clientId));
 			receiveRequest(clientId, 'HAND');
 		}
 
-		handler.accessState('adminClients').delete(clientId);
+		handler.adminClients.delete(clientId);
 		handler.sendToClient(clientId, 'ADMIN REQUEST REJECTED\n');
 
 	} else if (msg === 'GET HAND LIST') {
-		const handList = handler.accessState('handQueue');
+		const handList = handler.accessState(robotId, 'handQueue');
 		var resultStr = '';
-		if (handler.accessState('handHolder')) {
-			resultStr += `0: ${handler.accessState('handHolder')} `;
-			if (handler.accessState('adminClients').has(handler.accessState('handHolder'))) {
+		if (handler.accessState(robotId, 'handHolder')) {
+			resultStr += `0: ${handler.accessState(robotId, 'handHolder')} `;
+			if (handler.adminClients.has(handler.accessState(robotId, 'handHolder'))) {
 				resultStr += `(admin) `;
 			}
-			const rawTime = Math.floor((handler.accessState('handTimeout') - Date.now() + handler.accessState('handTimerStartTime'))/1000);
+			const rawTime = Math.floor((handler.accessState(robotId, 'handTimeout') - Date.now() + handler.accessState(robotId, 'handTimerStartTime'))/1000);
 			const minutes = Math.floor(rawTime/60);
 			var seconds = rawTime%60;
 			if (seconds<10) {
@@ -223,7 +231,7 @@ function receiveRequest(clientId, msg) {
 			resultStr += `(Hand holder) time remaining : ${minutes}:${seconds},`;
 		}
 		for (let i=0; i<handList.length; i++) {
-			if (handler.accessState('adminClients').has(handList[i])) {
+			if (handler.adminClients.has(handList[i])) {
 				resultStr += `${i+1}: ${handList[i]} (admin),`;
 			} else resultStr += `${i+1}: ${handList[i]},`;
 		}
@@ -231,33 +239,50 @@ function receiveRequest(clientId, msg) {
 
 	} else if (msg.startsWith('REMOVE FROM HAND LIST: ')) {
 		const index = parseInt(msg.substring('REMOVE FROM HAND LIST: '.length));
-		if (index<0 || index>handler.accessState('handQueue').length) return;
+		if (index<0 || index>handler.accessState(robotId, 'handQueue').length) return;
 
 		if (index===0) {
-			receiveRequest(handler.accessState('handHolder'), 'HAND BACK');
+			receiveRequest(handler.accessState(robotId, 'handHolder'), 'HAND BACK');
 		} else {
-			handler.sendToClient(handler.accessState('handQueue')[index-1], 'HAND TIMEOUT\n');
-			handler.accessState('handQueue').splice(index-1, 1);
-			handler.updatePositions();
+			handler.sendToClient(handler.accessState(robotId, 'handQueue')[index-1], 'HAND TIMEOUT\n');
+			handler.accessState(robotId, 'handQueue').splice(index-1, 1);
+			handler.updatePositions(robotId);
 		}
+
+	} else if (msg.startsWith('ROBOTID ADDED: ')) {
+		const robotId = msg.substring('ROBOTID ADDED: '.length);
+		handler.sendStatus(robotId, clientId);
+		updateClientQueue(clientId, robotId);
+		sendData(clientId, robotId);
+
+	} else if (msg.startsWith('CHANGE ROBOTID: ')) {
+		const newRobotId = msg.substring('CHANGE ROBOTID: '.length);
+		if (!handler.accessState(newRobotId)) return;
+		removeClientFromQueue(clientId, handler.connectedClients.get(clientId).get('robotId'));
+		handler.connectedClients.get(clientId).set('robotId', newRobotId);
+		handler.sendToClient(clientId, 'SELECTED ROBOTID', newRobotId);
 	}
 }
 
 
 
-async function sendData(clientId) {
+async function sendData(clientId, robotIdOverwrite) {
+	var robotId;
+	if (robotIdOverwrite) robotId=robotIdOverwrite;
+	else robotId = handler.connectedClients.get(clientId).get('robotId');
+
 	const data = new Map();
 	data.set('id', new Map());
 
 	var id=0;
-	await handler.accessState('database').collection('labels').find().forEach(doc => {
+	await handler.accessDB().collection(`labels_${robotId}`).find().forEach(doc => {
 		data.get('id').set(doc.label, id)
 		id++;
 	});
 
 	for (let collection of ['fails', 'successes', 'times']) {
 		data.set(collection, new Array(id));
-		await handler.accessState('database').collection(collection).find().forEach(doc => {
+		await handler.accessDB().collection(`${collection}_${robotId}`).find().forEach(doc => {
 			const row = new Array(id);
 			Object.entries(doc[collection]).forEach(element => {
 				row[data.get('id').get(element[0])]=element[1];
@@ -272,5 +297,23 @@ async function sendData(clientId) {
 		}
 		return value;
 	});
-	handler.sendToClient(clientId, `DATA: ${jsonString}FLAG_SPLIT${handler.accessState('curPosRobot')}\n${handler.accessState('curLocationRobot')}\n`);
+
+	var robotLocation;
+	if (handler.accessStatus(robotId, 'Location')) {
+		robotLocation = handler.accessStatus(robotId, 'Location').substring('Location: '.length);
+	} else robotLocation = '0 0 0';
+
+	handler.sendToClient(
+		clientId,
+		`DATA: ${jsonString}FLAG_SPLIT${handler.accessState(robotId, 'curPosRobot')}FLAG_SPLIT${robotLocation}\n`,
+		robotId
+	);
+
+	// when robotIdOverwrite is used, the clients already knows the robotIds
+	if (robotIdOverwrite) return;
+
+	const robotIds = handler.getRobotIds();
+	for (let id of robotIds) {
+		handler.sendToClient(clientId, `ADD ROBOTID\n`, id);
+	}
 }
