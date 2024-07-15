@@ -551,6 +551,7 @@ function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the serv
 		mainWindow.webContents.send('removeRobot', receivedRobotId);
 
 	} else if (response.indexOf('SELECTED ROBOTID') === 0) {
+    console.log('receivedRobotId', receivedRobotId)
 		robotCurId = receivedRobotId;
 
 		resetVariables();
@@ -578,6 +579,7 @@ function sendToServer(request) {
 
 
 function responseSimulation(request) {
+  console.log('robotCurId', robotCurId);
   if (request.toLowerCase().indexOf('goto ') == 0) {
     const whereto = request.toLowerCase().substring('goto '.length);
     if (!DATA.get(robotCurId).get('id').has(whereto)){

@@ -1,6 +1,5 @@
 <script setup>
-import '../styles/live.css'
-import '../styles/live_simulation_base.css'
+import '../styles/live_simulation.css'
 import Sidebar from '../components/Sidebar.vue'
 import MapAIP from '../components/MapAIP.vue'
 import Bottombar from '../components/Bottombar.vue'

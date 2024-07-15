@@ -54,7 +54,7 @@ ipcRenderer.on('removeRobot', (event, robotId) => {
 	if (!robotsMap.value.size) flagNoRobot.value=true;
 });
 
-// Computed property to convert the Map to an array
+
 const robotsArray = computed(() => Array.from(robotsMap.value));
 
 onMounted(() => {

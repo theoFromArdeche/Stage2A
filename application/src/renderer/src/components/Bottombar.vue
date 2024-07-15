@@ -29,7 +29,7 @@ ipcRenderer.on('updateStatus', (event, arg, flagLiveResponse) => {
 
 
 ipcRenderer.on('updateSyncRobot', (event, arg) => {
-		if (props.flagLive) return;
+	if (props.flagLive) return;
 	posRobotSynced.value=arg;
 });
 
@@ -38,7 +38,7 @@ function clickButton() {
 	if (props.flagLive) {
   	ipcRenderer.send('handButtonTrigered');
 	} else {
-		ipcRenderer.send('syncPosRobot')
+		ipcRenderer.send('syncPosRobot');
 	}
 }
 
@@ -57,47 +57,47 @@ async function updateScrollbar(flagScroll, oldScrollTop) {
   if (flagScroll) {
     container_statusMessages.value.scrollTop = container_statusMessages.value.scrollHeight;
   } else {
-    container_statusMessages.value.scrollTop = oldScrollTop
+    container_statusMessages.value.scrollTop = oldScrollTop;
   }
 };
 
-const containerHeight = ref('100px')
-const coeffMaxHeight = 0.8
-const minHeight = 100 // pixels
-let isResizing = false
+const containerHeight = ref('100px');
+const coeffMaxHeight = 0.8;
+const minHeight = 100; // pixels
+let isResizing = false;
 
-const startResizing = (e) => {
+function startResizing(event) {
   isResizing = true
-  document.addEventListener('mousemove', resize)
-  document.addEventListener('mouseup', stopResizing)
+  document.addEventListener('mousemove', resize);
+  document.addEventListener('mouseup', stopResizing);
 }
 
-const resize = (e) => {
-  if (isResizing) {
-    const window_height = window.innerHeight
-    const newHeight = window_height - e.clientY
-    if (newHeight > window_height*coeffMaxHeight) {
-      containerHeight.value = `${coeffMaxHeight*100}%`
-    } else if (newHeight < minHeight) {
-      containerHeight.value = `${minHeight}px`
-    } else {
-      containerHeight.value = `${newHeight/window_height*100}%`
-    }
-  }
+function resize(event) {
+  if (!isResizing) return;
+
+	const window_height = window.innerHeight;
+	const newHeight = window_height - e.clientY;
+	if (newHeight > window_height*coeffMaxHeight) {
+		containerHeight.value = `${coeffMaxHeight*100}%`;
+	} else if (newHeight < minHeight) {
+		containerHeight.value = `${minHeight}px`;
+	} else {
+		containerHeight.value = `${newHeight/window_height*100}%`;
+	}
 }
 
 const stopResizing = () => {
-  isResizing = false
-  document.removeEventListener('mousemove', resize)
-  document.removeEventListener('mouseup', stopResizing)
+  isResizing = false;
+  document.removeEventListener('mousemove', resize);
+  document.removeEventListener('mouseup', stopResizing);
 }
 
 onMounted(() => {
-  document.addEventListener('mouseup', stopResizing)
+  document.addEventListener('mouseup', stopResizing);
 })
 
 onBeforeUnmount(() => {
-  document.removeEventListener('mouseup', stopResizing)
+  document.removeEventListener('mouseup', stopResizing);
 })
 </script>
 

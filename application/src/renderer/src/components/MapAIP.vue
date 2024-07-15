@@ -744,8 +744,8 @@ function tailleEtTracer() {
 		if (heading===0) rotationDeg = 0;
 		else rotationDeg = 270 - heading;
 
-		const bottomRight = transformCoord(originalCoords[0][0], originalCoords[0][1], canvas_MapAIP.value.width)
-		const topLeft = transformCoord(originalCoords[1][0], originalCoords[1][1], canvas_MapAIP.value.width)
+		const bottomRight = transformCoord(originalCoords[0][0], originalCoords[0][1], canvas_MapAIP.value.width);
+		const topLeft = transformCoord(originalCoords[1][0], originalCoords[1][1], canvas_MapAIP.value.width);
 
 		const centerX = (bottomRight.x + topLeft.x) / 2;
   	const centerY = (bottomRight.y + topLeft.y) / 2;
@@ -756,31 +756,31 @@ function tailleEtTracer() {
 		ctx_MapAIP.save();
 		ctx_MapAIP.translate(centerX, centerY);
 		ctx_MapAIP.rotate(rotationDeg * Math.PI / 180);
-		ctx_MapAIP.fillStyle = 'rgba(255, 0, 0, 0.5)'
-		ctx_MapAIP.beginPath()
+		ctx_MapAIP.fillStyle = 'rgba(255, 0, 0, 0.5)';
+		ctx_MapAIP.beginPath();
 		ctx_MapAIP.rect(-width / 2, -height / 2, width, height);
-		ctx_MapAIP.fill()
-		ctx_MapAIP.strokeStyle = 'red'
-		ctx_MapAIP.stroke()
+		ctx_MapAIP.fill();
+		ctx_MapAIP.strokeStyle = 'red';
+		ctx_MapAIP.stroke();
 		ctx_MapAIP.restore();
 
 		for (let row=Math.floor(topLeft.y/tailleCarré); row<=Math.floor(bottomRight.y/tailleCarré); row++) {
 			for (let column=Math.floor(topLeft.x/tailleCarré); column<=Math.floor(bottomRight.x/tailleCarré); column++) {
 				if (row>=heightGRID.value||column>=widthGRID.value) continue;
-				dangerCalc(row, column)
+				dangerCalc(row, column);
 			}
 		}
 	})
 
 	lineDetectedCoords.forEach((line) => {
-		const start = transformCoord(line[0][0], line[0][1], canvas_MapAIP.value.width)
-		const end = transformCoord(line[1][0], line[1][1], canvas_MapAIP.value.width)
-		ctx_MapAIP.strokeStyle = 'purple'
-		ctx_MapAIP.lineWidth = 1
-		ctx_MapAIP.beginPath()
-		ctx_MapAIP.moveTo(start.x, start.y)
-		ctx_MapAIP.lineTo(end.x, end.y)
-		ctx_MapAIP.stroke()
+		const start = transformCoord(line[0][0], line[0][1], canvas_MapAIP.value.width);
+		const end = transformCoord(line[1][0], line[1][1], canvas_MapAIP.value.width);
+		ctx_MapAIP.strokeStyle = 'purple';
+		ctx_MapAIP.lineWidth = 1;
+		ctx_MapAIP.beginPath();
+		ctx_MapAIP.moveTo(start.x, start.y);
+		ctx_MapAIP.lineTo(end.x, end.y);
+		ctx_MapAIP.stroke();
 
 		bresenham(start.x, start.y, end.x, end.y);
 	})
