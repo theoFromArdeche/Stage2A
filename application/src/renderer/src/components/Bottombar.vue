@@ -76,7 +76,7 @@ function resize(event) {
   if (!isResizing) return;
 
 	const window_height = window.innerHeight;
-	const newHeight = window_height - e.clientY;
+	const newHeight = window_height - event.clientY;
 	if (newHeight > window_height*coeffMaxHeight) {
 		containerHeight.value = `${coeffMaxHeight*100}%`;
 	} else if (newHeight < minHeight) {
@@ -86,7 +86,7 @@ function resize(event) {
 	}
 }
 
-const stopResizing = () => {
+function stopResizing() {
   isResizing = false;
   document.removeEventListener('mousemove', resize);
   document.removeEventListener('mouseup', stopResizing);
@@ -99,6 +99,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('mouseup', stopResizing);
 })
+
 </script>
 
 <template>

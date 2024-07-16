@@ -13,8 +13,8 @@
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	height: 100%;
-	width: 100%;
+	height: fit-content;
+	width: fit-content;
 	position: relative;
 }
 
@@ -26,6 +26,7 @@
 	justify-content: center;
 	align-items: center;
 	height: auto;
+	max-height: 70%;
 	position: relative;
 	background-color: whitesmoke;
 	padding: 4% 1% 4% 1%;
@@ -36,15 +37,16 @@
 
 
 #sidebar {
+	position: relative;
+	display: flex;
+	justify-content: center;
+	align-items: center;
 	height: 70%;
+	max-height: 70%;
 	width: 200px;
 	min-width: 200px;
 	margin-left: 20px;
 	box-sizing: border-box;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
 }
 
 

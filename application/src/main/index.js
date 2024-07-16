@@ -9,10 +9,10 @@ function createWindow() {
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 900,
-    maxWidth: 1920,
+    //maxWidth: 1920,
     minWidth: 900,
     height: 670,
-    maxHeight: 1080,
+    //maxHeight: 1080,
     minHeight: 670,
     show: false,
     autoHideMenuBar: true,
@@ -70,6 +70,8 @@ app.whenReady().then(() => {
 		for (let id of robotIds) {
 			mainWindow.webContents.send('addRobot', id);
 		}
+		mainWindow.webContents.send('changeSelected', robotCurId);
+
 		if (!robotsCurStatus.size) return;
 
 		for (let robotId of robotsCurStatus.keys()) {
@@ -110,6 +112,7 @@ app.whenReady().then(() => {
     robotCurPosSimulation=robotCurPosLive;
 		mainWindow.webContents.send('updateSyncRobot', true);
 		mainWindow.webContents.send('updatePathSimulation', robotCurPosSimulation, robotCurPosSimulation, true);
+		clearTimeout(gotoTimer)
 		clearTimeout(parkingTimer);
 		clearTimeout(dockingTimer);
   });
@@ -147,6 +150,8 @@ app.on('window-all-closed', () => {
 const DATA = new Map();
 const robotsCurStatus = new Map();
 const robotsCurPos = new Map();
+const robotsSettings = new Map();
+var unfinishedRequest = '';
 var flagSimulation = true;
 var updatePathLiveTimer;
 var gotoTimer;
@@ -156,7 +161,7 @@ var dockingTimer;
 const dockingTimeout = 15 * 60 * 1000;
 const dockingFailProbRetry = 0.1;
 const dockingFailProbChangeDock = 0.5;
-var curDock = 'dockingstation2';
+var curDock = 'dockingstation1';
 var curStandby = 'standby1';
 var robotCurPosSimulation;
 var robotCurPosLive;
@@ -189,7 +194,7 @@ function resetVariables() {
 	clearTimeout(gotoTimer);
 	clearTimeout(parkingTimer);
 	clearTimeout(dockingTimer);
-	curDock = 'dockingstation2';
+	curDock = 'dockingstation1';
 	curStandby = 'standby1';
 	robotCurPosSimulation = null;
 	robotCurPosLive = null;
@@ -331,11 +336,19 @@ function connectToServer() {
 
 	// Handle incoming data from the server
 	serverSocket.on('data', (data) => {
-		const responses = data.toString().split('\n');
-		for (let response of responses) {
-			if (!response) continue
-			receiveResponseServer(`${response}\n`);
-		}
+		unfinishedRequest += data.toString();
+    let responses = unfinishedRequest.split('\n');
+
+    // Process all but the last item, which might be incomplete
+    for (let i=0; i<responses.length-1; i++) {
+      if (!responses[i]) continue;
+      receiveResponseServer(`${responses[i]}\n`);
+    }
+
+		if (responses.length>1) unfinishedRequest='';
+
+		// either an incomplete request or just an empty string
+		unfinishedRequest += responses[responses.length-1];
 	});
 
 	// Handle the end of the server connection
@@ -408,7 +421,7 @@ function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the serv
     receivedResponse(response_body, false);
 
   } else if (response.indexOf('UPDATE VARIABLES: ') === 0) {
-		sendToClient(response);
+		//sendToClient(response); // only for debug
     const update_json = response.substring('UPDATE VARIABLES: '.length).trim();
     const update = JSON.parse(update_json);
 		const id_src = DATA.get(receivedRobotId).get('id').get(update.src)
@@ -505,6 +518,10 @@ function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the serv
       console.log('Error parsing JSON:', err);
     }
 
+		robotsCurPos.set(receivedRobotId, response_array[1]);
+		if (!robotsSettings.get(receivedRobotId)) robotsSettings.set(receivedRobotId, new Map());
+		robotsSettings.get(receivedRobotId).set('parking', response_array[3]==='true');
+
 		if (robotCurId && robotCurId !== 'undefined' && robotCurId !== receivedRobotId) return;
 
 		resetVariables();
@@ -514,10 +531,10 @@ function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the serv
 
 		robotCurId = receivedRobotId;
 		robotCurLocation = response_array[2];
-		robotsCurPos.set(receivedRobotId, robotCurPosLive);
 
 		mainWindow.webContents.send('updateData', DATA.get(robotCurId));
 		mainWindow.webContents.send('reRender');
+		mainWindow.webContents.send('changeSelected', robotCurId);
 
   } else if (response.indexOf('ADMIN REQUEST ACCEPTED') === 0) {
 		mainWindow.webContents.send('adminRequestAccepted');
@@ -539,6 +556,7 @@ function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the serv
 		if (robotIds.has(receivedRobotId)) return;
 		robotIds.add(receivedRobotId);
 		robotsCurStatus.set(receivedRobotId, new Map());
+		robotsSettings.set(receivedRobotId, new Map());
 
 		mainWindow.webContents.send('addRobot', receivedRobotId);
 		sendToServer(`ROBOTID ADDED: ${receivedRobotId}\n`);
@@ -548,10 +566,10 @@ function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the serv
 		robotIds.delete(receivedRobotId);
 		robotsCurStatus.delete(receivedRobotId);
 		robotsCurPos.delete(receivedRobotId);
+		robotsSettings.delete(receivedRobotId);
 		mainWindow.webContents.send('removeRobot', receivedRobotId);
 
 	} else if (response.indexOf('SELECTED ROBOTID') === 0) {
-    console.log('receivedRobotId', receivedRobotId)
 		robotCurId = receivedRobotId;
 
 		resetVariables();
@@ -563,6 +581,7 @@ function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the serv
 
 		mainWindow.webContents.send('updateData', DATA.get(robotCurId));
 		mainWindow.webContents.send('reRender');
+		mainWindow.webContents.send('changeSelected', robotCurId);
 
 	} else if (response.indexOf('UPDATE POS: ') === 0) {
 		const newPos = response.substring('UPDATE POS: '.length).trim();
@@ -579,11 +598,9 @@ function sendToServer(request) {
 
 
 function responseSimulation(request) {
-  console.log('robotCurId', robotCurId);
   if (request.toLowerCase().indexOf('goto ') == 0) {
     const whereto = request.toLowerCase().substring('goto '.length);
     if (!DATA.get(robotCurId).get('id').has(whereto)){
-      //console.log('invalid destination')
       receivedResponse(`Unknown destination ${whereto}\n`, true);
       return;
     }
@@ -605,19 +622,18 @@ function responseSimulation(request) {
       }
     }
     receivedResponse(msgStart, true);
-
 		const delta_time = 1000*DATA.get(robotCurId).get('times')[DATA.get(robotCurId).get('id').get(robotCurPosSimulation)][DATA.get(robotCurId).get('id').get(whereto)];
     robotCurPosSimulation=whereto;
 		mainWindow.webContents.send('updateSyncRobot', robotCurPosSimulation===robotCurPosLive);
 
+		clearTimeout(gotoTimer);
 		clearTimeout(parkingTimer);
 		clearTimeout(dockingTimer);
-		clearTimeout(gotoTimer);
     gotoTimer = setTimeout(() => {
       receivedResponse(msgEnd, true);
-			if (whereto!=='standby1') {
+			if (whereto!==curStandby&&robotsSettings.get(robotCurId).get('parking')) {
 				parkingTimer = setTimeout(() => {
-					responseSimulation('goto standby1');
+					responseSimulation(`goto ${curStandby}`);
 				}, parkingTimeout);
 			} else {
 				dockingTimer = setTimeout(() => {
@@ -650,9 +666,9 @@ function responseSimulation(request) {
     robotCurPosSimulation=whereto;
 		mainWindow.webContents.send('updateSyncRobot', robotCurPosSimulation===robotCurPosLive);
 
+		clearTimeout(gotoTimer);
 		clearTimeout(parkingTimer);
 		clearTimeout(dockingTimer);
-		clearTimeout(gotoTimer);
     gotoTimer = setTimeout(() => {
 			mainWindow.webContents.send('updatePathSimulation', whereto, dock, false);
       robotCurPosSimulation=dock;

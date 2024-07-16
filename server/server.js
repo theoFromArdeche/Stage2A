@@ -11,9 +11,9 @@ var handler = require('./connections/handler')
 
 const app = express();
 const mapPort = 3001;
-const robotPort = [3456, 3457, 3458];
-const robotHost = ['127.0.0.1', '127.0.0.1', '127.0.0.1'];
-const robotPassword = ['password', 'password', 'password'];
+const robotPort = [3456, 3457, 3458]
+const robotHost = ['127.0.0.1', '127.0.0.1', '127.0.0.1']
+const robotPassword = ['password', 'password', 'password']
 const serverPort = 2345;
 const codeAdmin = 'admin';
 
@@ -75,12 +75,17 @@ async function updateDatabase(robotId) {
 	const mapData = fs.readFileSync(`./data/map_${robotId}.txt`, 'utf8');
 
 	const interestPoints = [];
+	const interestPointsCoords = new Map();
 	const lines = mapData.split('\n');
   for (const line of lines) {
 		if (line.startsWith('Cairn:') && !line.includes('ForbiddenLine') && !line.includes('ForbiddenArea')) {
-			interestPoints.push(getName(line));
+			const name = getName(line), coords = getCoords(line);
+			interestPoints.push(name);
+			interestPointsCoords.set(name, coords);
 		}
   }
+
+	handler.accessInterrestPointsCoords(robotId, interestPointsCoords);
 
 
 	// look for new interrestPoints
@@ -155,6 +160,29 @@ function getName(line) {
   const regex = /ICON\s+"([^"]+)"/;
   const match = line.match(regex);
   return match[1].toLowerCase();
+}
+
+function isDigit(charac) {
+	return '0' <= charac && charac <= '9';
+}
+
+function getCoords(line) {
+  const coords = [0, 0, 0]
+  let pointeur = 0
+  let i = 0
+  let temp = ''
+
+  while (pointeur <= 2 && i < line.length) {
+    if (line[i] === '-' || (line[i] === '.' && isDigit(line[i + 1])) || isDigit(line[i])) {
+      temp += line[i]
+    } else if (temp !== '' && line[i] === ' ') {
+      coords[pointeur] = parseFloat(temp)
+      temp = ''
+      pointeur += 1
+    }
+    i += 1
+  }
+  return coords
 }
 
 

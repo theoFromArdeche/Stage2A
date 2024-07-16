@@ -2,8 +2,7 @@
 const defaultState = {
 	robotSocket: null,
 	handHolder: null,
-	curPosRobot: 'dockingstation2',
-	curLocationRobot: 'Location: -384 1125 0',
+	robotCurPos: 'unknown',
 	requestDict: null,
 	interruptedRequest: null,
 	handQueue: [],
@@ -13,12 +12,14 @@ const defaultState = {
 	destDockPark: null,
 	flagDockPark: false,
 	statusTimer: null,
-	statusInterval: 1 * 1000
+	statusInterval: 1 * 1000,
+	showStatusInTerminal: false,
+	flagAutoParking: true
 };
 
 const defaultStatus = {
-	ExtendedStatusForHumans: 'Unknown',
-	Status: 'Unknown',
+	ExtendedStatusForHumans: 'unknown',
+	Status: 'unknown',
 	Location: '0 0 0',
 	StateOfCharge: '0',
 	LocalizationScore: '0',
@@ -32,11 +33,13 @@ const connectedClients = new Map();
 const adminClients = new Set();
 var database = null;
 var codeAdmin;
+var interrestPointsCoords = new Map();
 
 
 module.exports = {
-	sendToRobot, sendToClient, sendToAllClients, setHandTimeout, updatePositions, sendStatus, deleteRobot, initializeClients,
-	accessState, createRobot, accessDB, initializeRobotId, getRobotIds, accessStatus, getRobotId, getClientId, accessCodeAdmin,
+	sendToRobot, sendToClient, sendToAllClients, setHandTimeout, updatePositions, sendStatus,
+	deleteRobot, initializeClients, accessInterrestPointsCoords, accessState, createRobot, accessDB,
+	initializeRobotId, getRobotIds, accessStatus, getRobotId, getClientId, accessCodeAdmin, initializeRobotSettings,
 	connectedClients, adminClients
 }
 
@@ -72,6 +75,11 @@ function accessCodeAdmin(value) {
 	return codeAdmin;
 }
 
+function accessInterrestPointsCoords(key, value) {
+	if (value) interrestPointsCoords.set(key, value);
+	return interrestPointsCoords.get(key);
+}
+
 function sendStatus(robotId, clientId) {
 	for (let status of curStatus.get(robotId).values()) {
 		sendToClient(clientId, status, robotId);
@@ -95,7 +103,22 @@ function createRobot(host, port) {
 	const robotId = getRobotId(host, port);
 	state.set(robotId, deepCopy(defaultState));
 	curStatus.set(robotId, deepCopy(defaultStatus));
+
 	return robotId;
+}
+
+async function initializeRobotSettings(robotId) {
+	const flagParking = await accessDB().collection(`info_${robotId}`).findOne({ name: 'parking' });
+
+  if (!flagParking) {
+    await accessDB().collection(`info_${robotId}`).insertOne({
+      name: 'parking',
+      value: true
+    });
+		accessState(robotId, 'flagAutoParking', true);
+  } else {
+		accessState(robotId, 'flagAutoParking', flagParking.value);
+	}
 }
 
 function deleteRobot(robotId, flagUpdateClients=true) {
@@ -143,7 +166,9 @@ function sendToRobot(robotId, request) {
     // wait for the robot to be connected
     const checkConnection = () => {
       if (accessState(robotId)) {
-        console.log(`(${robotId}) Send to robot: ${request}`);
+				if (request !== 'status' || accessState(robotId, 'showStatusInTerminal')) {
+        	console.log(`(${robotId}) Send to robot: ${request}`);
+				}
         accessState(robotId, 'robotSocket').write(`${request}\n`, (err) => {
           if (err) {
             reject(err);
@@ -177,8 +202,9 @@ function sendToClient(clientId, msg, robotIdOverwrite) {
 
 
 
-function sendToAllClients(robotId, msg, sendToAll=false) {
-	if (!sendToAll) console.log(`(${robotId}) Send to every client with this robot : ${msg}`);
+function sendToAllClients(robotId, msg, sendToAll=false, showInTerminal=true) {
+	if (!showInTerminal) {}
+	else if (!sendToAll) console.log(`(${robotId}) Send to every client with this robot : ${msg}`);
 	else if (!robotId) console.log(`Send to everyone : ${msg}`);
 	else console.log(`(${robotId}) Send to everyone : ${msg}`);
 

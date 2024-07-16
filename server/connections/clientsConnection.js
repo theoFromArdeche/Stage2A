@@ -300,12 +300,14 @@ async function sendData(clientId, robotIdOverwrite) {
 
 	var robotLocation;
 	if (handler.accessStatus(robotId, 'Location')) {
-		robotLocation = handler.accessStatus(robotId, 'Location').substring('Location: '.length);
+		robotLocation = handler.accessStatus(robotId, 'Location').substring('Location: '.length).trim();
 	} else robotLocation = '0 0 0';
+
+	const flagAutoParking = handler.accessState(robotId, 'flagAutoParking');
 
 	handler.sendToClient(
 		clientId,
-		`DATA: ${jsonString}FLAG_SPLIT${handler.accessState(robotId, 'curPosRobot')}FLAG_SPLIT${robotLocation}\n`,
+		`DATA: ${jsonString}FLAG_SPLIT${handler.accessState(robotId, 'robotCurPos')}FLAG_SPLIT${robotLocation}FLAG_SPLIT${flagAutoParking}\n`,
 		robotId
 	);
 

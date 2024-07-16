@@ -19,8 +19,9 @@ function sendBinary(robotId) {
 function connectToRobot(host, port, password) {
 	const robotId = handler.createRobot(host, port);
 
-	handler.accessState(robotId, 'robotSocket', net.createConnection({ host: host, port: port }, () => {
+	handler.accessState(robotId, 'robotSocket', net.createConnection({ host: host, port: port }, async () => {
 		console.log(`(${robotId}) Connected to the robot on port ${port}`);
+		await handler.initializeRobotSettings(robotId);
 		handler.accessState(robotId, 'robotConnected', true);
 		handler.sendToRobot(robotId, password);
 		handler.initializeClients(robotId);
@@ -62,17 +63,38 @@ function connectToRobot(host, port, password) {
 
 
 
+function initializeRobotPos(robotId, location) {
+	const coordsMap = handler.accessInterrestPointsCoords(robotId);
+	const curLoc = location.split(' ').map(item => parseInt(item));
+	var curDist = -1, curId;
+	for (let [id, coords] of coordsMap.entries()) {
+		if (curDist !== -1 && Math.abs(coords[0]-curLoc[0])+Math.abs(coords[1]-curLoc[1])>=curDist) continue;
+		curDist = Math.abs(coords[0]-curLoc[0])+Math.abs(coords[1]-curLoc[1]);
+		curId = id;
+	}
+
+	handler.accessState(robotId, 'robotCurPos', curId);
+	console.log(`\n(${robotId}) Calculated position : ${curId} with a distance of ${curDist}\n`);
+}
+
+
 
 async function receiveResponseRobot(response, robotId) { // from the robot
-	console.log(`(${robotId}) Received from robot : ${response}`);
 
 	if (response.startsWith('ExtendedStatusForHumans: ') || response.startsWith('Status: ') || response.startsWith('Location: ') ||
 			response.startsWith('StateOfCharge: ') || response.startsWith('LocalizationScore: ') || response.startsWith('Temperature: ')) {
-		handler.sendToAllClients(robotId, response, true);
+
+		if (handler.accessState(robotId, 'showStatusInTerminal')) {
+			console.log(`(${robotId}) Received from robot : ${response}`);
+		}
+
+		handler.sendToAllClients(robotId, response, true, handler.accessState(robotId, 'showStatusInTerminal'));
 		handler.accessStatus(robotId, response.split(':')[0], response);
 
 		if (response.startsWith('Location: ')) {
-			handler.accessState(robotId, 'curLocationRobot', response);
+			if (handler.accessState(robotId, 'robotCurPos') === 'unknown') {
+				initializeRobotPos(robotId, response.substring('Location: '.length));
+			}
 		} else if (handler.accessState(robotId, 'flagDockPark') && response.startsWith('ExtendedStatusForHumans: ')) {
 			const status = response.substring('ExtendedStatusForHumans: '.length);
 			for (let s of status.split('|')) {
@@ -95,6 +117,8 @@ async function receiveResponseRobot(response, robotId) { // from the robot
 		}
 		return;
 	}
+
+	console.log(`(${robotId}) Received from robot : ${response}`);
 
 
 	// a response is received, the timer is reset
@@ -123,7 +147,7 @@ async function receiveResponseRobot(response, robotId) { // from the robot
 			handler.accessState(robotId, 'interruptedRequest', handler.accessState(robotId, 'requestDict'));
 			handler.accessState(robotId, 'requestDict', null);
 		}
-		const src = handler.accessState(robotId, 'curPosRobot');
+		const src = handler.accessState(robotId, 'robotCurPos');
 		const dest = handler.accessState(robotId, 'interruptedRequest').dest;
 
 		handler.accessDB().collection(`fails_${robotId}`).findOne({label: src}).then(doc => {
@@ -134,8 +158,8 @@ async function receiveResponseRobot(response, robotId) { // from the robot
 			);
 		});
 
-		response_update = JSON.stringify({src: src, dest:dest, time: -1});
-		handler.sendToAllClients(robotId, `UPDATE VARIABLES: ${response_update}\n`);
+		const response_update = JSON.stringify({src: src, dest:dest, time: -1});
+		handler.sendToAllClients(robotId, `UPDATE VARIABLES: ${response_update}\n`, true);
 	}
 
 
@@ -188,10 +212,10 @@ async function receiveResponseRobot(response, robotId) { // from the robot
 		if (handler.accessState(robotId, 'requestDict')) {
 			handler.accessState(robotId, 'requestDict').time = Date.now();
 			if (handler.accessState(robotId, 'destDockPark')) {
-				handler.accessState(robotId, 'curPosRobot', handler.accessState(robotId, 'destDockPark'));
+				handler.accessState(robotId, 'robotCurPos', handler.accessState(robotId, 'destDockPark'));
 				handler.sendToAllClients(robotId, `UPDATE POS: ${handler.accessState(robotId, 'destDockPark')}`, true);
 			} else {
-				handler.accessState(robotId, 'curPosRobot', 'dockingstation1');
+				handler.accessState(robotId, 'robotCurPos', 'dockingstation1');
 				handler.sendToAllClients(robotId, `UPDATE POS: dockingstation1`, true);
 				console.log(`(${robotId}) Error: did not find a destination, defaulting to dockingstation1`);
 			}
@@ -203,7 +227,7 @@ async function receiveResponseRobot(response, robotId) { // from the robot
 
 async function updateDB(response_dest, robotId) {
 	if (!handler.accessState(robotId, 'requestDict')||response_dest!==handler.accessState(robotId, 'requestDict').dest) {
-		handler.accessState(robotId, 'curPosRobot', response_dest);
+		handler.accessState(robotId, 'robotCurPos', response_dest);
 		handler.sendToAllClients(robotId, `UPDATE POS: ${response_dest}`, true);
 		// update the requestDict
 		handler.accessState(robotId, 'requestDict', null);
@@ -211,11 +235,10 @@ async function updateDB(response_dest, robotId) {
 		return
 	}
 
-	var response_update;
-	const src=handler.accessState(robotId, 'curPosRobot');
+	const src=handler.accessState(robotId, 'robotCurPos');
 	const dest=handler.accessState(robotId, 'requestDict').dest;
 	// update the current position of the robot
-	handler.accessState(robotId, 'curPosRobot', dest);
+	handler.accessState(robotId, 'robotCurPos', dest);
 	handler.sendToAllClients(robotId, `UPDATE POS: ${dest}`, true);
 
 	const new_time = (Date.now()-handler.accessState(robotId, 'requestDict').time)/1000;
@@ -257,7 +280,7 @@ async function updateDB(response_dest, robotId) {
 		);
 	});
 
-	response_update = JSON.stringify({src: src, dest: dest, time: new_time});
+	const response_update = JSON.stringify({src: src, dest: dest, time: new_time});
 
 	/*
 	// update the data (matrix of times and successes)
@@ -275,6 +298,6 @@ async function updateDB(response_dest, robotId) {
 	handler.accessState(robotId, 'requestDict', null);
 
 	// send the updates to everyone (time + success)
-	handler.sendToAllClients(robotId, `UPDATE VARIABLES: ${response_update}\n`)
+	handler.sendToAllClients(robotId, `UPDATE VARIABLES: ${response_update}\n`, true)
 
 }

@@ -403,12 +403,7 @@ function updateRealRobotPos(location) {
 
 
 function isDigit(charac) {
-  for (let i = 0; i <= 9; i++) {
-    if (charac == '' + i) {
-      return true
-    }
-  }
-  return false
+	return '0' <= charac && charac <= '9';
 }
 
 function getCoords(line) {

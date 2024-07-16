@@ -5,6 +5,7 @@ const ipcRenderer = window.electron.ipcRenderer;
 
 const robotsMap = ref(new Map());
 const flagNoRobot = ref(true);
+const selectedRobotId = ref('');
 
 ipcRenderer.on('updateBattery', (event, robotId, battery) => {
   const robot = robotsMap.value.get(robotId);
@@ -41,7 +42,9 @@ ipcRenderer.on('updateWaitings', (event, robotId, waiting) => {
 
 ipcRenderer.on('addRobot', (event, robotId) => {
   if (!robotsMap.value.has(robotId)) {
-		if (!robotsMap.value.size) flagNoRobot.value=false;
+		if (!robotsMap.value.size) {
+			flagNoRobot.value = false;
+		}
     robotsMap.value.set(robotId,
 			{ etat: 'unknown', batterie: 'unknown', fileAttente: 'unknown', position: 'unknown' }
 		);
@@ -55,15 +58,21 @@ ipcRenderer.on('removeRobot', (event, robotId) => {
 });
 
 
+ipcRenderer.on('changeSelected', (event, robotId) => {
+	selectedRobotId.value = robotId;
+})
+
+
+function elementClicked(robotId) {
+	ipcRenderer.send('changeRobot', robotId);
+}
+
+
 const robotsArray = computed(() => Array.from(robotsMap.value));
 
 onMounted(() => {
   ipcRenderer.send('Sidebar-vue-loaded');
 });
-
-function elementClicked(robotId) {
-	ipcRenderer.send('changeRobot', robotId);
-}
 
 </script>
 
@@ -83,7 +92,7 @@ function elementClicked(robotId) {
         v-for="([robotId, robot], index) in robotsArray"
 				@click="elementClicked(robotId)"
         :key="robotId"
-        class="elementSidebar"
+        :class="robotId !== selectedRobotId?'elementSidebar':'sidebarSelectedElement'"
         :nom-robot="robotId"
         :etat="robot.etat"
         :batterie="robot.batterie"
