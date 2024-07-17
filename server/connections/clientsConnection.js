@@ -20,11 +20,6 @@ function connectToClients(port) {
 		const robotId = handler.initializeRobotId();
 		handler.connectedClients.set(clientId, new Map([['socket', socket], ['robotId', robotId]]));
 
-		const robotIds = handler.getRobotIds();
-		for (let id of robotIds) {
-			handler.sendToClient(clientId, `ADD ROBOTID\n`, id);
-		}
-
 		// received data from the client
 		socket.on('data', (data) => {
 			const msg = data.toString().trim();
@@ -192,6 +187,12 @@ function receiveRequest(clientId, msg) {
 
  	} else if (msg === 'DATA') {
 		sendData(clientId);
+
+	} else if (msg === 'CLIENT READY') {
+		const robotIds = handler.getRobotIds();
+		for (let id of robotIds) {
+			handler.sendToClient(clientId, `ADD ROBOTID\n`, id);
+		}
 
 	} else if (msg.startsWith('CODE ADMIN: ')) {
 		const code = msg.substring('CODE ADMIN: '.length);

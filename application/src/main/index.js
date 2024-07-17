@@ -331,6 +331,7 @@ function connectToServer() {
   serverSocket = net.connect({ host: serverHost, port: serverPort }, () => {
     console.log(`Connected to the server on port ${serverPort}`);
     serverConnected = true;
+		sendToServer('CLIENT READY\n');
   });
 
 	// Handle incoming data from the server
@@ -345,6 +346,9 @@ function connectToServer() {
     }
 
 		if (responses.length>1) unfinishedRequest='';
+
+		// either an incomplete request or just an empty string
+		unfinishedRequest = responses[responses.length-1];
 	});
 
 	// Handle the end of the server connection
