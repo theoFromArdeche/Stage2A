@@ -331,7 +331,6 @@ function connectToServer() {
   serverSocket = net.connect({ host: serverHost, port: serverPort }, () => {
     console.log(`Connected to the server on port ${serverPort}`);
     serverConnected = true;
-    serverSocket.write('DATA\n') // fetch the data
   });
 
 	// Handle incoming data from the server
@@ -346,9 +345,6 @@ function connectToServer() {
     }
 
 		if (responses.length>1) unfinishedRequest='';
-
-		// either an incomplete request or just an empty string
-		unfinishedRequest += responses[responses.length-1];
 	});
 
 	// Handle the end of the server connection
@@ -521,20 +517,7 @@ function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the serv
 		robotsCurPos.set(receivedRobotId, response_array[1]);
 		if (!robotsSettings.get(receivedRobotId)) robotsSettings.set(receivedRobotId, new Map());
 		robotsSettings.get(receivedRobotId).set('parking', response_array[3]==='true');
-
-		if (robotCurId && robotCurId !== 'undefined' && robotCurId !== receivedRobotId) return;
-
-		resetVariables();
-
-    robotCurPosLive = response_array[1];
-		robotCurPosSimulation = robotCurPosLive;
-
-		robotCurId = receivedRobotId;
-		robotCurLocation = response_array[2];
-
-		mainWindow.webContents.send('updateData', DATA.get(robotCurId));
-		mainWindow.webContents.send('reRender');
-		mainWindow.webContents.send('changeSelected', robotCurId);
+		robotsCurStatus.get(receivedRobotId).set('Location', `Location: ${response_array[2]}\n`);
 
   } else if (response.indexOf('ADMIN REQUEST ACCEPTED') === 0) {
 		mainWindow.webContents.send('adminRequestAccepted');

@@ -11,9 +11,9 @@ var handler = require('./connections/handler')
 
 const app = express();
 const mapPort = 3001;
-const robotPort = [3456, 3457, 3458]
-const robotHost = ['127.0.0.1', '127.0.0.1', '127.0.0.1']
-const robotPassword = ['password', 'password', 'password']
+const robotPort = [3456, 3457, 3458];
+const robotHost = ['127.0.0.1', '127.0.0.1', '127.0.0.1'];
+const robotPassword = ['password', 'password', 'password'];
 const serverPort = 2345;
 const codeAdmin = 'admin';
 

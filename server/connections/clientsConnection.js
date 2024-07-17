@@ -20,6 +20,10 @@ function connectToClients(port) {
 		const robotId = handler.initializeRobotId();
 		handler.connectedClients.set(clientId, new Map([['socket', socket], ['robotId', robotId]]));
 
+		const robotIds = handler.getRobotIds();
+		for (let id of robotIds) {
+			handler.sendToClient(clientId, `ADD ROBOTID\n`, id);
+		}
 
 		// received data from the client
 		socket.on('data', (data) => {
@@ -250,10 +254,10 @@ function receiveRequest(clientId, msg) {
 		}
 
 	} else if (msg.startsWith('ROBOTID ADDED: ')) {
-		const robotId = msg.substring('ROBOTID ADDED: '.length);
-		handler.sendStatus(robotId, clientId);
-		updateClientQueue(clientId, robotId);
-		sendData(clientId, robotId);
+		const newRobotId = msg.substring('ROBOTID ADDED: '.length);
+		handler.sendStatus(newRobotId, clientId);
+		updateClientQueue(clientId, newRobotId);
+		sendData(clientId, newRobotId);
 
 	} else if (msg.startsWith('CHANGE ROBOTID: ')) {
 		const newRobotId = msg.substring('CHANGE ROBOTID: '.length);
@@ -311,11 +315,8 @@ async function sendData(clientId, robotIdOverwrite) {
 		robotId
 	);
 
-	// when robotIdOverwrite is used, the clients already knows the robotIds
-	if (robotIdOverwrite) return;
 
-	const robotIds = handler.getRobotIds();
-	for (let id of robotIds) {
-		handler.sendToClient(clientId, `ADD ROBOTID\n`, id);
+	if (robotId === handler.connectedClients.get(clientId).get('robotId')) {
+		handler.sendToClient(clientId, 'SELECTED ROBOTID', robotId);
 	}
 }
