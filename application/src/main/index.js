@@ -151,6 +151,7 @@ const DATA = new Map();
 const robotsCurStatus = new Map();
 const robotsCurPos = new Map();
 const robotsSettings = new Map();
+const bufferStatus = 2 * 1000;
 var unfinishedRequest = '';
 var flagSimulation = true;
 var updatePathLiveTimer;
@@ -168,8 +169,8 @@ var robotCurPosLive;
 var robotCurId;
 const robotIds = new Set();
 var robotCurLocation = ''; // coords x, y, z example : '-384 1125 0.00'
-var timeStatus = -1;
-var timeEndAnim = -1;
+var timeStatus = Date.now();
+var timeEndAnim = Date.now();
 
 const instancePort = 1234;
 const serverPort = 2345;
@@ -198,8 +199,8 @@ function resetVariables() {
 	curStandby = 'standby1';
 	robotCurPosSimulation = null;
 	robotCurPosLive = null;
-	timeStatus = -1;
-	timeEndAnim = -1;
+	timeStatus = Date.now();
+	timeEndAnim = Date.now();
 	hasHand = false;
 	mainWindow.webContents.send('receiveQueue', 'Demander la main');
 }
@@ -409,7 +410,6 @@ function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the serv
 	const response = responseRaw.substring(receivedRobotId.length + ': '.length);
 	if (!robotIds.has(receivedRobotId)
 		&& response.indexOf('ADD ROBOTID') !== 0
-		&& response.indexOf('DATA: ') !== 0
 		&& response.indexOf('ADMIN REQUEST ACCEPTED') !==0
 	  && response.indexOf('ADMIN REQUEST REJECTED') !==0) {
 		return;
@@ -466,10 +466,12 @@ function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the serv
 			return;
 		}
 
-		if (timeStatus === -1) return;
+		if (Date.now() - timeStatus > bufferStatus + robotsSettings.get(receivedRobotId).get('statusInterval')) {
+			// move the robot to the correct location
+			mainWindow.webContents.send('updatePathLive', location, location, 0);
 
-    // draw the segment oldLocation -> curLocation in 'Live'
-		if (timeEndAnim-Date.now()<100) { // 100 ms
+		} else if (timeEndAnim-Date.now()<100) { // 100 ms
+			// draw the segment oldLocation -> curLocation in 'Live'
 			mainWindow.webContents.send('updatePathLive', robotCurLocation, location, Date.now()-timeStatus);
 
 		} else {
@@ -478,6 +480,7 @@ function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the serv
 			const temp_location = location;
 			const temp_duration = Date.now()-timeStatus
 			updatePathLiveTimer = setTimeout(()=> {
+				// draw the segment oldLocation -> curLocation in 'Live'
 				mainWindow.webContents.send('updatePathLive', temp_robotCurLocation, temp_location, temp_duration);
 			}, temp_time)
 		}
@@ -519,8 +522,8 @@ function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the serv
     }
 
 		robotsCurPos.set(receivedRobotId, response_array[1]);
-		if (!robotsSettings.get(receivedRobotId)) robotsSettings.set(receivedRobotId, new Map());
 		robotsSettings.get(receivedRobotId).set('parking', response_array[3]==='true');
+		robotsSettings.get(receivedRobotId).set('statusInterval', parseInt(response_array[4]));
 		robotsCurStatus.get(receivedRobotId).set('Location', `Location: ${response_array[2]}\n`);
 
   } else if (response.indexOf('ADMIN REQUEST ACCEPTED') === 0) {
@@ -540,7 +543,6 @@ function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the serv
 		sendToClient(result);
 
 	} else if (response.indexOf('ADD ROBOTID') === 0) {
-		if (robotIds.has(receivedRobotId)) return;
 		robotIds.add(receivedRobotId);
 		robotsCurStatus.set(receivedRobotId, new Map());
 		robotsSettings.set(receivedRobotId, new Map());

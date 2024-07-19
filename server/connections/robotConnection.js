@@ -130,12 +130,12 @@ async function receiveResponseRobot(response, robotId) { // from the robot
 	handler.sendToAllClients(robotId, `RESPONSE: ${response}`);
 
 	if (handler.accessState(robotId, 'requestDict') && (response.startsWith('Interrupted: ') || response.startsWith('Error: Failed going to goal'))) {
-		// request failed or interrupted by an other request or by an EStop
+		// request failed or interrupted by an other request or by an EStop pressed
 		handler.accessState(robotId, 'interruptedRequest', handler.accessState(robotId, 'requestDict'));
 		handler.accessState(robotId, 'requestDict', null);
 	}
 
-	if (response.startsWith('EStop')||response.startsWith('Error: Failed going to goal')) { // fail
+	if (response.startsWith('EStop pressed')||response.startsWith('Error: Failed going to goal')) { // fail
 		clearInterval(handler.accessState(robotId, 'statusTimer'));
 		handler.sendToRobot(robotId, 'status');
 
@@ -175,7 +175,10 @@ async function receiveResponseRobot(response, robotId) { // from the robot
 		var response_dest = response.substring('Arrived at '.length).toLowerCase().trim();
 
 		if (response.startsWith('Parked') || response.startsWith('DockingState: Docked')) {
-			if (!handler.accessState(robotId, 'destDockPark')) return;
+			if (!handler.accessState(robotId, 'destDockPark')) {
+				console.log('\n\nno update because no clue what the parking spot is\n\n');
+				return;
+			}
 			response_dest = handler.accessState(robotId, 'destDockPark');
 			if (handler.accessState(robotId, 'requestDict')) {
 				handler.accessState(robotId, 'requestDict').dest = handler.accessState(robotId, 'destDockPark');
@@ -192,6 +195,10 @@ async function receiveResponseRobot(response, robotId) { // from the robot
 			handler.sendToRobot(robotId, 'status', robotId);
 		}, handler.accessState(robotId, 'statusInterval')));
 
+		if (response.startsWith('Parking') || response.startsWith('DockingState: Docking')) {
+			handler.accessState(robotId, 'flagDockPark', true);
+		}
+
 		if (handler.accessState(robotId, 'interruptedRequest')||handler.accessState(robotId, 'requestDict')) return;
 
 		var dest;
@@ -199,10 +206,8 @@ async function receiveResponseRobot(response, robotId) { // from the robot
 			dest=response.substring('Going to '.length).trim().toLowerCase();
 		} else if (response.startsWith('Parking')) {
 			dest='parking';
-			handler.accessState(robotId, 'flagDockPark', true);
 		} else if (response.startsWith('DockingState: Docking')) {
 			dest='docking';
-			handler.accessState(robotId, 'flagDockPark', true);
 		}
 
 		handler.accessState(robotId, 'requestDict', {time: Date.now(), dest: dest});
@@ -230,8 +235,8 @@ async function updateDB(response_dest, robotId) {
 		handler.accessState(robotId, 'robotCurPos', response_dest);
 		handler.sendToAllClients(robotId, `UPDATE POS: ${response_dest}`, true);
 		// update the requestDict
+		if (handler.accessState(robotId, 'requestDict')) console.log(`(${robotId}) Error: wrong destination`);
 		handler.accessState(robotId, 'requestDict', null);
-		console.log(`(${robotId}) Error: wrong destination`);
 		return
 	}
 
@@ -240,10 +245,6 @@ async function updateDB(response_dest, robotId) {
 	// update the current position of the robot
 	handler.accessState(robotId, 'robotCurPos', dest);
 	handler.sendToAllClients(robotId, `UPDATE POS: ${dest}`, true);
-
-	const new_time = (Date.now()-handler.accessState(robotId, 'requestDict').time)/1000;
-	console.log('NEW TIME: ', new_time);
-
 
 	var flagError=false;
 	for (let label of [src, dest]) {
@@ -262,6 +263,9 @@ async function updateDB(response_dest, robotId) {
 
 	if  (flagError) return;
 
+
+	const new_time = (Date.now()-handler.accessState(robotId, 'requestDict').time)/1000;
+	console.log('NEW TIME: ', new_time);
 
 
 	handler.accessDB().collection(`times_${robotId}`).findOne({label: src}).then(doc => {

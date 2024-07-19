@@ -56,9 +56,11 @@ const curLineProgress = ref(null);
 const curLineDuration = ref(null);
 
 
-const tailleCarré = 10;
+const tailleCarré = 4;
 const distanceWeight = 16;
-const dangerDistance = 5;
+const dangerDistance = 14;
+// 1 pixel = 14/25 cm and the distance in MobilePlaner is 100cm (PlanFreeSpace) so we need 56px
+// and dangerDistance*tailleCarré -> 14*4 = 56 (having whole numbers is pure luck)
 var GRID = null;
 const heightGRID = ref(null);
 const widthGRID = ref(null);
@@ -436,17 +438,16 @@ function getRoomName(line) {
 
 
 
-function inverseRotate(x, y, angleDegrees) {
+function rotate(x, y, angleDegrees) {
   const angleRadians = angleDegrees * Math.PI / 180;
   const cosTheta = Math.cos(angleRadians);
   const sinTheta = Math.sin(angleRadians);
 
-  const xPrime = x * cosTheta + y * sinTheta;
-  const yPrime = -x * sinTheta + y * cosTheta;
+  const xPrime = x * cosTheta - y * sinTheta;
+  const yPrime = x * sinTheta + y * cosTheta;
 
   return [xPrime, yPrime];
 }
-
 
 
 function getCoordsFa(line) {
@@ -484,7 +485,7 @@ function getCoordsFa(line) {
   }
 
   const heading = coords[2];
-  const originalCoords = coords.slice(0, 2).map(([x, y]) => inverseRotate(x, y, -heading));
+  const originalCoords = coords.slice(0, 2).map(([x, y]) => rotate(x, y, heading));
 
   return { originalCoords, heading };
 }
@@ -648,6 +649,7 @@ function bresenham(x1, y1, x2, y2) {
 
 
 function dangerCalc(row, column) {
+	if (GRID[row][column] === Infinity) return;
 	GRID[row][column] = Infinity;
 	for (let deltaRow=-dangerDistance; deltaRow<=dangerDistance; deltaRow++) {
 		for (let deltaColumn=-dangerDistance; deltaColumn<=dangerDistance; deltaColumn++) {
@@ -655,6 +657,17 @@ function dangerCalc(row, column) {
 			GRID[row+deltaRow][column+deltaColumn]=Math.max(GRID[row+deltaRow][column+deltaColumn], distanceWeight)
 		}
 	}
+}
+
+function calcRotatedCoords(row, col, centerX, centerY, rotationDeg) {
+	const cellCenterX = (col + 0.5) * tailleCarré;
+	const cellCenterY = (row + 0.5) * tailleCarré;
+	const [xWithAngle, yWithAngle] = rotate(cellCenterX - centerX, cellCenterY - centerY, rotationDeg);
+	const newX = xWithAngle + centerX;
+	const newY = yWithAngle + centerY;
+	const newRow = Math.floor(newY / tailleCarré);
+	const newColumn = Math.floor(newX / tailleCarré);
+	return [newRow, newColumn]
 }
 
 
@@ -679,9 +692,10 @@ function tailleEtTracer() {
 	canvas_grid.value.height = canvas_MapAIP.value.height
 
 
-	widthGRID.value =  Math.ceil(canvas_grid.value.width/tailleCarré);
-	heightGRID.value = Math.ceil(canvas_grid.value.height/tailleCarré);
+	widthGRID.value =  Math.ceil(canvas_grid.value.width/tailleCarré)+1;
+	heightGRID.value = Math.ceil(canvas_grid.value.height/tailleCarré)+1;
 	GRID = Array.from({ length: heightGRID.value }, () => Array(widthGRID.value).fill(1));
+	console.log(heightGRID.value, widthGRID.value);
 
 
 	pointDetectedCoords.forEach((point) => {
@@ -735,18 +749,16 @@ function tailleEtTracer() {
 	forbiddenAreas.forEach((area) => {
 		const { originalCoords, heading } = area;
 
-		var rotationDeg;
-		if (heading===0) rotationDeg = 0;
-		else rotationDeg = 270 - heading;
+		const rotationDeg = heading === 0 ? 0 : 270 - heading;
 
 		const bottomRight = transformCoord(originalCoords[0][0], originalCoords[0][1], canvas_MapAIP.value.width);
 		const topLeft = transformCoord(originalCoords[1][0], originalCoords[1][1], canvas_MapAIP.value.width);
 
 		const centerX = (bottomRight.x + topLeft.x) / 2;
-  	const centerY = (bottomRight.y + topLeft.y) / 2;
+		const centerY = (bottomRight.y + topLeft.y) / 2;
 
 		const width = Math.abs(bottomRight.x - topLeft.x);
-  	const height = Math.abs(bottomRight.y - topLeft.y);
+		const height = Math.abs(bottomRight.y - topLeft.y);
 
 		ctx_MapAIP.save();
 		ctx_MapAIP.translate(centerX, centerY);
@@ -759,12 +771,29 @@ function tailleEtTracer() {
 		ctx_MapAIP.stroke();
 		ctx_MapAIP.restore();
 
-		for (let row=Math.floor(topLeft.y/tailleCarré); row<=Math.floor(bottomRight.y/tailleCarré); row++) {
-			for (let column=Math.floor(topLeft.x/tailleCarré); column<=Math.floor(bottomRight.x/tailleCarré); column++) {
-				if (row>=heightGRID.value||column>=widthGRID.value) continue;
-				dangerCalc(row, column);
+		const leftRow = Math.floor(topLeft.y / tailleCarré);
+    const rightRow = Math.floor(bottomRight.y / tailleCarré);
+    const leftCol = Math.floor(topLeft.x / tailleCarré);
+    const rightCol = Math.floor(bottomRight.x / tailleCarré);
+
+    for (let row = Math.min(leftRow, rightRow); row <= Math.max(leftRow, rightRow); row++) {
+			for (let column = Math.min(leftCol, rightCol); column <= Math.max(leftCol, rightCol); column++) {
+				if (row < 0 || row >= heightGRID.value || column < 0 || column >= widthGRID.value) continue;
+				const [rotatedRow, rotatedColumn] = calcRotatedCoords(row, column, centerX, centerY, rotationDeg)
+
+				if (rotatedRow < 0 || rotatedRow >= heightGRID.value || rotatedColumn < 0 || rotatedColumn >= widthGRID.value) continue;
+
+				for (let [deltaRow, deltaColumn] of [[1, 0], [0, 0], [-1, 0]]) {
+					if (rotatedRow+deltaRow>=heightGRID.value||rotatedColumn+deltaColumn>=widthGRID.value||rotatedRow+deltaRow<0||rotatedColumn+deltaColumn<0) continue;
+					const [neighbourRow, neighbourColumn] = calcRotatedCoords(rotatedRow+deltaRow, rotatedColumn+deltaColumn, centerX, centerY, -rotationDeg)
+
+					if (neighbourRow < Math.min(leftRow, rightRow) || neighbourRow > Math.max(leftRow, rightRow) ||
+							neighbourColumn < Math.min(leftCol, rightCol) || neighbourColumn > Math.max(leftCol, rightCol)) continue;
+
+					dangerCalc(rotatedRow+deltaRow, rotatedColumn+deltaColumn);
+				}
 			}
-		}
+    }
 	})
 
 	lineDetectedCoords.forEach((line) => {
@@ -880,9 +909,9 @@ function dijkstra(start_x, start_y, end_x, end_y) {
 				const newDirection = [dRow, dCol];
 
 				if (prevDirection && (prevDirection[0] !== newDirection[0] || prevDirection[1] !== newDirection[1])) {
-						newDist += 1; // Penalty for changing direction
+					newDist += 1; // Penalty for changing direction
 				} else {
-						newDist -= 0.5; // Reward for continuing in the same direction
+					newDist -= 0.5; // Reward for continuing in the same direction
 				}
 
 				if (newDist < distance[newRow][newCol]) {
@@ -893,6 +922,7 @@ function dijkstra(start_x, start_y, end_x, end_y) {
 			}
 		}
 	}
+
 
 	if (!pathFound) return null;
 

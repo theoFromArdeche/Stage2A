@@ -309,10 +309,11 @@ async function sendData(clientId, robotIdOverwrite) {
 	} else robotLocation = '0 0 0';
 
 	const flagAutoParking = handler.accessState(robotId, 'flagAutoParking');
+	const statusInterval = handler.accessState(robotId, 'statusInterval');
 
 	handler.sendToClient(
 		clientId,
-		`DATA: ${jsonString}FLAG_SPLIT${handler.accessState(robotId, 'robotCurPos')}FLAG_SPLIT${robotLocation}FLAG_SPLIT${flagAutoParking}\n`,
+		`DATA: ${jsonString}FLAG_SPLIT${handler.accessState(robotId, 'robotCurPos')}FLAG_SPLIT${robotLocation}FLAG_SPLIT${flagAutoParking}FLAG_SPLIT${statusInterval}\n`,
 		robotId
 	);
 
