@@ -31,14 +31,15 @@ const state = new Map();
 const curStatus = new Map();
 const connectedClients = new Map();
 const adminClients = new Set();
+const whitelistLive = new Map();
 var database = null;
 var codeAdmin;
 var interrestPointsCoords = new Map();
 
 
 module.exports = {
-	sendToRobot, sendToClient, sendToAllClients, setHandTimeout, updatePositions, sendStatus,
-	deleteRobot, initializeClients, accessInterrestPointsCoords, accessState, createRobot, accessDB,
+	sendToRobot, sendToClient, sendToAllClients, setHandTimeout, updatePositions, sendStatus, accessWhitelistLive,
+	deleteRobot, initializeClients, accessInterrestPointsCoords, accessState, createRobot, accessDB, testWhitelistLive,
 	initializeRobotId, getRobotIds, accessStatus, getRobotId, getClientId, accessCodeAdmin, initializeRobotSettings,
 	connectedClients, adminClients
 }
@@ -56,6 +57,12 @@ function accessState(robotId, key, value) {
 	return state.get(robotId).get(key);  // getter
 }
 
+function accessWhitelistLive(robotId, value) {
+	if (value !== undefined) {
+		whitelistLive.set(robotId, value);  // setter
+	}
+	return whitelistLive.get(robotId);  // getter
+}
 
 function accessStatus(robotId, key, value) {
 	if (!key && !value) return curStatus.has(robotId);
@@ -71,13 +78,21 @@ function accessStatus(robotId, key, value) {
 
 
 function accessCodeAdmin(value) {
-	if (value) codeAdmin=value;
-	return codeAdmin;
+	if (value) codeAdmin=value; // setter
+	return codeAdmin;  // getter
+}
+
+
+function testWhitelistLive(clientId, robotId) {
+	for (let ip of accessWhitelistLive(robotId)) {
+		if (clientId.startsWith(ip)) return true;
+	}
+	return false;
 }
 
 function accessInterrestPointsCoords(key, value) {
-	if (value) interrestPointsCoords.set(key, value);
-	return interrestPointsCoords.get(key);
+	if (value) interrestPointsCoords.set(key, value); // setter
+	return interrestPointsCoords.get(key); // getter
 }
 
 function sendStatus(robotId, clientId) {

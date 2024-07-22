@@ -100,8 +100,12 @@ function receiveRequest(clientId, msg) {
 	const robotId = handler.connectedClients.get(clientId).get('robotId');
 
 	console.log(`(${robotId}) Received from client ${clientId}: ${msg}`);
-	if (!handler.accessState(robotId) && !msg.startsWith('CODE ADMIN: ') && !msg.startsWith('QUIT ADMIN')) {
-		console.log(`(${robotId}) Unknown robot id`);
+	if ((!handler.accessState(robotId) || !handler.testWhitelistLive(clientId, robotId)) &&
+		  !msg.startsWith('CODE ADMIN: ') &&
+		  !msg.startsWith('QUIT ADMIN')) {
+
+		if (!handler.accessState(robotId)) console.log(`(${robotId}) Unknown robot id`);
+		else console.log(`(${robotId}) Client is not whitelisted : ${clientId}`);
 		return;
 	}
 

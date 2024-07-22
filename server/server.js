@@ -14,6 +14,7 @@ const mapPort = 3001;
 const robotPort = [3456, 3457, 3458];
 const robotHost = ['127.0.0.1', '127.0.0.1', '127.0.0.1'];
 const robotPassword = ['password', 'password', 'password'];
+const whitelistLive = [[''], ['::ffff:127.0.0'], ['::ffff:127.0.0']];
 const serverPort = 2345;
 const codeAdmin = 'admin';
 
@@ -193,6 +194,10 @@ function startServer() {
 	handler.accessCodeAdmin(codeAdmin);
 	for (let i=0; i<robotHost.length; i++) {
 		connectToRobot(robotHost[i], robotPort[i], robotPassword[i]);
+	}
+	for (let i=0; i<whitelistLive.length; i++) {
+		const robotId = handler.getRobotId(robotHost[i], robotPort[i]);
+		handler.accessWhitelistLive(robotId, whitelistLive[i]);
 	}
 	connectToClients(serverPort);
 }
