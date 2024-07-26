@@ -124,13 +124,13 @@ Detailed instructions can be found in this [YouTube tutorial](https://www.youtub
 
 ### II. Connecting
 
-To link your database to the server, modify the host, port, and database name in `server/data/database.js` on line 12. By default, the server attempts to connect to this database: `localhost:27017/AIPL`.
+To link your database to the server, modify the host, port, and database name in `server/data/database.js` on line `12`. By default, the server attempts to connect to this database: `localhost:27017/AIPL`.
 
 ## Adding/Removing a Robot
 
 ### I. Modify `server.js`
 
-In `server/server.js`, modify lines 14 to 17.
+In `server/server.js`, modify lines `14` to `17`.
 
 Example:
 ```js
@@ -154,9 +154,9 @@ To finalize adding a robot, you must restart the server if it was already runnin
 
 ### IV. Initialize Values (Optional)
 
-By default, all time values are initialized to 0. To set more realistic values without having to move the robot for hours, you can use an algorithm.
+By default, all time values are initialized to `0`. To set more realistic values without having to move the robot for hours, you can use an algorithm.
 
-To do this, time the robot from point A to point B and enter these values in lines 588 to 591 with the robot's identifier (`host_port`).
+To do this, time the robot from point A to point B and enter these values in lines `588` to `591` with the robot's identifier (`host_port`).
 
 Then run the algorithm with these commands:
 ```bash
