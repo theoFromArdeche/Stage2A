@@ -9,12 +9,11 @@ const net = require('net');
 
 function connectToClients(port) {
 	const server = net.createServer((socket) => {
-		console.log('Client connected');
-		console.log('Client socket info:', socket.address());
+		handler.consoleLog('Client connected');
 
 		// create a unique identifier for the client
 		const clientId = handler.getClientId(socket.remoteAddress, socket.remotePort);
-		console.log(`Client connected with id: ${clientId}`);
+		handler.consoleLog(`Client connected with id: ${clientId}`);
 
 		// add the socket to the connected clients map
 		const robotId = handler.initializeRobotId();
@@ -31,8 +30,8 @@ function connectToClients(port) {
 
 		// client disconnected
 		socket.on('end', () => {
-			console.log('Client disconnected');
-			console.log('Client socket info:', socket.address());
+			handler.consoleLog('Client disconnected');
+			handler.consoleLog(`Client socket info: ${socket.address()}`);
 			socketDisconnect(clientId)
 		});
 
@@ -44,7 +43,7 @@ function connectToClients(port) {
 	});
 
 	server.listen(port, () => {
-		console.log(`Telnet server listening on port ${port}`);
+		handler.consoleLog(`Telnet server listening on port ${port}`);
 	});
 }
 
@@ -99,13 +98,13 @@ function receiveRequest(clientId, msg) {
 	// a request is received, the timer is reset
 	const robotId = handler.connectedClients.get(clientId).get('robotId');
 
-	console.log(`(${robotId}) Received from client ${clientId}: ${msg}`);
+	handler.consoleLog(`(${robotId}) Received from client ${clientId}: ${msg}`);
 	if ((!handler.accessState(robotId) || !handler.testWhitelistLive(clientId, robotId)) &&
 		  !msg.startsWith('CODE ADMIN: ') &&
 		  !msg.startsWith('QUIT ADMIN')) {
 
-		if (!handler.accessState(robotId)) console.log(`(${robotId}) Unknown robot id`);
-		else console.log(`(${robotId}) Client is not whitelisted : ${clientId}`);
+		if (!handler.accessState(robotId)) handler.consoleLog(`(${robotId}) Unknown robot id`);
+		else handler.consoleLog(`(${robotId}) Client is not whitelisted : ${clientId}`);
 		return;
 	}
 
@@ -116,7 +115,7 @@ function receiveRequest(clientId, msg) {
 
 		const request = msg.substring('REQUEST: '.length).toLowerCase();
 		if (!request.startsWith('goto ')&&request!=='dock') {
-			//console.log('invalid command\n');
+			//handler.consoleLog('invalid command\n');
 			handler.sendToRobot(robotId, request)
 			return;
 		}
@@ -320,6 +319,8 @@ async function sendData(clientId, robotIdOverwrite) {
 		`DATA: ${jsonString}FLAG_SPLIT${handler.accessState(robotId, 'robotCurPos')}FLAG_SPLIT${robotLocation}FLAG_SPLIT${flagAutoParking}FLAG_SPLIT${statusInterval}\n`,
 		robotId
 	);
+
+	handler.consoleLog(`(${robotId}) Data send to client ${clientId}`);
 
 
 	if (robotId === handler.connectedClients.get(clientId).get('robotId')) {

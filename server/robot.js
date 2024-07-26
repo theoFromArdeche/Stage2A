@@ -1,18 +1,25 @@
 const net = require('net');
 
 const port_robot = [3456, 3457, 3458];
-const duration = 60*1000;
+const duration = 2 * 60 * 1000;
 const password = 'password\n';
+
+function consoleLog(msg) {
+	const now = new Date();
+	const datePart = now.toISOString().split('T')[0].replace(/-/g, '/');
+	const timePart = now.toTimeString().split(' ')[0];
+	console.log(`${datePart} - ${timePart}:  ${msg}`);
+}
 
 for (let port of port_robot) {
 	const server = net.createServer((socket) => {
-		console.log(`(${port}) Server connected`);
+		consoleLog(`(${port}) Server connected`);
 		var startTime = Date.now();
 		var flagPassword = false;
 		var flagGoto = false;
 
 		function receivedData(data) {
-			console.log(`(${port}) Received from server : ${data.toString()}`);
+			consoleLog(`(${port}) Received from server : ${data.toString()}`);
 			if (!flagPassword) {
 				flagPassword = (data === password);
 				return;
@@ -55,12 +62,12 @@ for (let port of port_robot) {
 		});
 
 		socket.on('end', () => {
-			console.log('Server disconnected');
+			consoleLog('Server disconnected');
 		});
 	});
 
 	server.listen(port, () => {
-		console.log(`Telnet server listening on port ${port}`);
+		consoleLog(`Telnet server listening on port ${port}`);
 	});
 }
 

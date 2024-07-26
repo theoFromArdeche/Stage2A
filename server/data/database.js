@@ -2,15 +2,16 @@
 
 const { MongoClient } = require('mongodb');
 
-module.exports = { connectToDatabase, getDatabase }
+module.exports = { connectToDatabase, getDatabase, disconnectDatabase }
 
 var db;
-
+var clientDB;
 
 
 function connectToDatabase(callbackFonction) {
 	MongoClient.connect('mongodb://localhost:27017/AIPL')
 		.then(client => {
+			clientDB = client;
 			db = client.db();
 			callbackFonction();
 		})
@@ -27,3 +28,6 @@ function getDatabase() {
 }
 
 
+function disconnectDatabase() {
+	clientDB.close();
+}

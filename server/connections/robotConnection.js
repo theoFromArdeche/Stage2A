@@ -16,32 +16,56 @@ function sendBinary(robotId) {
 }
 
 
+
 function connectToRobot(host, port, password) {
-	const robotId = handler.createRobot(host, port);
+	const robotId = handler.getRobotId(host, port);
+	const socket = net.createConnection({ host: host, port: port });
 
-	handler.accessState(robotId, 'robotSocket', net.createConnection({ host: host, port: port }, async () => {
-		console.log(`(${robotId}) Connected to the robot on port ${port}`);
-		await handler.initializeRobotSettings(robotId);
-		handler.accessState(robotId, 'robotConnected', true);
-		handler.sendToRobot(robotId, password);
-		handler.initializeClients(robotId);
-		//sendBinary(robotId);
+	socket.setTimeout(0); // Set the timeout period to infinity
 
-		// notify the clients that this robot is available
-		handler.sendToAllClients(robotId, `ADD ROBOTID\n`, true);
-		handler.sendToRobot(robotId, 'status');
-	}));
+	socket.on('connect', async () => {
+		handler.createRobot(host, port);
+		handler.accessState(robotId, 'robotSocket', socket);
+		handler.consoleLog(`(${robotId}) Connected to the robot on port ${port}`);
+		try {
+			await handler.initializeRobotSettings(robotId);
+			handler.accessState(robotId, 'robotConnected', true);
+			handler.sendToRobot(robotId, password);
+			handler.initializeClients(robotId);
+			//sendBinary(robotId);
 
-	handler.accessState(robotId, 'robotSocket').on('data', (data) => {
+			// notify the clients that this robot is available
+			handler.sendToAllClients(robotId, `ADD ROBOTID\n`, true);
+			handler.sendToRobot(robotId, 'status');
+		} catch (err) {
+			handler.consoleLog(`(${robotId}) Error during initialization: ${err.message}`);
+			socket.end();
+		}
+	});
+
+	socket.on('data', (data) => {
 		for (let e of data.toString().split('\n')) {
 			if (!e) continue;
 			receiveResponseRobot(`${e}\n`, robotId);
 		}
 	});
 
-	handler.accessState(robotId, 'robotSocket').on('end', () => {
-		console.log(`(${robotId}) WARNING : Robot disconnected`);
-		handler.sendToAllClients(robotId, `REMOVE ROBOTID\n`, true);
+	socket.on('end', () => {
+		handler.consoleLog(`(${robotId}) WARNING: Robot disconnected (end event)`);
+		handler.deleteRobot(robotId);
+
+		// Close the connection from your end as well
+		socket.end();
+
+		// Attempt to reconnect to the robot after a delay
+		setTimeout(() => {
+			connectToRobot(host, port, password);
+		}, 5000); // 5 seconds
+	});
+
+	socket.on('error', (err) => {
+		handler.consoleLog(`(${robotId}) Could not connect to the robot: ${err.message}`);
+		socket.destroy();
 		handler.deleteRobot(robotId);
 
 		// Attempt to reconnect to the robot after a delay
@@ -50,14 +74,12 @@ function connectToRobot(host, port, password) {
 		}, 5000); // 5 seconds
 	});
 
-	handler.accessState(robotId, 'robotSocket').on('error', (err) => {
-		console.error(`(${robotId}) Could not connect to the robot`);
-		handler.deleteRobot(robotId, false);
-
-		// Attempt to reconnect to the robot after a delay
-		setTimeout(() => {
-			connectToRobot(host, port, password);
-		}, 5000); // 5 seconds
+	socket.on('close', (hadError) => {
+		if (hadError) {
+			handler.consoleLog(`(${robotId}) Connection closed due to an error`);
+		} else {
+			handler.consoleLog(`(${robotId}) Connection closed gracefully`);
+		}
 	});
 }
 
@@ -74,7 +96,7 @@ function initializeRobotPos(robotId, location) {
 	}
 
 	handler.accessState(robotId, 'robotCurPos', curId);
-	console.log(`\n(${robotId}) Calculated position : ${curId} with a distance of ${curDist}\n`);
+	handler.consoleLog(`(${robotId}) Calculated position : ${curId} with a distance of ${curDist}\n`);
 }
 
 
@@ -85,7 +107,7 @@ async function receiveResponseRobot(response, robotId) { // from the robot
 			response.startsWith('StateOfCharge: ') || response.startsWith('LocalizationScore: ') || response.startsWith('Temperature: ')) {
 
 		if (handler.accessState(robotId, 'showStatusInTerminal')) {
-			console.log(`(${robotId}) Received from robot : ${response}`);
+			handler.consoleLog(`(${robotId}) Received from robot : ${response}`);
 		}
 
 		handler.sendToAllClients(robotId, response, true, handler.accessState(robotId, 'showStatusInTerminal'));
@@ -118,7 +140,7 @@ async function receiveResponseRobot(response, robotId) { // from the robot
 		return;
 	}
 
-	console.log(`(${robotId}) Received from robot : ${response}`);
+	handler.consoleLog(`(${robotId}) Received from robot : ${response}`);
 
 
 	// a response is received, the timer is reset
@@ -141,7 +163,7 @@ async function receiveResponseRobot(response, robotId) { // from the robot
 
 		if (!handler.accessState(robotId, 'interruptedRequest')) {
 			if (!handler.accessState(robotId, 'requestDict')) {
-				console.log(`(${robotId}) Error: no request to be classify as a fail`);
+				handler.consoleLog(`(${robotId}) Error: no request to be classify as a fail`);
 				return;
 			}
 			handler.accessState(robotId, 'interruptedRequest', handler.accessState(robotId, 'requestDict'));
@@ -176,7 +198,6 @@ async function receiveResponseRobot(response, robotId) { // from the robot
 
 		if (response.startsWith('Parked') || response.startsWith('DockingState: Docked')) {
 			if (!handler.accessState(robotId, 'destDockPark')) {
-				console.log('\n\nno update because no clue what the parking spot is\n\n');
 				return;
 			}
 			response_dest = handler.accessState(robotId, 'destDockPark');
@@ -222,7 +243,7 @@ async function receiveResponseRobot(response, robotId) { // from the robot
 			} else {
 				handler.accessState(robotId, 'robotCurPos', 'dockingstation1');
 				handler.sendToAllClients(robotId, `UPDATE POS: dockingstation1`, true);
-				console.log(`(${robotId}) Error: did not find a destination, defaulting to dockingstation1`);
+				handler.consoleLog(`(${robotId}) Error: did not find a destination, defaulting to dockingstation1`);
 			}
 			handler.accessState(robotId, 'flagDockPark', true);
 		}
@@ -235,7 +256,7 @@ async function updateDB(response_dest, robotId) {
 		handler.accessState(robotId, 'robotCurPos', response_dest);
 		handler.sendToAllClients(robotId, `UPDATE POS: ${response_dest}`, true);
 		// update the requestDict
-		if (handler.accessState(robotId, 'requestDict')) console.log(`(${robotId}) Error: wrong destination`);
+		if (handler.accessState(robotId, 'requestDict')) handler.consoleLog(`(${robotId}) Error: wrong destination`);
 		handler.accessState(robotId, 'requestDict', null);
 		return
 	}
@@ -251,13 +272,13 @@ async function updateDB(response_dest, robotId) {
 		await handler.accessDB().collection(`labels_${robotId}`).findOne({label: label}).then(doc => {
 			if (!doc) {
 				flagError=true;
-				console.log(`(${robotId}) Could not find ${label} in the database`);
+				handler.consoleLog(`(${robotId}) Could not find ${label} in the database`);
 			}
 		})
 		.catch(error => {
-			console.log(error);
+			handler.consoleLog(error);
 			flagError=true;
-			console.log(`(${robotId}) Could not find ${label} in the database`);
+			handler.consoleLog(`(${robotId}) Could not find ${label} in the database`);
 		});
 	}
 
@@ -265,7 +286,7 @@ async function updateDB(response_dest, robotId) {
 
 
 	const new_time = (Date.now()-handler.accessState(robotId, 'requestDict').time)/1000;
-	console.log('NEW TIME: ', new_time);
+	handler.consoleLog(`NEW TIME: ${new_time}`);
 
 
 	handler.accessDB().collection(`times_${robotId}`).findOne({label: src}).then(doc => {

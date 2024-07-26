@@ -56,14 +56,17 @@ const curLineProgress = ref(null);
 const curLineDuration = ref(null);
 
 
+const RING_SIZE = 3;
 const tailleCarré = 4;
-const distanceWeight = 16;
-const dangerDistance = 14;
+const distanceWeight = 4;
+const dangerDistance = 56;
 // 1 pixel = 14/25 cm and the distance in MobilePlaner is 100cm (PlanFreeSpace) so we need 56px
-// and dangerDistance*tailleCarré -> 14*4 = 56 (having whole numbers is pure luck)
+// (the pixels are from the canvas that is set with a width of 2560)
 var GRID = null;
 const heightGRID = ref(null);
 const widthGRID = ref(null);
+const flagDrawGrid = false;
+const flagDrawGridWeight = false;
 
 const needRender = ref(false);
 
@@ -284,13 +287,6 @@ ipcRenderer.on('updatePathSimulation', async (event, src, dest, clearCanva) => {
 	const path = dijkstra(start_x, start_y, end_x, end_y);
 	if (!path) return;
 
-	var totalDist=0;
-	path[0][2] = totalDist;
-	for (let i=1; i<path.length; i++) {
-		totalDist+=Math.abs(path[i][0]-path[i-1][0])+Math.abs(path[i][1]-path[i-1][1]);
-		path[i][2] = totalDist;
-	}
-
 	await animatePath(path, 1, start_x, start_y, duration, true, SHOW_PATH, SHOW_PROJECTED_PATH, ctx_path, ctx_pathTemp);
 	simulationTimer.value=null;
 });
@@ -354,11 +350,17 @@ ipcRenderer.on('removeIntervalLive', (event, arg) => {
 
 
 
-document.addEventListener('keydown', function (event) {
+document.addEventListener('keydown', async function (event) {
 	if (event.key === 'c') {
 		ctx_projectedPath.clearRect(0, 0, canvas_projectedPath.value.width, canvas_projectedPath.value.height);
 		ctx_path.clearRect(0, 0, canvas_path.value.width, canvas_path.value.height);
+	}/* else if (event.key === 'd') { // debug
+		const path = dijkstra(2464.621780388613, 618.1943063714415, 1268.9525530953458, 130.31360144600092);
+		if (!path) return;
+
+		await animatePath(path, 1, 2464.621780388613, 618.1943063714415, 10 * 1000, true, SHOW_PATH, SHOW_PROJECTED_PATH, ctx_path, ctx_pathTemp);
 	}
+	*/
 });
 
 
@@ -649,14 +651,25 @@ function bresenham(x1, y1, x2, y2) {
 
 
 function dangerCalc(row, column) {
-	if (GRID[row][column] === Infinity) return;
-	GRID[row][column] = Infinity;
-	for (let deltaRow=-dangerDistance; deltaRow<=dangerDistance; deltaRow++) {
-		for (let deltaColumn=-dangerDistance; deltaColumn<=dangerDistance; deltaColumn++) {
-			if (row+deltaRow>=heightGRID.value||column+deltaColumn>=widthGRID.value||row+deltaRow<0||column+deltaColumn<0) continue;
-			GRID[row+deltaRow][column+deltaColumn]=Math.max(GRID[row+deltaRow][column+deltaColumn], distanceWeight)
-		}
-	}
+    if (GRID[row][column] === Infinity) return;
+    GRID[row][column] = Infinity;
+
+		const distCells = Math.ceil(dangerDistance/tailleCarré);
+    for (let deltaRow = -distCells; deltaRow <= distCells; deltaRow++) {
+			for (let deltaColumn = -distCells; deltaColumn <= distCells; deltaColumn++) {
+				const newRow = row + deltaRow;
+				const newCol = column + deltaColumn;
+
+				if (newRow >= heightGRID.value || newCol >= widthGRID.value || newRow < 0 || newCol < 0) continue;
+
+				const distance = Math.sqrt((deltaRow + 0.5)**2 + (deltaColumn + 0.5)**2) * tailleCarré;
+				if (distance > dangerDistance) continue;
+
+				// Linear interpolation from distanceWeight to 1 based on the distance
+				const weight = distanceWeight - ((distanceWeight - 1) / dangerDistance) * distance;
+				GRID[newRow][newCol] = Math.max(GRID[newRow][newCol], weight);
+			}
+    }
 }
 
 function calcRotatedCoords(row, col, centerX, centerY, rotationDeg) {
@@ -695,7 +708,7 @@ function tailleEtTracer() {
 	widthGRID.value =  Math.ceil(canvas_grid.value.width/tailleCarré)+1;
 	heightGRID.value = Math.ceil(canvas_grid.value.height/tailleCarré)+1;
 	GRID = Array.from({ length: heightGRID.value }, () => Array(widthGRID.value).fill(1));
-	console.log(heightGRID.value, widthGRID.value);
+	//console.log(heightGRID.value, widthGRID.value);
 
 
 	pointDetectedCoords.forEach((point) => {
@@ -719,6 +732,16 @@ function tailleEtTracer() {
 		text_bouton.style.opacity = 0
 		button.style.position = 'absolute'
 		text_bouton.style.position = 'absolute'
+
+		/*
+		// to test points
+		const transformedTest = transformCoord(point[0], point[1], canvas_MapAIP.value.width);
+		if ((Math.floor(transformedTest.x) === 2464 && Math.floor(transformedTest.y) === 618) ||
+			  (Math.floor(transformedTest.x) === 1268 && Math.floor(transformedTest.y) === 130)) {
+			button.style.backgroundColor = 'red';
+		}
+		*/
+
 		button.style.width = '1%'
 		button.style.left = `${Math.round((transformed.x / containerButtons.value.offsetWidth) * 100)}%`
 		text_bouton.style.left = `${Math.round((transformed.x / containerButtons.value.offsetWidth) * 100)}%`
@@ -808,8 +831,8 @@ function tailleEtTracer() {
 
 		bresenham(start.x, start.y, end.x, end.y);
 	})
-	//drawGrid();
-	//drawGridWeight();
+	if (flagDrawGrid) drawGrid();
+	if (flagDrawGridWeight) drawGridWeight();
 }
 
 
@@ -833,13 +856,33 @@ function drawGrid() {
 
 
 
+function interpolateColor(startColor, endColor, factor) {
+	const r = Math.round(endColor.r + (startColor.r - endColor.r) * factor);
+	const g = Math.round(endColor.g + (startColor.g - endColor.g) * factor);
+	const b = Math.round(endColor.b + (startColor.b - endColor.b) * factor);
+	return `rgb(${r}, ${g}, ${b})`;
+}
+
 function drawGridWeight() {
-	for (let row=0; row<heightGRID.value; row++) {
-		for (let column=0; column<widthGRID.value; column++) {
-			if (GRID[row][column]===1) continue;
+	const startColor = { r: 128, g: 128, b: 128 }; // Grey
+	const endColor = { r: 245, g: 245, b: 245 }; // Whitesmoke
+
+	for (let row = 0; row < heightGRID.value; row++) {
+		for (let column = 0; column < widthGRID.value; column++) {
+			if (GRID[row][column] === 1) continue;
+
+			let fillColor;
+			if (GRID[row][column] === Infinity) {
+				fillColor = 'black';
+			} else {
+				// Assuming distanceWeight is the maximum value, normalize GRID[row][column] value to range [0, 1]
+				const normalizedValue = (GRID[row][column] - 1) / (distanceWeight - 1);
+				fillColor = interpolateColor(startColor, endColor, normalizedValue);
+			}
+
 			ctx_grid.beginPath();
-			ctx_grid.fillStyle = GRID[row][column]===Infinity?'black':'grey';
-			ctx_grid.rect(column*tailleCarré, row*tailleCarré, tailleCarré, tailleCarré);
+			ctx_grid.fillStyle = fillColor;
+			ctx_grid.rect(column * tailleCarré, row * tailleCarré, tailleCarré, tailleCarré);
 			ctx_grid.fill();
 		}
 	}
@@ -847,8 +890,30 @@ function drawGridWeight() {
 
 
 
+function chaikinSmooth(path) {
+	if (path.length <= 2) return path;
+
+	const newPath = [];
+
+	for (let i = 0; i < path.length - 1; i++) {
+		const [x0, y0, z0] = path[i];
+		const [x1, y1, z1] = path[i + 1];
+
+		const p1 = [0.75 * x0 + 0.25 * x1, 0.75 * y0 + 0.25 * y1, 0.75 * z0 + 0.25 * z1];
+		const p2 = [0.25 * x0 + 0.75 * x1, 0.25 * y0 + 0.75 * y1, 0.25 * z0 + 0.75 * z1];
+
+		newPath.push(p1);
+		newPath.push(p2);
+	}
+
+	newPath.push(path[path.length - 1]);
+
+	return newPath;
+}
+
+
 function dijkstra(start_x, start_y, end_x, end_y) {
-	if (!heightGRID.value||!widthGRID.value) return null;
+	if (!heightGRID.value || !widthGRID.value) return null;
 
 	const path = [];
 	const start_row = Math.floor(start_y / tailleCarré);
@@ -856,18 +921,17 @@ function dijkstra(start_x, start_y, end_x, end_y) {
 	const end_row = Math.floor(end_y / tailleCarré);
 	const end_column = Math.floor(end_x / tailleCarré);
 
-	if (start_row>=heightGRID.value||start_row<0||start_column>=widthGRID.value||start_column<0||
-			end_row>=heightGRID.value||end_row<0||end_column>=widthGRID.value||end_column<0) {
-			return null;
+	if (start_row >= heightGRID.value || start_row < 0 || start_column >= widthGRID.value || start_column < 0 ||
+		end_row >= heightGRID.value || end_row < 0 || end_column >= widthGRID.value || end_column < 0) {
+		return null;
 	}
 
-	if (start_row===end_row&&start_column===end_column) {
+	if (start_row === end_row && start_column === end_column) {
 		return [
-			[Math.round((start_column+0.5) * tailleCarré), Math.round((start_row+0.5) * tailleCarré)],
-			[Math.round((end_column+0.5) * tailleCarré), Math.round((end_row+0.5) * tailleCarré)]
-		]
+			[Math.round((start_column + 0.5) * tailleCarré), Math.round((start_row + 0.5) * tailleCarré), 0],
+			[Math.round((end_column + 0.5) * tailleCarré), Math.round((end_row + 0.5) * tailleCarré), 0]
+		];
 	}
-
 
 	const distance = Array.from({ length: heightGRID.value }, () => Array(widthGRID.value).fill(Infinity));
 	const parent = Array.from({ length: heightGRID.value }, () => Array(widthGRID.value).fill(null));
@@ -878,16 +942,19 @@ function dijkstra(start_x, start_y, end_x, end_y) {
 	const pq = new Heap((a, b) => a[0] - b[0]);
 	pq.push([0, start_row, start_column, null]);
 
-	const r2 = Math.sqrt(2);
+	const directions = [];
+	const numDirections = RING_SIZE * 8;
+	const step = (2 * Math.PI) / numDirections;
 
-	const directions = [ // delta row, delta column, coeff distance
-		[1, 0, 1], [-1, 0, 1],
-		[1, 1, r2], [-1, 1, r2],
-		[0, 1, 1], [0, -1, 1],
-		[1, 1, r2], [1, -1, r2],
-	];
+	for (let i = 0; i < numDirections; i++) {
+		const angle = i * step;
+		const dRow = Math.round(RING_SIZE * Math.cos(angle));
+		const dCol = Math.round(RING_SIZE * Math.sin(angle));
+		const coeffDistance = Math.sqrt(dRow * dRow + dCol * dCol);
+		directions.push([dRow, dCol, coeffDistance]);
+	}
 
-	var pathFound = false;
+	let pathFound = false;
 
 	while (!pq.isEmpty()) {
 		const [dist, row, col, prevDirection] = pq.pop();
@@ -905,13 +972,41 @@ function dijkstra(start_x, start_y, end_x, end_y) {
 			const newCol = col + dCol;
 
 			if (newRow >= 0 && newRow < heightGRID.value && newCol >= 0 && newCol < widthGRID.value && !visited[newRow][newCol]) {
-				var newDist = dist + GRID[newRow][newCol]*coeffDistance;
+				let validPath = true;
+				let totalWeight = 0;
+				let count = 0;
+
+				for (let i = 0; i <= RING_SIZE; i++) {
+					const intermediateRow = Math.round(row + i * (dRow / RING_SIZE));
+					const intermediateCol = Math.round(col + i * (dCol / RING_SIZE));
+
+					if (intermediateRow < 0 || intermediateRow >= heightGRID.value || intermediateCol < 0 || intermediateCol >= widthGRID.value || GRID[intermediateRow][intermediateCol] === Infinity) {
+						validPath = false;
+						break;
+					}
+					totalWeight += GRID[intermediateRow][intermediateCol];
+					count++;
+				}
+
+				if (!validPath) continue;
+
+				let newDist = dist + (totalWeight / count) * coeffDistance;
 				const newDirection = [dRow, dCol];
 
-				if (prevDirection && (prevDirection[0] !== newDirection[0] || prevDirection[1] !== newDirection[1])) {
-					newDist += 1; // Penalty for changing direction
-				} else {
-					newDist -= 0.5; // Reward for continuing in the same direction
+				if (prevDirection) {
+					let angleChange = Math.abs(Math.atan2(newDirection[1], newDirection[0]) - Math.atan2(prevDirection[1], prevDirection[0]));
+					if (angleChange > Math.PI) {
+						angleChange = 2 * Math.PI - angleChange;
+					}
+
+					// Penalize sharp turns and reward smoother turns, ensuring no negative distances
+					if (angleChange > Math.PI / 2) {
+						newDist += 3; // High penalty for sharp turns
+					} else if (angleChange > Math.PI / 4) {
+						newDist += 1; // Moderate penalty for medium turns
+					} else {
+						newDist += 0; // No reward for smooth turns to avoid negative distances
+					}
 				}
 
 				if (newDist < distance[newRow][newCol]) {
@@ -923,31 +1018,34 @@ function dijkstra(start_x, start_y, end_x, end_y) {
 		}
 	}
 
-
 	if (!pathFound) return null;
 
-	var curRow = end_row;
-	var curCol = end_column;
-	var curDirection = [0, 0];
-	var prevDirection;
+	let curRow = end_row;
+	let curCol = end_column;
+	let curDirection = [0, 0];
+	let prevDirection;
 
 	while (curRow !== null && curCol !== null) {
-		if (parent[curRow][curCol]) prevDirection=parent[curRow][curCol][2];
-		else prevDirection=[0, 0];
+		if (parent[curRow][curCol]) prevDirection = parent[curRow][curCol][2];
+		else prevDirection = [0, 0];
 
 		if (curDirection[0] !== prevDirection[0] || curDirection[1] !== prevDirection[1]) {
-			path.push([Math.round((curCol+0.5) * tailleCarré), Math.round((curRow+0.5) * tailleCarré), distance[curRow][curCol]]);
+			path.push([Math.round((curCol + 0.5) * tailleCarré), Math.round((curRow + 0.5) * tailleCarré), distance[curRow][curCol]]);
 		}
 
 		[curRow, curCol, curDirection] = parent[curRow][curCol] || [null, null, null];
 	}
 
-	path.push([start_x, start_y, 0])
+	path.push([start_x, start_y, 0]);
 
 	path.reverse();
 
-	return path;
+	return chaikinSmooth(path);
 }
+
+
+
+
 
 
 
@@ -1158,11 +1256,11 @@ async function renderMap() {
 			</div>
 		</div>
 		<canvas id="canvas_MapAIP" ref="canvas_MapAIP"></canvas>
+		<canvas id="canvas_grid" ref="canvas_grid" class="drawingCanvas"></canvas>
 		<canvas id="canvas_path" ref="canvas_path" class="drawingCanvas"></canvas>
 		<canvas id="canvas_pathTemp" ref="canvas_pathTemp" class="drawingCanvas"></canvas>
 		<canvas id="canvas_projectedPath" ref="canvas_projectedPath" class="drawingCanvas"></canvas>
 		<canvas id="canvas_projectedPathTemp" ref="canvas_projectedPathTemp" class="drawingCanvas"></canvas>
-		<canvas id="canvas_grid" ref="canvas_grid" class="drawingCanvas"></canvas>
 		<div id="containerButtons" ref="containerButtons"></div>
 	</div>
 </template>

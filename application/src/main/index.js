@@ -206,14 +206,21 @@ function resetVariables() {
 }
 
 
+function consoleLog(msg) {
+	const now = new Date();
+	const datePart = now.toISOString().split('T')[0].replace(/-/g, '/');
+	const timePart = now.toTimeString().split(' ')[0];
+	console.log(`${datePart} - ${timePart}:  ${msg}`);
+}
+
 
 // CONNECT TO THE STUDENT'S CODE
 
 const instanceSocket = net.createServer((socket) => {
-  console.log('Client connected');
+  consoleLog('Client connected');
   clientSocket = socket;
   flagClientConnected = true
-  console.log('Client socket info:', socket.address());
+  consoleLog(`Client socket info: ${socket.address()}`);
   // received data from the client
   socket.on('data', (data) => {
 		const responses = data.toString().split('\n');
@@ -224,9 +231,9 @@ const instanceSocket = net.createServer((socket) => {
   });
 
   socket.on('end', () => {
-    console.log('Client disconnected');
+    consoleLog('Client disconnected');
     flagClientConnected = false
-    console.log('Client socket info:', socket.address());
+    consoleLog(`Client socket info: ${socket.address()}`);
   });
 
   // Event handler for errors
@@ -238,19 +245,19 @@ const instanceSocket = net.createServer((socket) => {
 });
 
 instanceSocket.listen(instancePort, () => {
-  console.log(`Telnet server listening on port ${instancePort}`);
+  consoleLog(`Telnet server listening on port ${instancePort}`);
 });
 
 
 
 function sendToClient(request) {
   if (!flagClientConnected) return;
-  console.log(`Send to client : ${request}`)
+  consoleLog(`Send to client : ${request}`)
   clientSocket.write(request);
 }
 
 function receiveRequest(request) {
-  console.log('Received from client : ', request);
+  consoleLog(`Received from client : ${request}`);
 	var indexCommand=-1;
 	for (let i=0; i<adminCommandsRegex.length; i++) {
 		if (new RegExp(adminCommandsRegex[i]).test(request.toLowerCase())) {
@@ -310,7 +317,7 @@ function receivedResponse(response, flagSimulationResponse, onlyUpdate=false) {
 		destination = response.substring('Going to '.length).trim().toLowerCase();
 	}
 
-	//console.log(response, flagSimulationResponse, robotCurPosSimulation, destination);
+	//consoleLog(response, flagSimulationResponse, robotCurPosSimulation, destination);
 
   if (flagSimulationResponse) {
     mainWindow.webContents.send('updatePathSimulation', robotCurPosSimulation, destination, false);
@@ -330,10 +337,12 @@ function receivedResponse(response, flagSimulationResponse, onlyUpdate=false) {
 
 function connectToServer() {
   serverSocket = net.connect({ host: serverHost, port: serverPort }, () => {
-    console.log(`Connected to the server on port ${serverPort}`);
+    consoleLog(`Connected to the server on port ${serverPort}`);
     serverConnected = true;
 		sendToServer('CLIENT READY\n');
   });
+
+	serverSocket.setTimeout(0); // Set the timeout period to infinity
 
 	// Handle incoming data from the server
 	serverSocket.on('data', (data) => {
@@ -354,7 +363,7 @@ function connectToServer() {
 
 	// Handle the end of the server connection
 	serverSocket.on('end', () => {
-		console.log('WARNING: Server disconnected');
+		consoleLog('WARNING: Server disconnected');
 		serverDisconnected()
 
 		// Attempt to reconnect to the server after a delay
@@ -363,7 +372,7 @@ function connectToServer() {
 
   // If the connection to the server fails, retry after a delay
   serverSocket.on('error', (err) => {
-    console.log('WARNING: Server is not available, retrying in 5 seconds...');
+    consoleLog('WARNING: Server is not available, retrying in 5 seconds...');
     setTimeout(connectToServer, 5000); // 5 seconds
   });
 }
@@ -395,7 +404,7 @@ async function fetchMap() {
     const data = await response.text();
     mainWindow.webContents.send('fetchMap', data, robotCurLocation);
   } catch (error) {
-    console.log(`Error: ${error.message}`);
+    consoleLog(`Error: ${error.message}`);
   }
 }
 
@@ -405,7 +414,7 @@ async function fetchMap() {
 
 function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the server
   if (!responseRaw) return;
-  if (!onlyUpdate) console.log(`Received from server : ${responseRaw}`);
+  if (!onlyUpdate) consoleLog(`Received from server : ${responseRaw}`);
 	const receivedRobotId = responseRaw.split(': ')[0];
 	const response = responseRaw.substring(receivedRobotId.length + ': '.length);
 	if (!robotIds.has(receivedRobotId)
@@ -435,7 +444,7 @@ function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the serv
 			mainWindow.webContents.send('updateSyncRobot', robotCurPosSimulation===robotCurPosLive);
     }
 
-    //console.log('UPDATED DATA : ', data);
+    //consoleLog(`UPDATED DATA : ${DATA}`);
 		if (receivedRobotId !== robotCurId) return;
 
 		// update the data of MapAIP
@@ -518,7 +527,7 @@ function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the serv
 			receivedData.set('id', new Map(Object.entries(receivedData.get('id'))));
 			DATA.set(receivedRobotId, receivedData);
     } catch (err) {
-      console.log('Error parsing JSON:', err);
+      consoleLog(`Error parsing JSON: ${err}`);
     }
 
 		robotsCurPos.set(receivedRobotId, response_array[1]);
@@ -581,7 +590,7 @@ function receiveResponseServer(responseRaw, onlyUpdate=false) { // from the serv
 
 function sendToServer(request) {
   if (!serverConnected) return;
-  console.log(`Send to server : ${request}`)
+  consoleLog(`Send to server : ${request}`)
   serverSocket.write(request);
 }
 

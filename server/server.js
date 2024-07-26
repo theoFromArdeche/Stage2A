@@ -19,7 +19,7 @@ const serverPort = 2345;
 const codeAdmin = 'admin';
 
 if (robotHost.length !== robotPort.length || robotPort.length !== robotPassword.length) {
-	console.log('Error: robotHost, robotPort and robotPassword have different length');
+	handler.consoleLog('Error: robotHost, robotPort and robotPassword have different length');
 	return;
 }
 
@@ -34,7 +34,7 @@ for (let i=0; i<robotHost.length; i++) {
 	const robotId = handler.getRobotId(robotHost[i], robotPort[i]);
 	const mapData = fs.readFileSync(`./data/map_${robotId}.txt`, 'utf8');
 	if (!mapData) {
-		console.log('Map could not be loaded');
+		handler.consoleLog('Map could not be loaded');
 		return;
 	}
 	app.get(`/map_${robotId}`, (request, client) => {
@@ -45,7 +45,7 @@ for (let i=0; i<robotHost.length; i++) {
 
 
 app.listen(mapPort, () => {
-  console.log(`File server is running on http://localhost:${mapPort}`);
+  handler.consoleLog(`File server is running on http://localhost:${mapPort}`);
 });
 
 
@@ -55,10 +55,10 @@ app.listen(mapPort, () => {
 function connectDB() {
 	connectToDatabase(async error => {
 		if (error) {
-			console.log('Could not connect to the database, retry in 5 seconds');
+			handler.consoleLog('Could not connect to the database, retry in 5 seconds');
 			setTimeout(connectDB, 5000); // 5 seconds
 		} else {
-			console.log('Connected to the database');
+			handler.consoleLog('Connected to the database');
 			handler.accessDB(getDatabase());
 			for (let i=0; i<robotHost.length; i++) {
 				await updateDatabase(handler.getRobotId(robotHost[i], robotPort[i]));

@@ -35,20 +35,42 @@ const whitelistLive = new Map();
 var database = null;
 var codeAdmin;
 var interrestPointsCoords = new Map();
+const MAX_LENGTH_LOG_MSG = 2000;
 
 
 module.exports = {
-	sendToRobot, sendToClient, sendToAllClients, setHandTimeout, updatePositions, sendStatus, accessWhitelistLive,
+	sendToRobot, sendToClient, sendToAllClients, setHandTimeout, updatePositions, sendStatus, accessWhitelistLive, consoleLog,
 	deleteRobot, initializeClients, accessInterrestPointsCoords, accessState, createRobot, accessDB, testWhitelistLive,
 	initializeRobotId, getRobotIds, accessStatus, getRobotId, getClientId, accessCodeAdmin, initializeRobotSettings,
 	connectedClients, adminClients
+}
+
+const { createLogger, format, transports } = require('winston');
+
+// Set up winston logger
+const logger = createLogger({
+    level: 'info',
+    format: format.combine(
+        format.timestamp({ format: 'YYYY-MM-DD - HH:mm:ss' }),
+        format.printf(({ timestamp, level, message }) => `${timestamp}: ${message}`)
+    ),
+    transports: [
+        new transports.Console(),
+        new transports.File({ filename: 'combined.log' })
+    ]
+});
+
+
+function consoleLog(msg) {
+	if (msg.length>MAX_LENGTH_LOG_MSG) return;
+	logger.info(msg);
 }
 
 
 function accessState(robotId, key, value) {
 	if (!key && !value) return state.has(robotId);
 	if (!state.has(robotId)) {
-		console.log(`Error: unknown robotId (${robotId})`);
+		consoleLog(`Error: unknown robotId (${robotId})`);
 		return null;
 	}
 	if (value !== undefined) {
@@ -67,7 +89,7 @@ function accessWhitelistLive(robotId, value) {
 function accessStatus(robotId, key, value) {
 	if (!key && !value) return curStatus.has(robotId);
 	if (!curStatus.has(robotId)) {
-		console.log(`Error: unknown robotId (${robotId})`);
+		consoleLog(`Error: unknown robotId (${robotId})`);
 		return null;
 	}
 	if (value !== undefined) {
@@ -136,12 +158,10 @@ async function initializeRobotSettings(robotId) {
 	}
 }
 
-function deleteRobot(robotId, flagUpdateClients=true) {
+function deleteRobot(robotId) {
 	if (!state.has(robotId)) return;
 	state.delete(robotId);
 	curStatus.delete(robotId);
-
-	if (!flagUpdateClients) return;
 
 	for (let client of connectedClients.keys()) {
 		if (connectedClients.get(client).get('robotId') !== robotId) continue;
@@ -149,6 +169,8 @@ function deleteRobot(robotId, flagUpdateClients=true) {
 		connectedClients.get(client).set('robotId', newRobotId);
 		sendToClient(client, 'SELECTED ROBOTID', newRobotId);
 	}
+
+	sendToAllClients(robotId, `REMOVE ROBOTID\n`, true);
 }
 
 function getRobotId(host, port) {
@@ -160,7 +182,7 @@ function getClientId(address, port) {
 }
 
 function initializeRobotId() {
-	//console.log(state.keys());
+	//consoleLog(state.keys());
 	return state.keys().next().value;
 }
 
@@ -182,7 +204,7 @@ function sendToRobot(robotId, request) {
     const checkConnection = () => {
       if (accessState(robotId)) {
 				if (request !== 'status' || accessState(robotId, 'showStatusInTerminal')) {
-        	console.log(`(${robotId}) Send to robot: ${request}`);
+        	consoleLog(`(${robotId}) Send to robot: ${request}`);
 				}
         accessState(robotId, 'robotSocket').write(`${request}\n`, (err) => {
           if (err) {
@@ -205,7 +227,7 @@ function sendToClient(clientId, msg, robotIdOverwrite) {
 	var robotId;
 	if (robotIdOverwrite) robotId=robotIdOverwrite;
 	else robotId = connectedClients.get(clientId).get('robotId');
-	console.log(`(${robotId}) Send to client ${clientId}: ${msg}`);
+	consoleLog(`(${robotId}) Send to client ${clientId}: ${msg}`);
 
 	const socket = connectedClients.get(clientId).get('socket');
 	if (!socket) return;
@@ -219,9 +241,9 @@ function sendToClient(clientId, msg, robotIdOverwrite) {
 
 function sendToAllClients(robotId, msg, sendToAll=false, showInTerminal=true) {
 	if (!showInTerminal) {}
-	else if (!sendToAll) console.log(`(${robotId}) Send to every client with this robot : ${msg}`);
-	else if (!robotId) console.log(`Send to everyone : ${msg}`);
-	else console.log(`(${robotId}) Send to everyone : ${msg}`);
+	else if (!sendToAll) consoleLog(`(${robotId}) Send to every client with this robot : ${msg}`);
+	else if (!robotId) consoleLog(`Send to everyone : ${msg}`);
+	else consoleLog(`(${robotId}) Send to everyone : ${msg}`);
 
 	for (let [clientId, dict] of connectedClients.entries()) {
 		if (!sendToAll && robotId && dict.get('robotId')!=robotId) continue;
