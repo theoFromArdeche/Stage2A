@@ -5,6 +5,8 @@
 		position: relative;
     display: flex;
     flex-direction: row;
+		box-sizing: border-box;
+		padding: 0 10% 0 10%;
 }
 
 #container_topbar > div {

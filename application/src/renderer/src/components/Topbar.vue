@@ -2,7 +2,7 @@
 import router from '../router/router.js'
 import { onMounted, ref } from 'vue';
 
-const cur_button_id = ref(0);
+const cur_button_id = ref(1);
 
 function change_view(view, new_button_id) {
 	if (new_button_id==cur_button_id.value) return;
@@ -19,7 +19,7 @@ function change_view(view, new_button_id) {
 }
 
 onMounted(() => {
-	change_view('/simulation', 1);
+	change_view('/simulation', 0);
 })
 
 
@@ -29,13 +29,10 @@ onMounted(() => {
   <div>
     <div id="container_topbar">
       <div class="wrapperButtonTopbar">
-        <button id="live" @click="change_view('/live', 0)">Live</button>
+        <button id="simulation" @click="change_view('/simulation', 0)">Simulation</button>
       </div>
       <div class="wrapperButtonTopbar">
-        <button id="simulation" @click="change_view('/simulation', 1)">Simulation</button>
-      </div>
-      <div class="wrapperButtonTopbar">
-        <button id="parametres" @click="change_view('/parametres', 2)">Parametres</button>
+        <button id="parametres" @click="change_view('/parametres', 1)">Parametres</button>
       </div>
     </div>
   </div>

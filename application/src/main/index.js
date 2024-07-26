@@ -89,11 +89,6 @@ app.whenReady().then(() => {
 		}
   });
 
-  ipcMain.on('onLive', (event, arg) => { // from router
-		mainWindow.webContents.send('onLive');
-    flagSimulation=false;
-  });
-
 
 	ipcMain.on('onParametres', (event, arg) => { // from router
 		mainWindow.webContents.send('onParametres');
