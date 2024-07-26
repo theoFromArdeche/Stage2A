@@ -148,7 +148,7 @@ Download the robot's map using a third-party application, then add it to `server
 
 ### III. Restart the Server
 
-To finalize adding a robot, you must restart the server if it was already running. This creates all necessary collections in the database and makes the robot available to users.
+To finalize the process, you must restart the server if it was already running. This creates all necessary collections in the database and makes the robot available to users.
 
 > Note: Robots are identified in the server and the application using their host and port in this format: `host_port`.
 
