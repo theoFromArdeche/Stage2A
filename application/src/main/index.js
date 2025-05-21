@@ -8,10 +8,10 @@ var mainWindow;
 function createWindow() {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 900,
+    width: 1400, //900,
     //maxWidth: 1920,
     minWidth: 900,
-    height: 670,
+    height: 850, //670,
     //maxHeight: 1080,
     minHeight: 670,
     show: false,
